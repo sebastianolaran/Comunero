@@ -1,0 +1,59 @@
+# Render Blueprint (Infrastructure as Code) para Comunero.
+#
+# Define los dos servicios del deploy. "Si se cae todo": Render Dashboard ->
+# New -> Blueprint -> elegir este repo -> Apply, y se recrean tal cual.
+#
+# Los VALORES sensibles NO viven aca: DATABASE_URL y VITE_API_URL van con
+# `sync: false` y se cargan a mano en el dashboard (ver README, seccion Deploy).
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend: API Express + Prisma. free plan -> se duerme tras ~15 min sin uso.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: comunero-server
+    runtime: node
+    plan: free
+    rootDir: server
+    # migrate deploy corre ANTES de levantar Express: las migraciones de Prisma
+    # se aplican contra Neon como parte del build, no a mano.
+    buildCommand: npm install && npx prisma migrate deploy
+    startCommand: npm start
+    # Liveness: no toca la base, responde aunque Neon este lento/caido.
+    healthCheckPath: /api/health
+    envVars:
+      # Connection string del proyecto Neon. Se pega en:
+      # Dashboard -> comunero-server -> Environment.
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
+
+  # ---------------------------------------------------------------------------
+  # Frontend: static site con el build de Vite.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: comunero-client
+    runtime: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # SPA: cualquier ruta cae en index.html.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # URL publica del backend. Se pega en:
+      # Dashboard -> comunero-client -> Environment (ej: https://comunero-server.onrender.com)
+      # y se dispara un redeploy (Vite la resuelve en build time).
+      #
+      # Alternativa auto-wire (si tu cuenta de Render lo soporta): reemplazar
+      # este bloque por
+      #   - key: VITE_API_URL
+      #     fromService:
+      #       type: web
+      #       name: comunero-server
+      #       property: host   # da el host; el client le antepone https://
+      - key: VITE_API_URL
+        sync: false

@@ -1,121 +1,68 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect, useState } from 'react'
+import { API_URL } from './lib/api'
 import './App.css'
 
+const ESTADOS = {
+  loading: { texto: 'conectando con el backend…', clase: 'is-loading' },
+  ok: { texto: 'backend ok', clase: 'is-ok' },
+  error: { texto: 'sin conexión con el backend', clase: 'is-error' },
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [estado, setEstado] = useState('loading')
+  const [intento, setIntento] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let vivo = true
+
+    fetch(`${API_URL}/api/health/db`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((body) => {
+        if (vivo) setEstado(body.db === 'ok' ? 'ok' : 'error')
+      })
+      .catch((err) => {
+        if (vivo && err.name !== 'AbortError') setEstado('error')
+      })
+
+    return () => {
+      vivo = false
+      controller.abort()
+    }
+  }, [intento])
+
+  const reintentar = () => {
+    setEstado('loading')
+    setIntento((n) => n + 1)
+  }
+
+  const { texto, clase } = ESTADOS[estado]
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <main className="status">
+      <h1>Comunero</h1>
+      <p className={`badge ${clase}`}>{texto}</p>
+      <p className="api-url">
+        API: <code>{API_URL}</code>
+      </p>
+
+      {estado !== 'ok' && (
+        <p className="hint">
+          El backend corre en el free tier de Render: si estuvo inactivo un
+          rato, el primer request puede tardar ~30–50 s en despertar el
+          servicio. No está roto.
+        </p>
+      )}
+
+      {estado === 'error' && (
+        <button type="button" onClick={reintentar}>
+          Reintentar
         </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      )}
+    </main>
   )
 }
 

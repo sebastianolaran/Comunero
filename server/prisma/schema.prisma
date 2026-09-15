@@ -1,0 +1,18 @@
+// Schema de Prisma para el server de Comunero.
+// Por ahora solo tiene una tabla trivial (HealthCheck): su unico fin es que
+// exista una migracion real que `prisma migrate deploy` aplique en el build
+// de Render contra Neon. El modelo de dominio se suma en otra HU.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  checkedAt DateTime @default(now())
+}

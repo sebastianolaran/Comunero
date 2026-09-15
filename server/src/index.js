@@ -1,12 +1,19 @@
 require('dotenv').config({ quiet: true });
 
 const express = require('express');
+const cors = require('cors');
 const healthRoutes = require('./routes/health');
+const healthDbRoutes = require('./routes/healthDb');
 
 const app = express();
 
+// El client vive en otro origen (static site de Render), asi que habilitamos
+// CORS. Abierto por ahora: es una API sin datos sensibles todavia.
+app.use(cors());
 app.use(express.json());
 
+// La ruta mas especifica primero.
+app.use('/api/health/db', healthDbRoutes);
 app.use('/api/health', healthRoutes);
 
 const PORT = process.env.PORT || 3000;
