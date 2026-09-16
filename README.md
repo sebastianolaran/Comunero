@@ -29,6 +29,7 @@ cd server
 cp .env.example .env      # completar DATABASE_URL (ver "Variables de entorno")
 npm install
 npm run migrate:deploy    # aplica las migraciones de Prisma en tu base
+npm run seed              # opcional: datos de prueba (solo en tu branch de Neon)
 npm run dev
 ```
 

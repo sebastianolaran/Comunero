@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./routes/health');
 const healthDbRoutes = require('./routes/healthDb');
+const rentalRequestRoutes = require('./routes/rentalRequest');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 // La ruta mas especifica primero.
 app.use('/api/health/db', healthDbRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/rental-requests', rentalRequestRoutes);
 
 const PORT = process.env.PORT || 3000;
 

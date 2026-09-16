@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { API_URL } from './lib/api'
+import RentalRequests from './pages/RentalRequests'
 import './App.css'
+
+// Bien a mostrar mientras no hay login ni navbar: se configura por entorno.
+const DEMO_ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
 
 const ESTADOS = {
   loading: { texto: 'conectando con el backend…', clase: 'is-loading' },
@@ -42,27 +46,31 @@ function App() {
   const { texto, clase } = ESTADOS[estado]
 
   return (
-    <main className="status">
-      <h1>Comunero</h1>
-      <p className={`badge ${clase}`}>{texto}</p>
-      <p className="api-url">
-        API: <code>{API_URL}</code>
-      </p>
-
-      {estado !== 'ok' && (
-        <p className="hint">
-          El backend corre en el free tier de Render: si estuvo inactivo un
-          rato, el primer request puede tardar ~30–50 s en despertar el
-          servicio. No está roto.
+    <>
+      <main className="status">
+        <h1>Comunero</h1>
+        <p className={`badge ${clase}`}>{texto}</p>
+        <p className="api-url">
+          API: <code>{API_URL}</code>
         </p>
-      )}
 
-      {estado === 'error' && (
-        <button type="button" onClick={reintentar}>
-          Reintentar
-        </button>
-      )}
-    </main>
+        {estado !== 'ok' && (
+          <p className="hint">
+            El backend corre en el free tier de Render: si estuvo inactivo un
+            rato, el primer request puede tardar ~30–50 s en despertar el
+            servicio. No está roto.
+          </p>
+        )}
+
+        {estado === 'error' && (
+          <button type="button" onClick={reintentar}>
+            Reintentar
+          </button>
+        )}
+      </main>
+
+      {estado === 'ok' && DEMO_ASSET_ID && <RentalRequests assetId={DEMO_ASSET_ID} />}
+    </>
   )
 }
 

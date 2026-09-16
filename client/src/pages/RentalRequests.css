@@ -1,0 +1,55 @@
+.rental-requests {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  text-align: left;
+}
+
+.rental-requests__info {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.rental-requests__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rental-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.rental-card__tenant {
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.rental-card__dates {
+  font-size: 0.85rem;
+}
+
+.rental-card__votes {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--text-h);
+}

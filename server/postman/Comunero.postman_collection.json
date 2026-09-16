@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "Comunero API",
+    "description": "Requests para probar el server de Comunero.\n\nAntes de usarla:\n1. Levantar el server (`cd server && nvm use && npm run dev`).\n2. Cargar los datos de prueba (`npm run seed`): los tests de Solicitudes esperan esos datos.\n\nVariables de la colección:\n- `baseUrl`: URL del server (local o el de Render).\n- `assetId`: bien con solicitudes (`quinta-demo` del seed).\n- `emptyAssetId`: bien sin solicitudes (`depto-demo` del seed).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "assetId", "value": "quinta-demo" },
+    { "key": "emptyAssetId", "value": "depto-demo" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "No toca la base. Responde `{ status: \"ok\" }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 y status ok', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.eql({ status: 'ok' });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness (base de datos)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health/db",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "db"]
+            },
+            "description": "Hace un SELECT 1 contra la base. 200 con `db: ok`, o 503 con `db: error` si no llega a Neon."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 y db ok', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.eql({ status: 'ok', db: 'ok' });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Solicitudes de alquiler",
+      "item": [
+        {
+          "name": "Listar solicitudes del bien",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rental-requests?assetId={{assetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rental-requests"],
+              "query": [{ "key": "assetId", "value": "{{assetId}}" }]
+            },
+            "description": "Solicitudes del bien, más nueva primero, con `yesCount`, `coownerCount` y `status` (PENDING | APPROVED | REJECTED).\n\nCon el seed: Martín Suárez pendiente 1 de 3, Marcos Díaz pendiente 2 de 3, Nico Pérez rechazada y Laura Gómez aprobada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const byTenant = Object.fromEntries(body.map((r) => [r.tenantName, r]));",
+                  "",
+                  "pm.test('200 y una lista', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(body).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('cada solicitud trae los campos del listado', () => {",
+                  "  body.forEach((r) => {",
+                  "    pm.expect(r).to.have.all.keys('id', 'tenantName', 'startDate', 'endDate', 'yesCount', 'coownerCount', 'status');",
+                  "    pm.expect(r.status).to.be.oneOf(['PENDING', 'APPROVED', 'REJECTED']);",
+                  "    pm.expect(r.startDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('seed: Martín Suárez pendiente con 1 de 3', () => {",
+                  "  pm.expect(byTenant['Martín Suárez']).to.include({ status: 'PENDING', yesCount: 1, coownerCount: 3 });",
+                  "});",
+                  "",
+                  "pm.test('seed: Nico Pérez rechazada aunque tenía votos a favor', () => {",
+                  "  pm.expect(byTenant['Nico Pérez'].status).to.eql('REJECTED');",
+                  "  pm.expect(byTenant['Nico Pérez'].yesCount).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('seed: Laura Gómez aprobada con 3 de 3', () => {",
+                  "  pm.expect(byTenant['Laura Gómez']).to.include({ status: 'APPROVED', yesCount: 3, coownerCount: 3 });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bien sin solicitudes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rental-requests?assetId={{emptyAssetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rental-requests"],
+              "query": [{ "key": "assetId", "value": "{{emptyAssetId}}" }]
+            },
+            "description": "El bien existe pero no tiene solicitudes: devuelve `[]` (el client muestra el aviso de lista vacía)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 y lista vacía', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bien inexistente (404)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rental-requests?assetId=no-existe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rental-requests"],
+              "query": [{ "key": "assetId", "value": "no-existe" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 con mensaje de error', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "  pm.expect(pm.response.json().error).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin assetId (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rental-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rental-requests"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 con mensaje de error', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().error).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

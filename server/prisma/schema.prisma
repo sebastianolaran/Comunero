@@ -1,7 +1,7 @@
 // Schema de Prisma para el server de Comunero.
-// Por ahora solo tiene una tabla trivial (HealthCheck): su unico fin es que
-// exista una migracion real que `prisma migrate deploy` aplique en el build
-// de Render contra Neon. El modelo de dominio se suma en otra HU.
+// HealthCheck es una tabla trivial para el readiness check del deploy.
+// El resto es el modelo de dominio: el bien, sus copropietarios y las
+// solicitudes de alquiler a terceros con sus votos.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,4 +15,77 @@ datasource db {
 model HealthCheck {
   id        Int      @id @default(autoincrement())
   checkedAt DateTime @default(now())
+}
+
+// El bien compartido (por ejemplo, la quinta).
+model Asset {
+  id             String          @id @default(cuid())
+  name           String
+  coowners       Coowner[]
+  rentalRequests RentalRequest[]
+}
+
+model Coowner {
+  id               String            @id @default(cuid())
+  assetId          String
+  name             String
+  // Telefono en formato E.164 (ej: "+5491155551234"). Es el identificador
+  // unico del copropietario; normalizarlo antes de guardar.
+  phone            String            @unique
+  email            String
+  passwordHash     String
+  color            String
+  sharePct         Decimal           @db.Decimal(5, 2)
+  asset            Asset             @relation(fields: [assetId], references: [id])
+  rentalVotes      RentalVote[]
+  rentalRejections RentalRejection[]
+
+  @@index([assetId])
+}
+
+// Pedido de un tercero para alquilar el bien.
+model RentalRequest {
+  id         String            @id @default(cuid())
+  assetId    String
+  tenantName String
+  contact    String
+  startDate  DateTime          @db.Date
+  endDate    DateTime          @db.Date
+  comments   String?
+  createdAt  DateTime          @default(now())
+  asset      Asset             @relation(fields: [assetId], references: [id])
+  votes      RentalVote[]
+  rejections RentalRejection[]
+
+  @@index([assetId])
+}
+
+enum VoteValue {
+  YES
+  NO
+}
+
+// Un voto por copropietario por solicitud. Se aprueba cuando la cantidad de
+// votos YES iguala a la cantidad de copropietarios del bien.
+model RentalVote {
+  id              String        @id @default(cuid())
+  rentalRequestId String
+  coownerId       String
+  value           VoteValue
+  rentalRequest   RentalRequest @relation(fields: [rentalRequestId], references: [id])
+  coowner         Coowner       @relation(fields: [coownerId], references: [id])
+
+  @@unique([rentalRequestId, coownerId])
+}
+
+// Un voto NO deja registrado el motivo y cierra la solicitud como rechazada.
+model RentalRejection {
+  id              String        @id @default(cuid())
+  rentalRequestId String
+  coownerId       String
+  reason          String
+  rentalRequest   RentalRequest @relation(fields: [rentalRequestId], references: [id])
+  coowner         Coowner       @relation(fields: [coownerId], references: [id])
+
+  @@index([rentalRequestId])
 }
