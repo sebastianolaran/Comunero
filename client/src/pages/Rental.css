@@ -1,0 +1,83 @@
+/* Alquiler a terceros > listado de solicitudes. Medidas portadas de
+   Compartido.dc.html. */
+
+.section-label {
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.empty {
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.rental {
+  max-width: 720px;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.card-list--compact {
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.card {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.card__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card__meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.card__votes {
+  margin-top: 9px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.card.is-resolved .card__head {
+  margin-bottom: 4px;
+}
+
+.card.is-resolved .card__title {
+  font-size: 14px;
+}
+
+.badge {
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}

@@ -1,76 +1,64 @@
-import { useEffect, useState } from 'react'
-import { API_URL } from './lib/api'
-import RentalRequests from './pages/RentalRequests'
+import { useState } from 'react'
+import Rental from './pages/Rental'
 import './App.css'
 
-// Bien a mostrar mientras no hay login ni navbar: se configura por entorno.
-const DEMO_ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
+const SECCIONES = [
+  { id: 'calendario', label: 'Calendario', titulo: 'Calendario' },
+  { id: 'alquiler', label: 'Alquiler', titulo: 'Alquiler a terceros' },
+  { id: 'gastos', label: 'Movimientos', titulo: 'Movimientos' },
+  { id: 'balance', label: 'Balance', titulo: 'Balance' },
+  { id: 'decisiones', label: 'Decisiones', titulo: 'Decisiones grupales' },
+  { id: 'historial', label: 'Historial', titulo: 'Historial' },
+  { id: 'config', label: 'Configuración', titulo: 'Configuración' },
+]
 
-const ESTADOS = {
-  loading: { texto: 'conectando con el backend…', clase: 'is-loading' },
-  ok: { texto: 'backend ok', clase: 'is-ok' },
-  error: { texto: 'sin conexión con el backend', clase: 'is-error' },
-}
+// Layout del prototipo (Compartido.dc.html): barra lateral con las
+// secciones y header. Por ahora solo Alquiler tiene contenido. Mientras no
+// hay login, el bien sale del entorno.
+function App({ assetId = import.meta.env.VITE_DEMO_ASSET_ID }) {
+  const [vista, setVista] = useState('alquiler')
+  const seccion = SECCIONES.find((s) => s.id === vista)
 
-function App() {
-  const [estado, setEstado] = useState('loading')
-  const [intento, setIntento] = useState(0)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    let vivo = true
-
-    fetch(`${API_URL}/api/health/db`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((body) => {
-        if (vivo) setEstado(body.db === 'ok' ? 'ok' : 'error')
-      })
-      .catch((err) => {
-        if (vivo && err.name !== 'AbortError') setEstado('error')
-      })
-
-    return () => {
-      vivo = false
-      controller.abort()
-    }
-  }, [intento])
-
-  const reintentar = () => {
-    setEstado('loading')
-    setIntento((n) => n + 1)
+  let contenido
+  if (vista !== 'alquiler') {
+    contenido = <p className="notice">Esta sección todavía no está disponible.</p>
+  } else if (!assetId) {
+    contenido = (
+      <p className="notice">
+        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
+      </p>
+    )
+  } else {
+    contenido = <Rental assetId={assetId} />
   }
 
-  const { texto, clase } = ESTADOS[estado]
-
   return (
-    <>
-      <main className="status">
-        <h1>Comunero</h1>
-        <p className={`badge ${clase}`}>{texto}</p>
-        <p className="api-url">
-          API: <code>{API_URL}</code>
-        </p>
+    <div className="app">
+      <aside className="sidebar">
+        <p className="sidebar__title">Comunero</p>
+        <nav className="nav" aria-label="Secciones">
+          {SECCIONES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="nav__item"
+              aria-current={s.id === vista ? 'page' : undefined}
+              onClick={() => setVista(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-        {estado !== 'ok' && (
-          <p className="hint">
-            El backend corre en el free tier de Render: si estuvo inactivo un
-            rato, el primer request puede tardar ~30–50 s en despertar el
-            servicio. No está roto.
-          </p>
-        )}
+      <main className="main">
+        <header className="topbar">
+          <h1 className="topbar__title">{seccion.titulo}</h1>
+        </header>
 
-        {estado === 'error' && (
-          <button type="button" onClick={reintentar}>
-            Reintentar
-          </button>
-        )}
+        <div className="content">{contenido}</div>
       </main>
-
-      {estado === 'ok' && DEMO_ASSET_ID && <RentalRequests assetId={DEMO_ASSET_ID} />}
-    </>
+    </div>
   )
 }
 

@@ -1,36 +1,36 @@
-const RESULTADOS = {
-  APPROVED: { texto: 'Aprobada', clase: 'is-ok' },
-  REJECTED: { texto: 'Rechazada', clase: 'is-error' },
+import { daysLabel, formatRange } from '../lib/rental'
+
+const ESTADOS = {
+  PENDING: 'En votación',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
 }
 
-// "2027-01-10" -> "10/01/2027". Se arma a mano para no pasar por Date y que
-// la zona horaria no corra el día.
-function formatearFecha(fecha) {
-  const [anio, mes, dia] = fecha.split('-')
-  return `${dia}/${mes}/${anio}`
-}
-
+// Tarjeta del listado de solicitudes. Las pendientes muestran el contacto y
+// el avance de la votación en su propia línea; las resueltas van compactas.
 function RentalRequestCard({ solicitud }) {
-  const { tenantName, startDate, endDate, yesCount, coownerCount, status } = solicitud
-  const resultado = RESULTADOS[status]
+  const { tenantName, contact, startDate, endDate, yesCount, coownerCount, status } = solicitud
+  const pendiente = status === 'PENDING'
+  const rango = formatRange(startDate, endDate)
+  const dias = daysLabel(startDate, endDate)
+  const votos = `${yesCount}/${coownerCount} aprobaron`
 
   return (
-    <li className="rental-card">
-      <div>
-        <p className="rental-card__tenant">{tenantName}</p>
-        <p className="rental-card__dates">
-          {formatearFecha(startDate)} – {formatearFecha(endDate)}
-        </p>
+    <article className={`card${pendiente ? '' : ' is-resolved'}`}>
+      <div className="card__head">
+        <h3 className="card__title">{tenantName}</h3>
+        <span className="badge">{ESTADOS[status] ?? status}</span>
       </div>
 
-      {resultado ? (
-        <span className={`badge ${resultado.clase}`}>{resultado.texto}</span>
+      {pendiente ? (
+        <>
+          <p className="card__meta">{`${contact} · ${rango} · ${dias}`}</p>
+          <p className="card__votes">{votos}</p>
+        </>
       ) : (
-        <span className="rental-card__votes">
-          {yesCount} de {coownerCount} votos a favor
-        </span>
+        <p className="card__meta">{`${rango} · ${dias} · ${votos}`}</p>
       )}
-    </li>
+    </article>
   )
 }
 

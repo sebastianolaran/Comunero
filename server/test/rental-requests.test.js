@@ -10,6 +10,7 @@ const rentalRequestService = require('../src/services/rentalRequest.service');
 const martin = {
   id: 'rr1',
   tenantName: 'Martín Suárez',
+  contact: '+5491155551234',
   startDate: '2027-01-10',
   endDate: '2027-01-15',
   yesCount: 1,

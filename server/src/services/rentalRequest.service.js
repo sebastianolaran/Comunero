@@ -1,10 +1,13 @@
 const prisma = require('../prisma');
 
-// Estado derivado de una solicitud de alquiler (no se guarda en la base).
-// Un solo rechazo la cierra, aunque ya tuviera votos a favor. Se aprueba
-// recien cuando votaron YES todos los copropietarios del bien.
-function deriveStatus({ yesCount, coownerCount, rejectionCount }) {
-  if (rejectionCount > 0) return 'REJECTED';
+// Estado derivado de una solicitud de alquiler (no se guarda en la base), a
+// partir de los valores de sus votos ('YES' | 'NO'). Es el mismo criterio que
+// requestStatus() del prototipo: un solo NO la cierra como rechazada, aunque
+// ya tuviera votos a favor, y se aprueba recien cuando votaron YES todos los
+// copropietarios del bien.
+function deriveStatus(votes, coownerCount) {
+  if (votes.includes('NO')) return 'REJECTED';
+  const yesCount = votes.filter((v) => v === 'YES').length;
   if (coownerCount > 0 && yesCount >= coownerCount) return 'APPROVED';
   return 'PENDING';
 }
@@ -32,27 +35,24 @@ async function listByAsset(assetId) {
     select: {
       id: true,
       tenantName: true,
+      contact: true,
       startDate: true,
       endDate: true,
-      _count: {
-        select: {
-          votes: { where: { value: 'YES' } },
-          rejections: true,
-        },
-      },
+      votes: { select: { value: true } },
     },
   });
 
   return requests.map((r) => {
-    const yesCount = r._count.votes;
+    const votes = r.votes.map((v) => v.value);
     return {
       id: r.id,
       tenantName: r.tenantName,
+      contact: r.contact,
       startDate: toDateOnly(r.startDate),
       endDate: toDateOnly(r.endDate),
-      yesCount,
+      yesCount: votes.filter((v) => v === 'YES').length,
       coownerCount,
-      status: deriveStatus({ yesCount, coownerCount, rejectionCount: r._count.rejections }),
+      status: deriveStatus(votes, coownerCount),
     };
   });
 }

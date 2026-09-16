@@ -80,7 +80,7 @@
               "path": ["api", "rental-requests"],
               "query": [{ "key": "assetId", "value": "{{assetId}}" }]
             },
-            "description": "Solicitudes del bien, más nueva primero, con `yesCount`, `coownerCount` y `status` (PENDING | APPROVED | REJECTED).\n\nCon el seed: Martín Suárez pendiente 1 de 3, Marcos Díaz pendiente 2 de 3, Nico Pérez rechazada y Laura Gómez aprobada."
+            "description": "Solicitudes del bien, más nueva primero, con `contact`, `yesCount`, `coownerCount` y `status` (PENDING | APPROVED | REJECTED). Un voto NO la deja rechazada; se aprueba cuando votaron YES todos los copropietarios.\n\nCon el seed: Martín Suárez pendiente 1 de 3, Marcos Díaz pendiente 2 de 3, Nico Pérez rechazada y Laura Gómez aprobada."
           },
           "event": [
             {
@@ -98,7 +98,7 @@
                   "",
                   "pm.test('cada solicitud trae los campos del listado', () => {",
                   "  body.forEach((r) => {",
-                  "    pm.expect(r).to.have.all.keys('id', 'tenantName', 'startDate', 'endDate', 'yesCount', 'coownerCount', 'status');",
+                  "    pm.expect(r).to.have.all.keys('id', 'tenantName', 'contact', 'startDate', 'endDate', 'yesCount', 'coownerCount', 'status');",
                   "    pm.expect(r.status).to.be.oneOf(['PENDING', 'APPROVED', 'REJECTED']);",
                   "    pm.expect(r.startDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
                   "  });",
