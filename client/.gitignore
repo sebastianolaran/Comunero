@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tests de UI (Vitest): se corren localmente, no se commitean
+/test/
+/vitest.config.js
