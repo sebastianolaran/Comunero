@@ -1,0 +1,12 @@
+.pronto-titulo {
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  margin: 0 0 1.5rem;
+}
+
+.pronto-mensaje {
+  padding: 3rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+}

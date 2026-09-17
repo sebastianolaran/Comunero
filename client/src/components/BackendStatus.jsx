@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { API_URL } from './lib/api'
-import './App.css'
+import { API_URL } from '../lib/api'
+import './BackendStatus.css'
 
 const ESTADOS = {
   loading: { texto: 'conectando con el backend…', clase: 'is-loading' },
@@ -8,7 +8,12 @@ const ESTADOS = {
   error: { texto: 'sin conexión con el backend', clase: 'is-error' },
 }
 
-function App() {
+// El backend corre en el free tier de Render: si estuvo inactivo un rato, el
+// primer request puede tardar ~30–50 s en despertar el servicio.
+const HINT_COLD_START =
+  'Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.'
+
+function BackendStatus() {
   const [estado, setEstado] = useState('loading')
   const [intento, setIntento] = useState(0)
 
@@ -42,28 +47,21 @@ function App() {
   const { texto, clase } = ESTADOS[estado]
 
   return (
-    <main className="status">
-      <h1>Comunero</h1>
-      <p className={`badge ${clase}`}>{texto}</p>
-      <p className="api-url">
-        API: <code>{API_URL}</code>
+    <div className="backend-status">
+      <p
+        className={`backend-status-texto ${clase}`}
+        role="status"
+        title={estado === 'ok' ? API_URL : HINT_COLD_START}
+      >
+        {texto}
       </p>
-
-      {estado !== 'ok' && (
-        <p className="hint">
-          El backend corre en el free tier de Render: si estuvo inactivo un
-          rato, el primer request puede tardar ~30–50 s en despertar el
-          servicio. No está roto.
-        </p>
-      )}
-
       {estado === 'error' && (
         <button type="button" onClick={reintentar}>
           Reintentar
         </button>
       )}
-    </main>
+    </div>
   )
 }
 
-export default App
+export default BackendStatus

@@ -1,0 +1,35 @@
+.backend-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.backend-status-texto::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.backend-status-texto.is-ok::before {
+  background: #15803d;
+}
+
+.backend-status-texto.is-error::before {
+  background: #b91c1c;
+}
+
+.backend-status button {
+  font: inherit;
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
