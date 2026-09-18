@@ -5,6 +5,7 @@ const prisma = require('../src/prisma');
 const { nextStatus, vote } = require('../src/services/rentalRequest.service');
 
 const COOWNERS = ['ana', 'bruno', 'caro', 'flor'];
+const nameOf = (id) => id[0].toUpperCase() + id.slice(1);
 
 // Base en memoria con la forma minima de las queries que hace vote().
 function fakeDb({ reservation = {}, users = COOWNERS, approvals = [], objections = [] } = {}) {
@@ -16,35 +17,28 @@ function fakeDb({ reservation = {}, users = COOWNERS, approvals = [], objections
       status: 'PENDING',
       startDate: new Date('2026-10-10T00:00:00.000Z'),
       endDate: new Date('2026-10-12T00:00:00.000Z'),
-      renter: { name: 'Inquilino' },
+      note: null,
+      renter: { name: 'Inquilino', phone: '5491100000000' },
       ...reservation,
     },
     approvals: approvals.map((userId) => ({ userId })),
     objections: objections.map((userId) => ({ userId, reason: 'no' })),
   };
+  const snapshot = () => ({ ...state.reservation, approvals: state.approvals, objections: state.objections });
   const byUser = (rows, where) => rows.filter((row) => row.userId === where.userId);
 
   const tx = {
     $queryRaw: async () => [],
     reservation: {
-      findUnique: async ({ where }) =>
-        where.id === state.reservation.id
-          ? {
-              ...state.reservation,
-              _count: { approvals: state.approvals.length, objections: state.objections.length },
-            }
-          : null,
+      findUnique: async ({ where }) => (where.id === state.reservation.id ? snapshot() : null),
       update: async ({ data }) => {
         state.reservation = { ...state.reservation, ...data };
         return state.reservation;
       },
     },
     user: {
-      count: async () => users.length,
-      findFirst: async ({ where }) =>
-        users.includes(where.id) && where.assetId === state.reservation.assetId
-          ? { id: where.id }
-          : null,
+      findMany: async ({ where }) =>
+        where.assetId === state.reservation.assetId ? users.map((id) => ({ id, name: nameOf(id) })) : [],
     },
     reservationApproval: {
       upsert: async ({ create }) => {
@@ -99,7 +93,11 @@ test('vote: un si sin completar la unanimidad queda registrado y sigue pendiente
   assert.equal(db.state.reservation.status, 'PENDING');
   assert.equal(result.request.status, 'PENDING');
   assert.equal(result.request.yesCount, 3);
-  assert.equal(result.request.myVote, 'APPROVE');
+  assert.equal(result.request.vote, 'APPROVE');
+  assert.deepEqual(
+    result.request.votes.map((v) => [v.name, v.value]),
+    [['Ana', 'APPROVE'], ['Bruno', 'APPROVE'], ['Caro', 'APPROVE'], ['Flor', null]],
+  );
 });
 
 test('vote: el ultimo si aprueba y guarda la reserva como ACTIVE', async (t) => {
@@ -130,7 +128,8 @@ test('vote: un no guarda el motivo y rechaza de inmediato', async (t) => {
   assert.deepEqual(db.state.objections, [{ userId: 'bruno', reason: 'Muy caro' }]);
   assert.equal(db.state.reservation.status, 'REJECTED');
   assert.equal(result.request.status, 'REJECTED');
-  assert.equal(result.request.myVote, 'REJECT');
+  assert.equal(result.request.vote, 'REJECT');
+  assert.deepEqual(result.request.rejections, [{ name: 'Bruno', reason: 'Muy caro' }]);
 });
 
 test('vote: pasar de si a no reemplaza el voto anterior y rechaza', async (t) => {

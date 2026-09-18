@@ -31,52 +31,75 @@ test('deriveStatus: un bien sin copropietarios nunca aprueba por votos', () => {
   assert.equal(deriveStatus({ status: 'PENDING', approvals: 0, objections: 0 }, 0), 'PENDING');
 });
 
-test('toListItem: arma la solicitud con el interesado, las fechas y el conteo de votos', () => {
-  const reservation = {
+const COOWNERS = [
+  { id: 'u1', name: 'Ana' },
+  { id: 'u2', name: 'Bruno' },
+  { id: 'u3', name: 'Carla' },
+];
+
+function reservationWith(overrides = {}) {
+  return {
     id: 'r1',
     status: 'PENDING',
     startDate: new Date('2027-01-10T00:00:00.000Z'),
     endDate: new Date('2027-01-15T00:00:00.000Z'),
-    renter: { name: 'Martín Suárez' },
-    _count: { approvals: 1, objections: 0 },
+    note: 'Somos 4, sin mascotas.',
+    renter: { name: 'Martín Suárez', phone: '5491155551234' },
+    approvals: [],
+    objections: [],
+    ...overrides,
   };
+}
 
-  assert.deepEqual(toListItem(reservation, 3), {
+test('toListItem: arma la solicitud con el interesado, las fechas y el voto de cada copropietario', () => {
+  const reservation = reservationWith({ approvals: [{ userId: 'u1' }] });
+
+  assert.deepEqual(toListItem(reservation, COOWNERS, 'u2'), {
     id: 'r1',
     renterName: 'Martín Suárez',
+    renterPhone: '5491155551234',
+    comments: 'Somos 4, sin mascotas.',
     startDate: '2027-01-10',
     endDate: '2027-01-15',
     yesCount: 1,
     coownerCount: 3,
     status: 'PENDING',
-    myVote: null,
+    votes: [
+      { userId: 'u1', name: 'Ana', value: 'APPROVE' },
+      { userId: 'u2', name: 'Bruno', value: null },
+      { userId: 'u3', name: 'Carla', value: null },
+    ],
+    rejections: [],
+    vote: null,
   });
 });
 
-test('toListItem: myVote refleja el voto del usuario consultado', () => {
-  const base = {
-    id: 'r3',
-    status: 'PENDING',
-    startDate: new Date('2027-01-10T00:00:00.000Z'),
-    endDate: new Date('2027-01-15T00:00:00.000Z'),
-    renter: null,
-    _count: { approvals: 1, objections: 0 },
-  };
+test('toListItem: vote es el voto del usuario consultado', () => {
+  const reservation = reservationWith({
+    approvals: [{ userId: 'u1' }],
+    objections: [{ userId: 'u2', reason: 'Ruido' }],
+  });
 
-  assert.equal(toListItem({ ...base, approvals: [{ userId: 'u1' }], objections: [] }, 3).myVote, 'APPROVE');
-  assert.equal(toListItem({ ...base, approvals: [], objections: [{ userId: 'u1' }] }, 3).myVote, 'REJECT');
-  assert.equal(toListItem({ ...base, approvals: [], objections: [] }, 3).myVote, null);
+  assert.equal(toListItem(reservation, COOWNERS, 'u1').vote, 'APPROVE');
+  assert.equal(toListItem(reservation, COOWNERS, 'u2').vote, 'REJECT');
+  assert.equal(toListItem(reservation, COOWNERS, 'u3').vote, null);
+  assert.equal(toListItem(reservation, COOWNERS).vote, null);
 });
 
-test('toListItem: sin interesado cargado devuelve renterName null', () => {
-  const reservation = {
-    id: 'r2',
-    status: 'ACTIVE',
-    startDate: new Date('2026-12-01T00:00:00.000Z'),
-    endDate: new Date('2026-12-03T00:00:00.000Z'),
-    renter: null,
-    _count: { approvals: 3, objections: 0 },
-  };
+test('toListItem: un rechazo queda como objecion con el nombre y el motivo', () => {
+  const reservation = reservationWith({ objections: [{ userId: 'u2', reason: 'Ya hubo quejas por ruido' }] });
 
-  assert.equal(toListItem(reservation, 3).renterName, null);
+  const item = toListItem(reservation, COOWNERS, 'u1');
+
+  assert.equal(item.status, 'REJECTED');
+  assert.deepEqual(item.rejections, [{ name: 'Bruno', reason: 'Ya hubo quejas por ruido' }]);
+  assert.equal(item.votes[1].value, 'REJECT');
+});
+
+test('toListItem: sin interesado ni comentario devuelve null', () => {
+  const item = toListItem(reservationWith({ renter: null, note: null }), COOWNERS);
+
+  assert.equal(item.renterName, null);
+  assert.equal(item.renterPhone, null);
+  assert.equal(item.comments, null);
 });

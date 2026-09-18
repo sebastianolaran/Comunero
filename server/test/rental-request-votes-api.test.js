@@ -13,7 +13,7 @@ const solicitud = {
   yesCount: 3,
   coownerCount: 4,
   status: 'PENDING',
-  myVote: 'APPROVE',
+  vote: 'APPROVE',
 };
 
 function postVote(body) {
@@ -109,7 +109,7 @@ test('POST votes: responde 500 si falla la base', async (t) => {
   assert.ok(res.body.error);
 });
 
-test('GET /api/rental-requests pasa el userId para calcular myVote', async (t) => {
+test('GET /api/rental-requests pasa el userId para calcular vote', async (t) => {
   const listByAsset = t.mock.method(rentalRequestService, 'listByAsset', async () => [solicitud]);
 
   const res = await request(app).get('/api/rental-requests?assetId=a1&userId=caro');
