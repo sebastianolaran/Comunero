@@ -44,6 +44,7 @@ function reservationWith(overrides = {}) {
     startDate: new Date('2027-01-10T00:00:00.000Z'),
     endDate: new Date('2027-01-15T00:00:00.000Z'),
     note: 'Somos 4, sin mascotas.',
+    amount: 240000,
     renter: { name: 'Martín Suárez', phone: '5491155551234' },
     approvals: [],
     objections: [],
@@ -59,6 +60,7 @@ test('toListItem: arma la solicitud con el interesado, las fechas y el voto de c
     renterName: 'Martín Suárez',
     renterPhone: '5491155551234',
     comments: 'Somos 4, sin mascotas.',
+    amount: 240000,
     startDate: '2027-01-10',
     endDate: '2027-01-15',
     yesCount: 1,
@@ -96,9 +98,10 @@ test('toListItem: un rechazo queda como objecion con el nombre y el motivo', () 
   assert.equal(item.votes[1].value, 'REJECT');
 });
 
-test('toListItem: sin interesado ni comentario devuelve null', () => {
-  const item = toListItem(reservationWith({ renter: null, note: null }), COOWNERS);
+test('toListItem: sin interesado, comentario ni monto devuelve null', () => {
+  const item = toListItem(reservationWith({ renter: null, note: null, amount: null }), COOWNERS);
 
+  assert.equal(item.amount, null);
   assert.equal(item.renterName, null);
   assert.equal(item.renterPhone, null);
   assert.equal(item.comments, null);
