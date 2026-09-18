@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { agrupar, chipVoto, daysLabel, formatPhone, formatRange, validarVoto, votosLabel } from '../src/lib/rentalRequests.js'
+import { agrupar, chipVoto, daysLabel, formatMoney, formatPhone, formatRange, validarVoto, votosLabel } from '../src/lib/rentalRequests.js'
 
 const pendiente = (id) => ({ id, status: 'PENDING' })
 const aprobada = (id) => ({ id, status: 'APPROVED' })
@@ -102,4 +102,13 @@ test('validarVoto: un no con motivo lo manda recortado', () => {
   assert.deepEqual(validarVoto({ value: 'REJECT', reason: '  Muy caro ' }), {
     voto: { value: 'REJECT', reason: 'Muy caro' },
   })
+})
+
+test('formatMoney: pesos con separador de miles', () => {
+  assert.equal(formatMoney(120000), '$120.000')
+  assert.equal(formatMoney(0), '$0')
+})
+
+test('formatMoney: sin monto devuelve null', () => {
+  assert.equal(formatMoney(null), null)
 })

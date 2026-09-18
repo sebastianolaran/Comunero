@@ -31,6 +31,10 @@ export function chipVoto({ name, value }) {
   return { label: `${name} ${simbolo}`, descripcion: `${name} ${verbo}`, variante }
 }
 
+export function formatMoney(monto) {
+  return monto == null ? null : `$${monto.toLocaleString('es-AR')}`
+}
+
 // El server guarda solo dígitos con código de país (5491155551234).
 export function formatPhone(phone) {
   const caba = /^54911(\d{4})(\d{4})$/.exec(phone ?? '')

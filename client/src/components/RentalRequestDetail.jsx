@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { daysLabel, ESTADOS, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
+import { daysLabel, ESTADOS, formatMoney, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
 // modo: 'ver' | 'rechazar' | 'cambiar' (Cambiar voto vuelve a mostrar Aprobar/Rechazar).
@@ -43,6 +43,12 @@ function RentalRequestDetail({
       </div>
       <p className="detalle-fechas">
         {`${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`}
+        {solicitud.amount != null && (
+          <>
+            <br />
+            {formatMoney(solicitud.amount)}
+          </>
+        )}
       </p>
       {comments && <p className="detalle-comentario">{comments}</p>}
 

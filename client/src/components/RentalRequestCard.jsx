@@ -1,4 +1,4 @@
-import { daysLabel, ESTADOS, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
+import { daysLabel, ESTADOS, formatMoney, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
 // La tarjeta entera selecciona con el mouse; con teclado se entra por el nombre.
@@ -21,6 +21,7 @@ function RentalRequestCard({
   const pendiente = status === 'PENDING'
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
+  const monto = formatMoney(solicitud.amount)
   const clases = ['solicitud', seleccionada && 'is-seleccionada', !pendiente && 'is-resuelta']
 
   return (
@@ -42,7 +43,7 @@ function RentalRequestCard({
       {pendiente ? (
         <>
           <p className="solicitud-meta">
-            {[formatPhone(renterPhone), fechas, dias].filter(Boolean).join(' · ')}
+            {[formatPhone(renterPhone), fechas, dias, monto].filter(Boolean).join(' · ')}
           </p>
           {comments && <p className="solicitud-comentario">{comments}</p>}
           <div className="solicitud-votos">
@@ -80,7 +81,9 @@ function RentalRequestCard({
             ))}
         </>
       ) : (
-        <p className="solicitud-meta">{`${fechas} · ${dias} · ${votosLabel(solicitud)}`}</p>
+        <p className="solicitud-meta">
+          {[fechas, dias, monto, votosLabel(solicitud)].filter(Boolean).join(' · ')}
+        </p>
       )}
     </article>
   )
