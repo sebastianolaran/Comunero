@@ -1,7 +1,8 @@
 import { useEffect, useId, useState } from 'react'
 import RentalRequestCard from '../components/RentalRequestCard'
-import { agrupar } from '../lib/rentalRequests'
-import { fetchRentalRequests } from '../services/rentalRequest'
+import RentalRequestDetail from '../components/RentalRequestDetail'
+import { agrupar, validarVoto } from '../lib/rentalRequests'
+import { fetchRentalRequests, voteRentalRequest } from '../services/rentalRequest'
 
 // TODO: usar el bien del usuario logueado cuando exista el login.
 const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
@@ -10,8 +11,11 @@ const USER_ID = import.meta.env.VITE_DEMO_USER_ID
 function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
   const [carga, setCarga] = useState({ estado: 'loading', solicitudes: [] })
   const [intento, setIntento] = useState(0)
+  const [seleccion, setSeleccion] = useState(null)
+  const [modo, setModo] = useState('ver')
+  const [envio, setEnvio] = useState({ enviando: false, error: null })
   const idPendientes = useId()
-  const idAprobadas = useId()
+  const idResueltas = useId()
 
   useEffect(() => {
     if (!assetId) return
@@ -37,6 +41,28 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
       ...prev,
       solicitudes: prev.solicitudes.map((s) => (s.id === actualizada.id ? actualizada : s)),
     }))
+  }
+
+  const seleccionar = (id, nuevoModo = 'ver') => {
+    setSeleccion(id)
+    setModo(nuevoModo)
+    setEnvio({ enviando: false, error: null })
+  }
+
+  async function votar(id, borrador) {
+    const { error, voto } = validarVoto(borrador)
+    if (error) {
+      setEnvio({ enviando: false, error })
+      return
+    }
+    setEnvio({ enviando: true, error: null })
+    try {
+      reemplazar(await voteRentalRequest(id, { userId, ...voto }))
+      setModo('ver')
+      setEnvio({ enviando: false, error: null })
+    } catch (err) {
+      setEnvio({ enviando: false, error: err.message })
+    }
   }
 
   const reintentar = () => {
@@ -78,7 +104,26 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
     return <p className="aviso">Todavía no hay solicitudes de alquiler para este bien.</p>
   }
 
-  const { pendientes, aprobadas } = agrupar(carga.solicitudes)
+  const { pendientes, resueltas } = agrupar(carga.solicitudes)
+  const seleccionada = carga.solicitudes.find((s) => s.id === seleccion) ?? null
+  const puedeVotar = Boolean(userId)
+
+  const tarjeta = (s) => (
+    <RentalRequestCard
+      key={s.id}
+      solicitud={s}
+      seleccionada={s.id === seleccion}
+      puedeVotar={puedeVotar}
+      enviando={envio.enviando}
+      onSelect={() => seleccionar(s.id)}
+      onApprove={() => {
+        seleccionar(s.id)
+        votar(s.id, { value: 'APPROVE' })
+      }}
+      onOpenReject={() => seleccionar(s.id, 'rechazar')}
+      onChangeVote={() => seleccionar(s.id)}
+    />
+  )
 
   return (
     <div className="solicitudes">
@@ -87,29 +132,48 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
         copropietarios
       </p>
 
-      <section aria-labelledby={idPendientes}>
-        <h2 id={idPendientes} className="solicitudes-grupo">
-          Pendientes de aprobación
-        </h2>
-        {pendientes.length === 0 ? (
-          <p className="solicitudes-vacio">No hay solicitudes esperando votación.</p>
-        ) : (
-          pendientes.map((s) => (
-            <RentalRequestCard key={s.id} solicitud={s} userId={userId} onVoted={reemplazar} />
-          ))
-        )}
-      </section>
+      <div className="solicitudes-layout">
+        <div className="solicitudes-lista">
+          <section aria-labelledby={idPendientes}>
+            <h2 id={idPendientes} className="solicitudes-grupo">
+              Pendientes de aprobación
+            </h2>
+            {pendientes.length === 0 ? (
+              <p className="solicitudes-vacio">No hay solicitudes esperando votación.</p>
+            ) : (
+              pendientes.map(tarjeta)
+            )}
+          </section>
 
-      {aprobadas.length > 0 && (
-        <section aria-labelledby={idAprobadas} className="solicitudes-aprobadas">
-          <h2 id={idAprobadas} className="solicitudes-grupo">
-            Aprobadas
-          </h2>
-          {aprobadas.map((s) => (
-            <RentalRequestCard key={s.id} solicitud={s} />
-          ))}
-        </section>
-      )}
+          {resueltas.length > 0 && (
+            <section aria-labelledby={idResueltas} className="solicitudes-resueltas">
+              <h2 id={idResueltas} className="solicitudes-grupo">
+                Resueltas
+              </h2>
+              {resueltas.map(tarjeta)}
+            </section>
+          )}
+        </div>
+
+        <RentalRequestDetail
+          key={seleccion ?? 'ninguna'}
+          solicitud={seleccionada}
+          modo={modo}
+          envio={envio}
+          puedeVotar={puedeVotar}
+          onApprove={() => votar(seleccion, { value: 'APPROVE' })}
+          onOpenReject={() => {
+            setModo('rechazar')
+            setEnvio({ enviando: false, error: null })
+          }}
+          onCancelReject={() => {
+            setModo('ver')
+            setEnvio({ enviando: false, error: null })
+          }}
+          onSubmitReject={(motivo) => votar(seleccion, { value: 'REJECT', reason: motivo })}
+          onChangeVote={() => setModo('cambiar')}
+        />
+      </div>
     </div>
   )
 }

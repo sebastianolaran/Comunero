@@ -1,45 +1,65 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { agrupar, daysLabel, formatRange, validarVoto, votosLabel } from '../src/lib/rentalRequests.js'
+import { agrupar, chipVoto, daysLabel, formatPhone, formatRange, validarVoto, votosLabel } from '../src/lib/rentalRequests.js'
 
 const pendiente = (id) => ({ id, status: 'PENDING' })
 const aprobada = (id) => ({ id, status: 'APPROVED' })
 const rechazada = (id) => ({ id, status: 'REJECTED' })
 
-test('agrupar: separa las pendientes de las aprobadas', () => {
-  const { pendientes, aprobadas } = agrupar([pendiente('martin'), aprobada('vieja')])
+test('agrupar: separa pendientes de resueltas (aprobadas y rechazadas)', () => {
+  const { pendientes, resueltas } = agrupar([pendiente('martin'), aprobada('vieja'), rechazada('lucia')])
 
   assert.deepEqual(pendientes.map((s) => s.id), ['martin'])
-  assert.deepEqual(aprobadas.map((s) => s.id), ['vieja'])
-})
-
-test('agrupar: las rechazadas quedan en la sección de pendientes', () => {
-  const { pendientes, aprobadas } = agrupar([rechazada('lucia'), aprobada('vieja')])
-
-  assert.deepEqual(pendientes.map((s) => s.id), ['lucia'])
-  assert.deepEqual(aprobadas.map((s) => s.id), ['vieja'])
+  assert.deepEqual(resueltas.map((s) => s.id), ['vieja', 'lucia'])
 })
 
 test('agrupar: mantiene el orden de más reciente a más antigua dentro de cada grupo', () => {
-  const { pendientes, aprobadas } = agrupar([
+  const { pendientes, resueltas } = agrupar([
     pendiente('p3'),
-    aprobada('a3'),
+    aprobada('r3'),
     pendiente('p2'),
     rechazada('r2'),
-    aprobada('a1'),
+    pendiente('p1'),
   ])
 
-  assert.deepEqual(pendientes.map((s) => s.id), ['p3', 'p2', 'r2'])
-  assert.deepEqual(aprobadas.map((s) => s.id), ['a3', 'a1'])
+  assert.deepEqual(pendientes.map((s) => s.id), ['p3', 'p2', 'p1'])
+  assert.deepEqual(resueltas.map((s) => s.id), ['r3', 'r2'])
 })
 
 test('agrupar: sin solicitudes devuelve los dos grupos vacíos', () => {
-  assert.deepEqual(agrupar([]), { pendientes: [], aprobadas: [] })
+  assert.deepEqual(agrupar([]), { pendientes: [], resueltas: [] })
 })
 
-test('votosLabel: "1 de 3"', () => {
-  assert.equal(votosLabel({ yesCount: 1, coownerCount: 3 }), '1 de 3')
+test('votosLabel: "1/3 aprobaron"', () => {
+  assert.equal(votosLabel({ yesCount: 1, coownerCount: 3 }), '1/3 aprobaron')
+})
+
+test('chipVoto: tilde si aprobó, cruz si rechazó y punto si no votó', () => {
+  assert.deepEqual(chipVoto({ name: 'Ana', value: 'APPROVE' }), {
+    label: 'Ana ✓',
+    descripcion: 'Ana aprobó',
+    variante: 'aprobo',
+  })
+  assert.deepEqual(chipVoto({ name: 'Bruno', value: 'REJECT' }), {
+    label: 'Bruno ✕',
+    descripcion: 'Bruno rechazó',
+    variante: 'rechazo',
+  })
+  assert.deepEqual(chipVoto({ name: 'Flor', value: null }), {
+    label: 'Flor ·',
+    descripcion: 'Flor todavía no votó',
+    variante: 'pendiente',
+  })
+})
+
+test('formatPhone: celular de CABA/GBA guardado con código de país', () => {
+  assert.equal(formatPhone('5491155551234'), '11 5555-1234')
+})
+
+test('formatPhone: otros formatos se muestran tal cual y null queda null', () => {
+  assert.equal(formatPhone('5493514445566'), '5493514445566')
+  assert.equal(formatPhone(null), null)
 })
 
 test('formatRange: rango dentro del mismo mes y año', () => {
