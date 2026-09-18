@@ -19,11 +19,13 @@ async function main() {
 
   await prisma.asset.create({ data: { id: ASSET_ID, name: 'Casa quinta' } });
 
-  const [ana, bruno, carla] = await Promise.all(
+  // Ids fijos para poder usarlos como VITE_DEMO_USER_ID en el client.
+  const [ana, bruno, carla, flor] = await Promise.all(
     [
-      { name: 'Ana', phone: '5491100000001' },
-      { name: 'Bruno', phone: '5491100000002' },
-      { name: 'Carla', phone: '5491100000003' },
+      { id: 'seed-ana', name: 'Ana', phone: '5491100000001' },
+      { id: 'seed-bruno', name: 'Bruno', phone: '5491100000002' },
+      { id: 'seed-carla', name: 'Carla', phone: '5491100000003' },
+      { id: 'seed-flor', name: 'Flor', phone: '5491100000004' },
     ].map((u) =>
       prisma.user.create({ data: { ...u, assetId: ASSET_ID, passwordHash: PASSWORD_HASH } }),
     ),
@@ -46,7 +48,7 @@ async function main() {
       startDate: new Date('2026-12-01T00:00:00.000Z'),
       endDate: new Date('2026-12-03T00:00:00.000Z'),
       createdAt: new Date('2026-09-01T12:00:00.000Z'),
-      approvals: { create: [ana, bruno, carla].map((u) => ({ userId: u.id })) },
+      approvals: { create: [ana, bruno, carla, flor].map((u) => ({ userId: u.id })) },
     },
   });
 
@@ -63,7 +65,21 @@ async function main() {
     },
   });
 
-  console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID}`);
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: carla.id,
+      renterId: lucia.id,
+      type: 'RENTAL',
+      startDate: new Date('2026-10-10T00:00:00.000Z'),
+      endDate: new Date('2026-10-12T00:00:00.000Z'),
+      depositAmount: 120000,
+      createdAt: new Date('2026-09-17T12:00:00.000Z'),
+      approvals: { create: [ana, bruno].map((u) => ({ userId: u.id })) },
+    },
+  });
+
+  console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
 }
 
 main()
