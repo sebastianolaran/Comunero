@@ -49,7 +49,23 @@ test('toListItem: arma la solicitud con el interesado, las fechas y el conteo de
     yesCount: 1,
     coownerCount: 3,
     status: 'PENDING',
+    myVote: null,
   });
+});
+
+test('toListItem: myVote refleja el voto del usuario consultado', () => {
+  const base = {
+    id: 'r3',
+    status: 'PENDING',
+    startDate: new Date('2027-01-10T00:00:00.000Z'),
+    endDate: new Date('2027-01-15T00:00:00.000Z'),
+    renter: null,
+    _count: { approvals: 1, objections: 0 },
+  };
+
+  assert.equal(toListItem({ ...base, approvals: [{ userId: 'u1' }], objections: [] }, 3).myVote, 'APPROVE');
+  assert.equal(toListItem({ ...base, approvals: [], objections: [{ userId: 'u1' }] }, 3).myVote, 'REJECT');
+  assert.equal(toListItem({ ...base, approvals: [], objections: [] }, 3).myVote, null);
 });
 
 test('toListItem: sin interesado cargado devuelve renterName null', () => {
