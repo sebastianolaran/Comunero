@@ -98,6 +98,7 @@ model Reservation {
   // como un Movement (type=INCOME) vinculado por reservationId.
   depositAmount Int?
   depositPaidAt DateTime?
+  createdAt     DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
   user         User                  @relation(fields: [userId], references: [id])
