@@ -1,4 +1,5 @@
 import { daysLabel, formatRange, votosLabel } from '../lib/rentalRequests'
+import RentalVote from './RentalVote'
 
 const ESTADOS = {
   PENDING: 'En votación',
@@ -6,7 +7,7 @@ const ESTADOS = {
   REJECTED: 'Rechazada',
 }
 
-function RentalRequestCard({ solicitud }) {
+function RentalRequestCard({ solicitud, userId, onVoted }) {
   const { renterName, startDate, endDate, status } = solicitud
   const pendiente = status === 'PENDING'
   const fechas = `${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`
@@ -23,6 +24,7 @@ function RentalRequestCard({ solicitud }) {
         <>
           <p className="solicitud-meta">{fechas}</p>
           <p className="solicitud-votos">{votos}</p>
+          <RentalVote solicitud={solicitud} userId={userId} onVoted={onVoted} />
         </>
       ) : (
         <p className="solicitud-meta">{`${fechas} · ${votos}`}</p>

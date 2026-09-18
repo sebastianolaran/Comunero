@@ -1,34 +1,41 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { agrupar, daysLabel, formatRange, votosLabel } from '../src/lib/rentalRequests.js'
+import { agrupar, daysLabel, formatRange, validarVoto, votosLabel } from '../src/lib/rentalRequests.js'
 
 const pendiente = (id) => ({ id, status: 'PENDING' })
 const aprobada = (id) => ({ id, status: 'APPROVED' })
 const rechazada = (id) => ({ id, status: 'REJECTED' })
 
-test('agrupar: separa pendientes de resueltas (aprobadas y rechazadas)', () => {
-  const { pendientes, resueltas } = agrupar([pendiente('martin'), aprobada('vieja')])
+test('agrupar: separa las pendientes de las aprobadas', () => {
+  const { pendientes, aprobadas } = agrupar([pendiente('martin'), aprobada('vieja')])
 
   assert.deepEqual(pendientes.map((s) => s.id), ['martin'])
-  assert.deepEqual(resueltas.map((s) => s.id), ['vieja'])
+  assert.deepEqual(aprobadas.map((s) => s.id), ['vieja'])
+})
+
+test('agrupar: las rechazadas quedan en la sección de pendientes', () => {
+  const { pendientes, aprobadas } = agrupar([rechazada('lucia'), aprobada('vieja')])
+
+  assert.deepEqual(pendientes.map((s) => s.id), ['lucia'])
+  assert.deepEqual(aprobadas.map((s) => s.id), ['vieja'])
 })
 
 test('agrupar: mantiene el orden de más reciente a más antigua dentro de cada grupo', () => {
-  const { pendientes, resueltas } = agrupar([
+  const { pendientes, aprobadas } = agrupar([
     pendiente('p3'),
-    aprobada('r3'),
+    aprobada('a3'),
     pendiente('p2'),
     rechazada('r2'),
-    pendiente('p1'),
+    aprobada('a1'),
   ])
 
-  assert.deepEqual(pendientes.map((s) => s.id), ['p3', 'p2', 'p1'])
-  assert.deepEqual(resueltas.map((s) => s.id), ['r3', 'r2'])
+  assert.deepEqual(pendientes.map((s) => s.id), ['p3', 'p2', 'r2'])
+  assert.deepEqual(aprobadas.map((s) => s.id), ['a3', 'a1'])
 })
 
 test('agrupar: sin solicitudes devuelve los dos grupos vacíos', () => {
-  assert.deepEqual(agrupar([]), { pendientes: [], resueltas: [] })
+  assert.deepEqual(agrupar([]), { pendientes: [], aprobadas: [] })
 })
 
 test('votosLabel: "1 de 3"', () => {
@@ -57,4 +64,22 @@ test('daysLabel: un solo día en singular', () => {
 
 test('daysLabel: cruza de mes y de año', () => {
   assert.equal(daysLabel('2026-12-30', '2027-01-02'), '4 días')
+})
+
+test('validarVoto: un sí no necesita motivo', () => {
+  assert.deepEqual(validarVoto({ value: 'APPROVE', reason: '' }), { voto: { value: 'APPROVE' } })
+})
+
+test('validarVoto: un no sin motivo devuelve el error pidiendo el motivo', () => {
+  for (const reason of ['', '   ', undefined]) {
+    const { error, voto } = validarVoto({ value: 'REJECT', reason })
+    assert.match(error, /motivo/i)
+    assert.equal(voto, undefined)
+  }
+})
+
+test('validarVoto: un no con motivo lo manda recortado', () => {
+  assert.deepEqual(validarVoto({ value: 'REJECT', reason: '  Muy caro ' }), {
+    voto: { value: 'REJECT', reason: 'Muy caro' },
+  })
 })

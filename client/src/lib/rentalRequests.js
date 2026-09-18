@@ -2,13 +2,19 @@ const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'o
 const MS_POR_DIA = 24 * 60 * 60 * 1000
 
 // No ordena: el server ya las manda de la más reciente a la más antigua.
+// Las rechazadas se muestran junto a las pendientes, con su etiqueta.
 export function agrupar(solicitudes) {
-  const pendientes = []
-  const resueltas = []
-  for (const s of solicitudes) {
-    ;(s.status === 'PENDING' ? pendientes : resueltas).push(s)
+  return {
+    pendientes: solicitudes.filter((s) => s.status !== 'APPROVED'),
+    aprobadas: solicitudes.filter((s) => s.status === 'APPROVED'),
   }
-  return { pendientes, resueltas }
+}
+
+export function validarVoto({ value, reason = '' }) {
+  if (value === 'APPROVE') return { voto: { value } }
+  const motivo = reason.trim()
+  if (!motivo) return { error: 'Para votar que no tenés que cargar el motivo del rechazo.' }
+  return { voto: { value, reason: motivo } }
 }
 
 export function votosLabel({ yesCount, coownerCount }) {
