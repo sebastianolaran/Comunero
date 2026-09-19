@@ -1,5 +1,14 @@
 import { useId, useState } from 'react'
-import { daysLabel, ESTADOS, formatMoney, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
+import {
+  daysLabel,
+  ESTADOS,
+  formatMoney,
+  formatPhone,
+  formatRange,
+  puedeVotar as admiteVoto,
+  VOTO_TEXTO,
+  votosLabel,
+} from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
 // modo: 'ver' | 'rechazar' | 'cambiar' (Cambiar voto vuelve a mostrar Aprobar/Rechazar).
@@ -30,9 +39,10 @@ function RentalRequestDetail({
   const { renterName, renterPhone, comments, startDate, endDate, status, vote, rejections } = solicitud
   const nombre = renterName ?? 'Sin interesado'
   const pendiente = status === 'PENDING'
-  const rechazando = pendiente && modo === 'rechazar'
-  const mostrarVotar = pendiente && !rechazando && (!vote || modo === 'cambiar')
-  const mostrarMiVoto = pendiente && !rechazando && vote && modo !== 'cambiar'
+  const abierta = admiteVoto(solicitud)
+  const rechazando = abierta && modo === 'rechazar'
+  const mostrarVotar = abierta && !rechazando && (!vote || modo === 'cambiar')
+  const mostrarMiVoto = abierta && !rechazando && vote && modo !== 'cambiar'
 
   return (
     <aside className="detalle" aria-label={`Detalle de la solicitud de ${nombre}`}>

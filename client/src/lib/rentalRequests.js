@@ -9,6 +9,11 @@ export function agrupar(solicitudes) {
   }
 }
 
+// Misma regla que el server: una rechazada sigue abierta para quien la rechazó.
+export function puedeVotar({ status, vote }) {
+  return status === 'PENDING' || (status === 'REJECTED' && vote === 'REJECT')
+}
+
 export function validarVoto({ value, reason = '' }) {
   if (value === 'APPROVE') return { voto: { value } }
   const motivo = reason.trim()
