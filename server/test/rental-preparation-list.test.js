@@ -7,8 +7,17 @@ const { listByAsset } = require('../src/services/rentalPreparation.service');
 // t.mock.method, asi que el service recibe la "db" por parametro y aca le
 // pasamos una falsa que registra la consulta y devuelve el asset armado.
 
-const COPROPIETARIOS = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }, { id: 'u4' }];
+const COPROPIETARIOS = [
+  { id: 'u1', name: 'Ana' },
+  { id: 'u2', name: 'Bruno' },
+  { id: 'u3', name: 'Carla' },
+  { id: 'u4', name: 'Flor' },
+];
 const ANA = { id: 'u1', name: 'Ana' };
+
+// 15/08/2026 12:00 en Argentina: antes de las fechas que usan estos tests, salvo
+// donde se aclara. Sin esto "finished" dependeria del dia en que se corre el test.
+const HOY = new Date('2026-08-15T15:00:00.000Z');
 
 function fakeDb(asset) {
   const calls = [];
@@ -53,9 +62,9 @@ function asset(reservations, users = COPROPIETARIOS) {
   return { users, reservations };
 }
 
-async function listar(reservations, users) {
+async function listar(reservations, users, now = HOY) {
   const { db } = fakeDb(asset(reservations, users));
-  return listByAsset('asset-1', db);
+  return listByAsset('asset-1', db, now);
 }
 
 // ---------- la consulta ----------
@@ -204,6 +213,8 @@ test('arma la tarjeta con inquilino, fechas (solo día) y tareas', async () => {
         },
       ],
       summary: { total: 1, completed: 1, pending: 0 },
+      finished: false,
+      coowners: COPROPIETARIOS,
     },
   ]);
 });
@@ -295,4 +306,58 @@ test('el resumen se recalcula al leer: cuatro tareas con tres hechas deja una pe
   const [item] = await listar([reserva({ tasks: tareas })]);
 
   assert.deepEqual(item.summary, { total: 4, completed: 3, pending: 1 });
+});
+
+// ---------- copropietarios para el desplegable de responsable ----------
+
+test('pide los copropietarios del bien con id y nombre, ordenados por nombre', async () => {
+  const { db, calls } = fakeDb(asset([]));
+
+  await listByAsset('asset-1', db, HOY);
+
+  assert.deepEqual(calls[0].select.users, { select: { id: true, name: true }, orderBy: { name: 'asc' } });
+});
+
+test('cada alquiler trae la lista de copropietarios, sin datos sensibles', async () => {
+  const conDatos = COPROPIETARIOS.map((u) => ({ ...u, phone: '5491100000000', passwordHash: 'x' }));
+
+  const [item] = await listar([reserva()], conDatos);
+
+  // Si el service pasara el User entero, se colarían el phone y el hash.
+  assert.deepEqual(item.coowners, COPROPIETARIOS);
+});
+
+// ---------- si el alquiler ya terminó (fecha de Argentina) ----------
+
+const conFin = (dia) => reserva({ endDate: new Date(`${dia}T00:00:00.000Z`) });
+const finished = async (dia, now) => (await listar([conFin(dia)], undefined, now))[0].finished;
+
+test('finished: un alquiler que termina hoy todavía no terminó (el día de fin cuenta)', async () => {
+  assert.equal(await finished('2026-09-15', new Date('2026-09-15T15:00:00.000Z')), false);
+});
+
+test('finished: un alquiler que termina mañana o que todavía no empezó no terminó', async () => {
+  assert.equal(await finished('2026-09-16', new Date('2026-09-15T15:00:00.000Z')), false);
+  assert.equal(await finished('2026-09-22', new Date('2026-09-15T15:00:00.000Z')), false);
+});
+
+test('finished: un alquiler que terminó ayer ya terminó', async () => {
+  assert.equal(await finished('2026-09-14', new Date('2026-09-15T15:00:00.000Z')), true);
+});
+
+test('finished: a las 23:30 argentinas (16/09 en UTC) el alquiler que termina el 15 no terminó', async () => {
+  assert.equal(await finished('2026-09-15', new Date('2026-09-16T02:30:00.000Z')), false);
+});
+
+test('finished: a las 00:00 argentinas del 16 el alquiler que terminó el 15 ya terminó', async () => {
+  assert.equal(await finished('2026-09-15', new Date('2026-09-16T03:00:00.000Z')), true);
+});
+
+test('los alquileres que terminaron siguen en la lista, marcados como terminados', async () => {
+  const lista = await listar([conFin('2026-07-12'), conFin('2026-09-06')], undefined, new Date('2026-09-10T15:00:00.000Z'));
+
+  assert.deepEqual(
+    lista.map((r) => r.finished),
+    [true, true],
+  );
 });

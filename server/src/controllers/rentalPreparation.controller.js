@@ -22,4 +22,21 @@ async function list(req, res) {
   }
 }
 
-module.exports = { list };
+// POST /api/rental-preparations/tasks  { reservationId, name, assignedToId }
+async function create(req, res) {
+  try {
+    // Sin body (o sin Content-Type) req.body llega undefined.
+    const result = await rentalPreparationService.createTask(req.body ?? {});
+    if (!result.ok) {
+      // `error` es el contrato de siempre; `errors` trae cada mensaje por separado
+      // para mostrarlos todos juntos.
+      return res.status(result.status).json({ error: result.errors.join('. '), errors: result.errors });
+    }
+    res.status(201).json(result.task);
+  } catch (err) {
+    console.error('rental-preparations: fallo el alta de la tarea de preparacion', err);
+    res.status(500).json({ error: 'No se pudo crear la tarea de preparacion' });
+  }
+}
+
+module.exports = { list, create };
