@@ -92,12 +92,19 @@ function nextStatus(value, approvals, coownerCount) {
   return 'PENDING';
 }
 
-const STORED_STATUS = { APPROVED: 'ACTIVE', REJECTED: 'REJECTED' };
+const STORED_STATUS = { PENDING: 'PENDING', APPROVED: 'ACTIVE', REJECTED: 'REJECTED' };
+
+// Rechazada no es final para quien la rechazo: puede cambiar su voto.
+function canVote({ status, vote: currentVote }) {
+  return status === 'PENDING' || (status === 'REJECTED' && currentVote === 'REJECT');
+}
 
 // Los defaults de Prisma (2s / 5s) se quedan cortos si Neon esta despertando.
 const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
 
 async function registerVote(tx, { reservationId, userId, value, reason }) {
+  // Un rechazo de nuevo reemplaza el motivo anterior en vez de sumar otra objecion.
+  await tx.objection.deleteMany({ where: { reservationId, userId } });
   if (value === 'APPROVE') {
     await tx.reservationApproval.upsert({
       where: { reservationId_userId: { reservationId, userId } },
@@ -125,15 +132,15 @@ async function vote({ reservationId, userId, value, reason }) {
 
     const coowners = await coownersOf(tx, reservation.assetId);
     if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
-    if (toListItem(reservation, coowners).status !== 'PENDING') return { error: 'RESOLVED' };
+    if (!canVote(toListItem(reservation, coowners, userId))) return { error: 'RESOLVED' };
 
     await registerVote(tx, { reservationId, userId, value, reason });
 
-    const approvalsAfter = await tx.reservationApproval.count({ where: { reservationId } });
-    const status = nextStatus(value, approvalsAfter, coowners.length);
-    if (status !== 'PENDING') {
-      await tx.reservation.update({ where: { id: reservationId }, data: { status: STORED_STATUS[status] } });
-    }
+    // Se recalcula de cero: sacar la unica objecion la devuelve a PENDING (o la aprueba).
+    const approvals = await tx.reservationApproval.count({ where: { reservationId } });
+    const objections = await tx.objection.count({ where: { reservationId } });
+    const status = deriveStatus({ status: 'PENDING', approvals, objections }, coowners.length);
+    await tx.reservation.update({ where: { id: reservationId }, data: { status: STORED_STATUS[status] } });
 
     const updated = await tx.reservation.findUnique({ where: { id: reservationId }, select: LIST_SELECT });
     return { request: toListItem(updated, coowners, userId) };
