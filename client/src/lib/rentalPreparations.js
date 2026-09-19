@@ -54,21 +54,41 @@ export function validarTarea({ nombre, responsableId }) {
   return errores
 }
 
-// Alquiler con la tarea nueva al final y el resumen recalculado. No muta el
-// original. El server calcula el resumen al leer; esto lo replica para no tener
-// que volver a pedir toda la lista (y perder lo escrito en las otras tarjetas).
-export function agregarTarea(alquiler, tarea) {
-  const tasks = [...alquiler.tasks, tarea]
+// Alquiler con estas tareas y el resumen recalculado. No muta el original. El
+// server calcula el resumen al leer; esto lo replica para no tener que volver a
+// pedir toda la lista (y perder lo escrito en las otras tarjetas).
+function conResumen(alquiler, tasks) {
   const completed = tasks.filter((t) => t.completed).length
 
   return { ...alquiler, tasks, summary: { total: tasks.length, completed, pending: tasks.length - completed } }
 }
 
+// La tarea nueva va al final.
+export function agregarTarea(alquiler, tarea) {
+  return conResumen(alquiler, [...alquiler.tasks, tarea])
+}
+
+// Reemplaza la tarea con el mismo id (tildada o con otro responsable), en el mismo lugar.
+export function actualizarTarea(alquiler, tarea) {
+  return conResumen(
+    alquiler,
+    alquiler.tasks.map((t) => (t.id === tarea.id ? tarea : t)),
+  )
+}
+
+export function quitarTarea(alquiler, tareaId) {
+  return conResumen(
+    alquiler,
+    alquiler.tasks.filter((t) => t.id !== tareaId),
+  )
+}
+
 const ERROR_GENERICO = 'No se pudo agregar la tarea. Probá de nuevo.'
 
-// Los mensajes de un error del server: la lista `errors` si viene, si no `error`.
-export function mensajesDeRespuesta(body) {
+// Los mensajes de un error del server: la lista `errors` si viene, si no `error`,
+// y si la respuesta no tiene forma conocida, `generico` (cada acción trae el suyo).
+export function mensajesDeRespuesta(body, generico = ERROR_GENERICO) {
   if (Array.isArray(body?.errors) && body.errors.length > 0) return body.errors
   if (typeof body?.error === 'string' && body.error !== '') return [body.error]
-  return [ERROR_GENERICO]
+  return [generico]
 }

@@ -2,9 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  actualizarTarea,
   agregarTarea,
   formatRange,
   mensajesDeRespuesta,
+  quitarTarea,
   resumenEstado,
   resumenLabel,
   validarTarea,
@@ -181,6 +183,111 @@ test('agregarTarea: no muta el alquiler original y conserva el resto de sus camp
   assert.equal(despues.finished, false)
 })
 
+// ---------- actualizarTarea ----------
+
+test('actualizarTarea: "1 pendiente de 2" pasa a "Todo listo (2/2)" al marcar la pendiente', () => {
+  const antes = alquiler([tarea({ id: 'a', completed: true }), tarea({ id: 'b' })])
+  assert.equal(resumenLabel(antes.summary), '1 pendiente de 2')
+
+  const despues = actualizarTarea(antes, tarea({ id: 'b', completed: true }))
+
+  assert.equal(despues.tasks[1].completed, true)
+  assert.equal(resumenLabel(despues.summary), 'Todo listo (2/2)')
+})
+
+test('actualizarTarea: "Todo listo (2/2)" pasa a "1 pendiente de 2" al desmarcar una', () => {
+  const antes = alquiler([tarea({ id: 'a', completed: true }), tarea({ id: 'b', completed: true })])
+
+  const despues = actualizarTarea(antes, tarea({ id: 'a', completed: false }))
+
+  assert.equal(resumenLabel(despues.summary), '1 pendiente de 2')
+})
+
+test('actualizarTarea: el ejemplo de Caro pasa de "3 pendientes de 4" a "2 pendientes de 4"', () => {
+  const caro = { id: 'u3', name: 'Caro' }
+  const antes = alquiler([
+    tarea({ id: 'a', completed: true }),
+    tarea({ id: 'pileta', name: 'Revisar pileta y clorar', assignedTo: caro }),
+    tarea({ id: 'c' }),
+    tarea({ id: 'd' }),
+  ])
+  assert.equal(resumenLabel(antes.summary), '3 pendientes de 4')
+
+  const despues = actualizarTarea(antes, tarea({ id: 'pileta', name: 'Revisar pileta y clorar', completed: true, assignedTo: caro }))
+
+  assert.equal(resumenLabel(despues.summary), '2 pendientes de 4')
+})
+
+test('actualizarTarea: cambiar el responsable reemplaza la tarea, mantiene el orden y no toca el resumen', () => {
+  const antes = alquiler([tarea({ id: 'a' }), tarea({ id: 'b', completed: true }), tarea({ id: 'c' })])
+  const caro = { id: 'u3', name: 'Caro' }
+
+  const despues = actualizarTarea(antes, tarea({ id: 'b', completed: true, assignedTo: caro }))
+
+  assert.deepEqual(despues.tasks.map((t) => t.id), ['a', 'b', 'c'])
+  assert.deepEqual(despues.tasks[1].assignedTo, caro)
+  assert.equal(despues.tasks[1].completed, true)
+  assert.deepEqual(despues.summary, antes.summary)
+})
+
+test('actualizarTarea: no muta el alquiler original y conserva el resto de sus campos', () => {
+  const antes = alquiler([tarea({ id: 'a' })])
+
+  const despues = actualizarTarea(antes, tarea({ id: 'a', completed: true }))
+
+  assert.equal(antes.tasks[0].completed, false)
+  assert.deepEqual(antes.summary, { total: 1, completed: 0, pending: 1 })
+  assert.equal(despues.renterName, 'Familia Álvarez')
+  assert.deepEqual(despues.coowners, antes.coowners)
+})
+
+test('actualizarTarea: una tarea que no está en el alquiler lo deja igual', () => {
+  const antes = alquiler([tarea({ id: 'a' })])
+
+  const despues = actualizarTarea(antes, tarea({ id: 'otra', completed: true }))
+
+  assert.deepEqual(despues.tasks, antes.tasks)
+  assert.deepEqual(despues.summary, antes.summary)
+})
+
+// ---------- quitarTarea ----------
+
+test('quitarTarea: "1 pendiente de 2" pasa a "Todo listo (1/1)" al eliminar la pendiente', () => {
+  const antes = alquiler([tarea({ id: 'a', completed: true }), tarea({ id: 'b' })])
+
+  const despues = quitarTarea(antes, 'b')
+
+  assert.deepEqual(despues.tasks.map((t) => t.id), ['a'])
+  assert.equal(resumenLabel(despues.summary), 'Todo listo (1/1)')
+})
+
+test('quitarTarea: eliminar la única tarea deja "Sin tareas asignadas"', () => {
+  const despues = quitarTarea(alquiler([tarea({ id: 'a' })]), 'a')
+
+  assert.deepEqual(despues.tasks, [])
+  assert.equal(resumenLabel(despues.summary), 'Sin tareas asignadas')
+  assert.equal(resumenEstado(despues.summary), 'sin-tareas')
+})
+
+test('quitarTarea: eliminar una tarea hecha baja el contador de hechas', () => {
+  const antes = alquiler([tarea({ id: 'a', completed: true }), tarea({ id: 'b' }), tarea({ id: 'c' })])
+
+  const despues = quitarTarea(antes, 'a')
+
+  assert.deepEqual(despues.summary, { total: 2, completed: 0, pending: 2 })
+})
+
+test('quitarTarea: no muta el alquiler original y conserva el resto de sus campos', () => {
+  const antes = alquiler([tarea({ id: 'a' }), tarea({ id: 'b' })])
+
+  const despues = quitarTarea(antes, 'a')
+
+  assert.equal(antes.tasks.length, 2)
+  assert.notEqual(despues, antes)
+  assert.equal(despues.renterName, 'Familia Álvarez')
+  assert.deepEqual(despues.coowners, antes.coowners)
+})
+
 // ---------- mensajesDeRespuesta ----------
 
 test('mensajesDeRespuesta: usa la lista errors cuando el server la manda', () => {
@@ -191,6 +298,18 @@ test('mensajesDeRespuesta: usa la lista errors cuando el server la manda', () =>
 
 test('mensajesDeRespuesta: si solo viene error, lo devuelve como único mensaje', () => {
   assert.deepEqual(mensajesDeRespuesta({ error: 'El alquiler ya terminó' }), ['El alquiler ya terminó'])
+})
+
+test('mensajesDeRespuesta: si la respuesta no tiene forma conocida, usa el mensaje genérico que le pasen', () => {
+  for (const body of [null, {}, { errors: [] }, { error: '' }]) {
+    assert.deepEqual(mensajesDeRespuesta(body, 'No se pudo eliminar la tarea. Probá de nuevo.'), [
+      'No se pudo eliminar la tarea. Probá de nuevo.',
+    ])
+  }
+})
+
+test('mensajesDeRespuesta: el mensaje del server gana sobre el genérico', () => {
+  assert.deepEqual(mensajesDeRespuesta({ error: 'El alquiler ya terminó' }, 'genérico'), ['El alquiler ya terminó'])
 })
 
 test('mensajesDeRespuesta: si la respuesta no tiene forma conocida, da un mensaje genérico', () => {
