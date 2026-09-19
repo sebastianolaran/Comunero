@@ -4,5 +4,6 @@ const rentalPreparationController = require('../controllers/rentalPreparation.co
 const router = Router();
 
 router.get('/', rentalPreparationController.list);
+router.post('/tasks', rentalPreparationController.create);
 
 module.exports = router;
