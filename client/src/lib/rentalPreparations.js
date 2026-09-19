@@ -34,3 +34,41 @@ export function resumenLabel(resumen) {
       return `Todo listo (${completed}/${total})`
   }
 }
+
+export const NOMBRE_MAX = 100
+
+// Mismas reglas y mismos mensajes que el server (que las vuelve a validar):
+// esto solo evita un viaje cuando el error es evidente. Devuelve todos los
+// errores juntos, nombre primero. El largo se cuenta en caracteres (Array.from)
+// y no en unidades UTF-16, igual que en el server.
+export function validarTarea({ nombre, responsableId }) {
+  const errores = []
+  const limpio = nombre.trim()
+
+  if (limpio === '') errores.push('Falta el nombre de la tarea')
+  else if (Array.from(limpio).length > NOMBRE_MAX) {
+    errores.push(`El nombre no puede superar los ${NOMBRE_MAX} caracteres`)
+  }
+  if (!responsableId) errores.push('Falta elegir un responsable')
+
+  return errores
+}
+
+// Alquiler con la tarea nueva al final y el resumen recalculado. No muta el
+// original. El server calcula el resumen al leer; esto lo replica para no tener
+// que volver a pedir toda la lista (y perder lo escrito en las otras tarjetas).
+export function agregarTarea(alquiler, tarea) {
+  const tasks = [...alquiler.tasks, tarea]
+  const completed = tasks.filter((t) => t.completed).length
+
+  return { ...alquiler, tasks, summary: { total: tasks.length, completed, pending: tasks.length - completed } }
+}
+
+const ERROR_GENERICO = 'No se pudo agregar la tarea. Probá de nuevo.'
+
+// Los mensajes de un error del server: la lista `errors` si viene, si no `error`.
+export function mensajesDeRespuesta(body) {
+  if (Array.isArray(body?.errors) && body.errors.length > 0) return body.errors
+  if (typeof body?.error === 'string' && body.error !== '') return [body.error]
+  return [ERROR_GENERICO]
+}

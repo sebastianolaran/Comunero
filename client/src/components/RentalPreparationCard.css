@@ -102,6 +102,84 @@
   text-decoration: line-through;
 }
 
+/* Formulario de alta al pie de la tarjeta. */
+.preparacion-alta {
+  --preparacion-error: oklch(45% 0.16 27);
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--alq-borde);
+}
+
+.preparacion-tareas + .preparacion-alta {
+  margin-top: 12px;
+}
+
+.preparacion-alta-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preparacion-alta-nombre,
+.preparacion-alta-responsable,
+.preparacion-alta-boton {
+  font: inherit;
+  font-size: 13px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 3px;
+}
+
+.preparacion-alta-nombre,
+.preparacion-alta-responsable {
+  color: var(--alq-texto);
+  background: var(--alq-tarjeta);
+  border: 1px solid var(--alq-borde-fuerte);
+}
+
+.preparacion-alta-nombre {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.preparacion-alta-responsable {
+  flex: 0 1 170px;
+  min-width: 0;
+}
+
+.preparacion-alta-nombre[aria-invalid='true'],
+.preparacion-alta-responsable[aria-invalid='true'] {
+  border-color: var(--preparacion-error);
+}
+
+.preparacion-alta-boton {
+  border: 1px solid var(--alq-activo);
+  background: var(--alq-activo);
+  color: var(--alq-activo-texto);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.preparacion-alta-boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.preparacion-alta-nombre:focus-visible,
+.preparacion-alta-responsable:focus-visible,
+.preparacion-alta-boton:focus-visible {
+  outline: 2px solid var(--alq-texto);
+  outline-offset: 2px;
+}
+
+.preparacion-alta-errores {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--preparacion-error);
+}
+
 .preparacion-oculto {
   position: absolute;
   width: 1px;
@@ -122,5 +200,12 @@
 
   .preparacion-responsable {
     grid-column: 2;
+  }
+
+  /* Caja, desplegable y botón, cada uno en su renglón. */
+  .preparacion-alta-nombre,
+  .preparacion-alta-responsable,
+  .preparacion-alta-boton {
+    flex: 1 1 100%;
   }
 }

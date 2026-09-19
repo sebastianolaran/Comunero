@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import RentalPreparationCard from '../components/RentalPreparationCard'
+import { agregarTarea } from '../lib/rentalPreparations'
 import { fetchRentalPreparations } from '../services/rentalPreparation'
 import './RentalPreparations.css'
 
 // TODO: usar el bien del usuario logueado cuando exista el login.
 const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
 
-// Alquileres aprobados con sus tareas y responsables. Solo lectura: agregar,
-// tildar y reasignar tareas son otras historias.
+// Alquileres aprobados con sus tareas y responsables. Se pueden agregar tareas;
+// tildar y reasignar son otras historias.
 function RentalPreparations({ assetId = ASSET_ID }) {
   const [carga, setCarga] = useState({ estado: 'loading', alquileres: [] })
   const [intento, setIntento] = useState(0)
@@ -30,6 +31,17 @@ function RentalPreparations({ assetId = ASSET_ID }) {
       controller.abort()
     }
   }, [assetId, intento])
+
+  // Se agrega en el estado en vez de volver a pedir la lista: recargar
+  // desmontaría las tarjetas y se perdería lo escrito en los otros formularios.
+  const agregarTareaAlAlquiler = (alquilerId, tarea) => {
+    setCarga((previa) => ({
+      ...previa,
+      alquileres: previa.alquileres.map((alquiler) =>
+        alquiler.id === alquilerId ? agregarTarea(alquiler, tarea) : alquiler,
+      ),
+    }))
+  }
 
   const reintentar = () => {
     setCarga({ estado: 'loading', alquileres: [] })
@@ -75,7 +87,7 @@ function RentalPreparations({ assetId = ASSET_ID }) {
       <ul className="preparaciones-lista" role="list">
         {carga.alquileres.map((alquiler) => (
           <li key={alquiler.id}>
-            <RentalPreparationCard alquiler={alquiler} />
+            <RentalPreparationCard alquiler={alquiler} onTareaCreada={agregarTareaAlAlquiler} />
           </li>
         ))}
       </ul>
