@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Siempre en claro, como el prototipo, aunque el sistema esté en modo oscuro. */
+.alquiler {
+  color-scheme: light;
+  --alq-texto: oklch(22% 0 0);
+  --alq-texto-2: oklch(35% 0 0);
+  --alq-apagado: oklch(50% 0 0);
+  --alq-suave: oklch(55% 0 0);
+  --alq-tarjeta: #fff;
+  --alq-borde: oklch(90% 0 0);
+  --alq-borde-fuerte: oklch(85% 0 0);
+  --alq-badge: oklch(95% 0 0);
+  --alq-badge-texto: oklch(40% 0 0);
+  --alq-activo: oklch(22% 0 0);
+  --alq-activo-texto: #fff;
+
+  font-family: Inter, system-ui, sans-serif;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--alq-texto);
+  background: oklch(97% 0 0);
+
+  /* Tapa el padding de .app-content para que el fondo llegue a los bordes. */
+  box-sizing: border-box;
+  min-height: 100svh;
+  margin: -2.5rem -3rem;
+  padding: 22px 32px 40px;
+}
+
+@media (max-width: 768px) {
+  .alquiler {
+    min-height: auto;
+    margin: -1.5rem -1rem;
+    padding: 18px 16px 32px;
+  }
+}
+
+.alquiler-titulo {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--alq-texto);
+  margin: 0 -32px 28px;
+  padding: 0 32px 18px;
+  border-bottom: 1px solid var(--alq-borde);
+}
+
+@media (max-width: 768px) {
+  .alquiler-titulo {
+    margin: 0 -16px 20px;
+    padding: 0 16px 14px;
+  }
+}
+
+.alquiler-tabs {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--alq-borde-fuerte);
+  border-radius: 3px;
+  background: var(--alq-tarjeta);
+}
+
+.alquiler-tab {
+  display: block;
+  padding: 8px 15px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--alq-texto-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.alquiler-tab:focus-visible {
+  outline: 2px solid var(--alq-texto);
+  outline-offset: -2px;
+}
+
+.alquiler-tab.active {
+  font-weight: 600;
+  background: var(--alq-activo);
+  color: var(--alq-activo-texto);
+}
+
+.aviso {
+  padding: 2rem 1rem;
+  font-size: 13.5px;
+  color: var(--alq-suave);
+  border: 1px dashed var(--alq-borde-fuerte);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.aviso-hint {
+  font-size: 12.5px;
+  margin-top: 0.25rem;
+}
+
+.aviso-reintentar {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  padding: 6px 14px;
+  border-radius: 3px;
+  border: 1px solid oklch(70% 0 0);
+  background: var(--alq-tarjeta);
+  color: var(--alq-texto);
+  cursor: pointer;
+}
