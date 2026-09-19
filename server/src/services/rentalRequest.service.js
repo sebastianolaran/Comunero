@@ -95,7 +95,7 @@ function nextStatus(value, approvals, coownerCount) {
 const STORED_STATUS = { APPROVED: 'ACTIVE', REJECTED: 'REJECTED' };
 
 // Los defaults de Prisma (2s / 5s) se quedan cortos si Neon esta despertando.
-const VOTE_TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
+const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
 
 async function registerVote(tx, { reservationId, userId, value, reason }) {
   if (value === 'APPROVE') {
@@ -137,7 +137,54 @@ async function vote({ reservationId, userId, value, reason }) {
 
     const updated = await tx.reservation.findUnique({ where: { id: reservationId }, select: LIST_SELECT });
     return { request: toListItem(updated, coowners, userId) };
-  }, VOTE_TX_OPTIONS);
+  }, TX_OPTIONS);
 }
 
-module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote };
+// El telefono identifica al inquilino dentro del bien: si ya existe se reutiliza
+// (con su nombre y su historial) en vez de crear un duplicado.
+async function findOrCreateRenter(tx, { assetId, renterName, phone }) {
+  const existing = await tx.renter.findFirst({
+    where: { assetId, phone },
+    orderBy: { id: 'asc' },
+    select: { id: true },
+  });
+  if (existing) return existing;
+  return tx.renter.create({ data: { assetId, name: renterName, phone }, select: { id: true } });
+}
+
+function toUtcDate(dateOnly) {
+  return new Date(`${dateOnly}T00:00:00.000Z`);
+}
+
+// Devuelve { request } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' }.
+async function create({ assetId, userId, renterName, phone, startDate, endDate, amount, comments }) {
+  return prisma.$transaction(async (tx) => {
+    const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { id: true } });
+    if (!asset) return { error: 'ASSET_NOT_FOUND' };
+
+    const coowners = await coownersOf(tx, assetId);
+    if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+
+    const renter = await findOrCreateRenter(tx, { assetId, renterName, phone });
+    // Quien la carga ya vota que si.
+    const status = nextStatus('APPROVE', 1, coowners.length);
+    const created = await tx.reservation.create({
+      data: {
+        assetId,
+        userId,
+        renterId: renter.id,
+        type: 'RENTAL',
+        status: STORED_STATUS[status] ?? 'PENDING',
+        startDate: toUtcDate(startDate),
+        endDate: toUtcDate(endDate),
+        amount,
+        note: comments,
+        approvals: { create: { userId } },
+      },
+      select: LIST_SELECT,
+    });
+    return { request: toListItem(created, coowners, userId) };
+  }, TX_OPTIONS);
+}
+
+module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create };

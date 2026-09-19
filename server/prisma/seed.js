@@ -32,7 +32,7 @@ async function main() {
   );
 
   const martin = await prisma.renter.create({
-    data: { assetId: ASSET_ID, name: 'Martín Suárez', phone: '5491155551234' },
+    data: { assetId: ASSET_ID, name: 'Martín Suárez', phone: '1111223344' },
   });
   const lucia = await prisma.renter.create({
     data: { assetId: ASSET_ID, name: 'Lucía Gómez', phone: '5491155556789' },

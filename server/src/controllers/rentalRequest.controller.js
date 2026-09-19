@@ -1,5 +1,6 @@
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const rentalRequestService = require('../services/rentalRequest.service');
+const { parseNewRequest } = require('../validation/newRentalRequest');
 
 const VOTE_VALUES = ['APPROVE', 'REJECT'];
 const MAX_REASON_LENGTH = 500;
@@ -68,4 +69,26 @@ async function vote(req, res) {
   }
 }
 
-module.exports = { list, vote };
+const CREATE_ERRORS = {
+  ASSET_NOT_FOUND: [404, 'No existe el bien'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden cargar solicitudes'],
+};
+
+async function create(req, res) {
+  const parsed = parseNewRequest(req.body);
+  if (parsed.error) return res.status(400).json({ error: parsed.error, field: parsed.field });
+
+  try {
+    const result = await rentalRequestService.create(parsed.request);
+    if (result.error) {
+      const [status, message] = CREATE_ERRORS[result.error];
+      return res.status(status).json({ error: message });
+    }
+    res.status(201).json(result.request);
+  } catch (err) {
+    console.error('rental-requests: fallo el alta de la solicitud', err);
+    res.status(500).json({ error: 'No se pudo crear la solicitud' });
+  }
+}
+
+module.exports = { list, vote, create };
