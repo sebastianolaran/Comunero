@@ -1,3 +1,18 @@
 // URL base del backend. En build, Vite reemplaza import.meta.env.VITE_API_URL
 // por el valor del entorno; si no esta seteada, cae al server local.
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
+// Reservas que se solapan con un mes (YYYY-MM), para la HU "Consultar
+// calendario". `signal` es opcional, para poder cancelar el fetch al
+// desmontar el componente o al cambiar de mes.
+export async function fetchReservations(assetId, month, { signal } = {}) {
+  const params = new URLSearchParams({ assetId, month })
+  const res = await fetch(`${API_URL}/api/reservations?${params}`, { signal })
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+
+  const body = await res.json()
+  return body.reservations
+}

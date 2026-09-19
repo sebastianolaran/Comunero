@@ -1,0 +1,80 @@
+.calendario {
+  max-width: 720px;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.calendario-titulo {
+  font-size: 24px;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.calendario-header button {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.calendario-error {
+  color: #b91c1c;
+}
+
+.calendario-grilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendario-dia {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/* Regla: cada dia muestra su estado (libre / reservado / alquilado /
+   rechazado) mediante un color o estilo distintivo. */
+
+.calendario-dia--libre {
+  background: var(--bg);
+}
+
+.calendario-dia--reservado {
+  background: var(--color-dia, var(--accent));
+  color: #fff;
+  border-color: transparent;
+}
+
+.calendario-dia--alquilado {
+  background: #0b7285;
+  color: #fff;
+  border-color: transparent;
+}
+
+.calendario-dia--rechazado {
+  background: repeating-linear-gradient(
+    45deg,
+    #f1c0c0,
+    #f1c0c0 4px,
+    #fbe4e4 4px,
+    #fbe4e4 8px
+  );
+  color: #7f1d1d;
+}
