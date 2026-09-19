@@ -22,16 +22,18 @@ async function list(req, res) {
   }
 }
 
+// `error` es el contrato de siempre; `errors` trae cada mensaje por separado
+// para mostrarlos todos juntos.
+function sendFailure(res, result) {
+  res.status(result.status).json({ error: result.errors.join('. '), errors: result.errors });
+}
+
 // POST /api/rental-preparations/tasks  { reservationId, name, assignedToId }
 async function create(req, res) {
   try {
     // Sin body (o sin Content-Type) req.body llega undefined.
     const result = await rentalPreparationService.createTask(req.body ?? {});
-    if (!result.ok) {
-      // `error` es el contrato de siempre; `errors` trae cada mensaje por separado
-      // para mostrarlos todos juntos.
-      return res.status(result.status).json({ error: result.errors.join('. '), errors: result.errors });
-    }
+    if (!result.ok) return sendFailure(res, result);
     res.status(201).json(result.task);
   } catch (err) {
     console.error('rental-preparations: fallo el alta de la tarea de preparacion', err);
@@ -39,4 +41,28 @@ async function create(req, res) {
   }
 }
 
-module.exports = { list, create };
+// PATCH /api/rental-preparations/tasks/:id  { completed?, assignedToId? }
+async function update(req, res) {
+  try {
+    const result = await rentalPreparationService.updateTask(req.params.id, req.body ?? {});
+    if (!result.ok) return sendFailure(res, result);
+    res.json(result.task);
+  } catch (err) {
+    console.error('rental-preparations: fallo la modificacion de la tarea de preparacion', err);
+    res.status(500).json({ error: 'No se pudo modificar la tarea de preparacion' });
+  }
+}
+
+// DELETE /api/rental-preparations/tasks/:id
+async function remove(req, res) {
+  try {
+    const result = await rentalPreparationService.deleteTask(req.params.id);
+    if (!result.ok) return sendFailure(res, result);
+    res.status(204).end();
+  } catch (err) {
+    console.error('rental-preparations: fallo la baja de la tarea de preparacion', err);
+    res.status(500).json({ error: 'No se pudo eliminar la tarea de preparacion' });
+  }
+}
+
+module.exports = { list, create, update, remove };

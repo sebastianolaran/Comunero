@@ -146,6 +146,9 @@ const ERRORS = {
   reservationNotFound: 'No existe el alquiler',
   notApproved: 'El alquiler todavía no está aprobado',
   finished: 'El alquiler ya terminó',
+  taskNotFound: 'No existe la tarea',
+  nothingToUpdate: 'No hay nada para modificar',
+  completedInvalid: 'El estado de la tarea tiene que ser verdadero o falso',
 };
 
 const isFilled = (value) => typeof value === 'string' && value.trim() !== '';
@@ -205,4 +208,109 @@ async function createTask(input, db = prisma, now = new Date()) {
   return { ok: true, task: toTask(task) };
 }
 
-module.exports = { listByAsset, createTask, validateTaskInput, todayInArgentina };
+// Prisma tira P2025 cuando el registro a modificar o borrar ya no existe (otro
+// lo borro entre el findUnique y el update/delete).
+const isRecordNotFound = (err) => err?.code === 'P2025';
+
+// Forma de un id de tarea (cuid). Un id con un byte NUL hace fallar la consulta
+// en Postgres y daria un 500; asi se responde 404 sin llegar a la base.
+const TASK_ID_FORMAT = /^[A-Za-z0-9_-]{1,64}$/;
+
+// La tarea con lo justo de su alquiler para validar: cuando termina y quienes son
+// los copropietarios del bien. Modificar y borrar comparten esta consulta y, con
+// ella, la misma regla de fecha que el alta (hasFinished). Devuelve null si el id
+// no puede ser de una tarea o no existe.
+async function findTaskForChange(id, db) {
+  if (typeof id !== 'string' || !TASK_ID_FORMAT.test(id)) return null;
+
+  return db.rentalTask.findUnique({
+    where: { id },
+    select: {
+      ...TASK_SELECT,
+      reservation: {
+        select: { endDate: true, asset: { select: { users: { select: { id: true } } } } },
+      },
+    },
+  });
+}
+
+// Valida la forma del body de la modificacion, sin tocar la base. Los dos campos
+// son opcionales, pero tiene que venir al menos uno. Un responsable vacio no se
+// acepta: una tarea nunca queda sin responsable.
+function validateUpdateInput(input) {
+  const { completed, assignedToId } = input ?? {};
+  const errors = [];
+
+  if (completed === undefined && assignedToId === undefined) errors.push(ERRORS.nothingToUpdate);
+  if (completed !== undefined && typeof completed !== 'boolean') errors.push(ERRORS.completedInvalid);
+  if (assignedToId !== undefined && !isFilled(assignedToId)) errors.push(ERRORS.assigneeRequired);
+
+  return errors;
+}
+
+// Tilda/destilda una tarea y/o le cambia el responsable. Cualquier copropietario
+// puede (no se recibe quien llama). Devuelve { ok: true, task } o
+// { ok: false, status, errors }.
+//
+// Orden: forma del body (400) -> la tarea existe (404) -> el alquiler no termino
+// (409) -> el responsable es copropietario del bien (400). Pedir lo que la tarea
+// ya tiene no escribe nada y no es un error, salvo que el alquiler haya terminado.
+async function updateTask(id, input, db = prisma, now = new Date()) {
+  const errors = validateUpdateInput(input);
+  if (errors.length > 0) return fail(400, ...errors);
+  const { completed, assignedToId } = input;
+
+  const task = await findTaskForChange(id, db);
+  if (!task) return fail(404, ERRORS.taskNotFound);
+  if (hasFinished(task.reservation.endDate, now)) return fail(409, ERRORS.finished);
+  if (
+    assignedToId !== undefined &&
+    !task.reservation.asset.users.some((user) => user.id === assignedToId)
+  ) {
+    return fail(400, ERRORS.assigneeNotCoowner);
+  }
+
+  const data = {};
+  if (completed !== undefined && completed !== task.completed) {
+    data.completed = completed;
+    data.completedAt = completed ? now : null;
+  }
+  if (assignedToId !== undefined && assignedToId !== task.assignedTo.id) {
+    data.assignedToId = assignedToId;
+  }
+  if (Object.keys(data).length === 0) return { ok: true, task: toTask(task) };
+
+  try {
+    const updated = await db.rentalTask.update({ where: { id }, data, select: TASK_SELECT });
+    return { ok: true, task: toTask(updated) };
+  } catch (err) {
+    if (isRecordNotFound(err)) return fail(404, ERRORS.taskNotFound);
+    throw err;
+  }
+}
+
+// Borra una tarea de verdad (no queda marca de eliminada). Mismas reglas de
+// existencia (404) y de fecha (409) que updateTask. Devuelve { ok: true } o
+// { ok: false, status, errors }.
+async function deleteTask(id, db = prisma, now = new Date()) {
+  const task = await findTaskForChange(id, db);
+  if (!task) return fail(404, ERRORS.taskNotFound);
+  if (hasFinished(task.reservation.endDate, now)) return fail(409, ERRORS.finished);
+
+  try {
+    await db.rentalTask.delete({ where: { id } });
+    return { ok: true };
+  } catch (err) {
+    if (isRecordNotFound(err)) return fail(404, ERRORS.taskNotFound);
+    throw err;
+  }
+}
+
+module.exports = {
+  listByAsset,
+  createTask,
+  updateTask,
+  deleteTask,
+  validateTaskInput,
+  todayInArgentina,
+};
