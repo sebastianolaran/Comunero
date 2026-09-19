@@ -32,4 +32,57 @@ async function listForCalendar(req, res) {
   res.json({ reservations });
 }
 
-module.exports = { listForCalendar };
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseFecha(valor) {
+  if (!valor || !DATE_RE.test(valor)) return null;
+  const fecha = new Date(`${valor}T00:00:00.000Z`);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
+// POST /api/reservations
+// body: { assetId, userId, startDate, endDate, note? }  (fechas 'YYYY-MM-DD')
+//
+// Historia "Solicitar turno de uso propio". type queda fijo en USE: alquilar
+// a un tercero es otra historia, no se mezcla aca.
+//
+// TODO: cuando exista auth, el userId tiene que salir de la sesion (no
+// confiar en el body) para que la regla "la solicitud corresponde a quien
+// la realiza" sea real y no solo un dato declarado por el client.
+async function create(req, res) {
+  const { assetId, userId, startDate, endDate, note } = req.body ?? {};
+
+  if (!assetId || !userId) {
+    return res.status(400).json({ error: 'faltan assetId y/o userId' });
+  }
+
+  const inicio = parseFecha(startDate);
+  const fin = parseFecha(endDate);
+  if (!inicio || !fin) {
+    return res
+      .status(400)
+      .json({ error: 'faltan o son invalidas startDate/endDate (formato esperado YYYY-MM-DD)' });
+  }
+  if (inicio.getTime() > fin.getTime()) {
+    return res.status(400).json({ error: 'startDate debe ser anterior o igual a endDate' });
+  }
+
+  const solapa = await reservationService.hasOverlap(assetId, inicio, fin);
+  if (solapa) {
+    return res.status(409).json({
+      error: 'el rango solicitado incluye dias ya ocupados por otra reserva o solicitud pendiente',
+    });
+  }
+
+  const reservation = await reservationService.requestUse({
+    assetId,
+    userId,
+    startDate: inicio,
+    endDate: fin,
+    note,
+  });
+
+  res.status(201).json({ reservation });
+}
+
+module.exports = { listForCalendar, create };

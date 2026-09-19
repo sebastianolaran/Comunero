@@ -92,6 +92,9 @@ async function main() {
   console.log('Seed listo.');
   console.log('ASSET_ID:', asset.id);
   console.log('-> copialo en client/src/lib/currentAsset.js (ASSET_ID)');
+  console.log('USER_ID (Maria):', maria.id);
+  console.log('USER_ID (Juan):', juan.id);
+  console.log('-> copia uno de los dos en client/src/lib/currentUser.js (USER_ID)');
 }
 
 main()

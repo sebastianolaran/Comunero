@@ -29,4 +29,35 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
   });
 }
 
-module.exports = { listForRange };
+// Historia "Solicitar turno de uso propio", regla 3: no se puede solicitar
+// un turno que incluya dias ya ocupados por otra reserva ACTIVE o PENDING
+// (una reserva REJECTED o CANCELLED no ocupa el dia, no bloquea).
+async function hasOverlap(assetId, startDate, endDate) {
+  const count = await prisma.reservation.count({
+    where: {
+      assetId,
+      status: { in: ['ACTIVE', 'PENDING'] },
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
+    },
+  });
+  return count > 0;
+}
+
+// Crea la solicitud de uso propio. Queda en PENDING (default del schema):
+// regla 5, "al confirmar la solicitud, los dias quedan pendientes de
+// confirmacion" se refiere a este alta, no a un paso posterior.
+async function requestUse({ assetId, userId, startDate, endDate, note }) {
+  return prisma.reservation.create({
+    data: {
+      assetId,
+      userId,
+      startDate,
+      endDate,
+      note,
+      type: 'USE',
+    },
+  });
+}
+
+module.exports = { listForRange, hasOverlap, requestUse };

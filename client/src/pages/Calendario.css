@@ -1,3 +1,10 @@
+.calendario-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) 280px;
+  gap: 2rem;
+  align-items: start;
+}
+
 .calendario {
   max-width: 720px;
 }
@@ -77,4 +84,88 @@
     #fbe4e4 8px
   );
   color: #7f1d1d;
+}
+
+.calendario-solicitud {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.calendario-solicitud-titulo {
+  font-size: 16px;
+  margin: 0 0 0.75rem;
+}
+
+.calendario-solicitud-fechas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendario-solicitud-fechas label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.calendario-solicitud-fechas input {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.calendario-solicitud-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.calendario-solicitud-acciones button {
+  font: inherit;
+  padding: 0.45rem 1.25rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendario-solicitud-acciones button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.calendario-btn-secundario {
+  background: var(--bg) !important;
+  color: var(--text-h) !important;
+}
+
+.calendario-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.calendario-btn-reservar {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendario-solicitud-error {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  font-size: 13px;
 }

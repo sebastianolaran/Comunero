@@ -16,3 +16,21 @@ export async function fetchReservations(assetId, month, { signal } = {}) {
   const body = await res.json()
   return body.reservations
 }
+
+// Historia "Solicitar turno de uso propio". startDate/endDate: 'YYYY-MM-DD'.
+// Si el server rechaza la solicitud (400/409), tira un Error con el mensaje
+// que mandó el backend (fechas invertidas, dias ocupados, etc.).
+export async function createReservation({ assetId, userId, startDate, endDate, note }) {
+  const res = await fetch(`${API_URL}/api/reservations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assetId, userId, startDate, endDate, note }),
+  })
+
+  const body = await res.json()
+  if (!res.ok) {
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+
+  return body.reservation
+}
