@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { CAMPO_DEL_SERVER, validarSolicitud } from '../lib/rentalRequests'
+import { CAMPO_DEL_SERVER, hoyLocal, validarSolicitud } from '../lib/rentalRequests'
 
-const VACIO = { nombre: '', apellido: '', telefono: '', desde: '', hasta: '', monto: '', comentarios: '' }
+// Como en el prototipo, las fechas arrancan en hoy.
+const vacio = (hoy) => ({ nombre: '', apellido: '', telefono: '', desde: hoy, hasta: hoy, monto: '', comentarios: '' })
 
 function Campo({ id, label, error, className = '', children }) {
   return (
@@ -22,7 +23,7 @@ function Campo({ id, label, error, className = '', children }) {
 // onCreate(solicitud) tiene que tirar un Error (con .field si es de un campo) si el alta falla.
 function NewRentalRequestModal({ abierto, onClose, onCreate }) {
   const dialogo = useRef(null)
-  const [borrador, setBorrador] = useState(VACIO)
+  const [borrador, setBorrador] = useState(() => vacio(hoyLocal()))
   const [errores, setErrores] = useState({})
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const id = useId()
@@ -31,7 +32,7 @@ function NewRentalRequestModal({ abierto, onClose, onCreate }) {
   useEffect(() => {
     const d = dialogo.current
     if (abierto && !d.open) {
-      setBorrador(VACIO)
+      setBorrador(vacio(hoyLocal()))
       setErrores({})
       setEnvio({ enviando: false, error: null })
       d.showModal()
@@ -109,10 +110,10 @@ function NewRentalRequestModal({ abierto, onClose, onCreate }) {
 
         <div className="nueva-fila">
           <Campo id={`${id}-desde`} label="Desde" error={errores.desde} className="is-fecha">
-            <input className="nueva-input" type="date" {...input('desde')} />
+            <input className="nueva-input" type="date" min={hoyLocal()} {...input('desde')} />
           </Campo>
           <Campo id={`${id}-hasta`} label="Hasta" error={errores.hasta} className="is-fecha">
-            <input className="nueva-input" type="date" min={borrador.desde || undefined} {...input('hasta')} />
+            <input className="nueva-input" type="date" min={borrador.desde || hoyLocal()} {...input('hasta')} />
           </Campo>
         </div>
 

@@ -105,7 +105,7 @@ function parsearMonto(texto) {
 function erroresDeFechas(desde, hasta, hoy) {
   const errores = {}
   if (!desde) errores.desde = 'Falta la fecha de inicio.'
-  else if (desde <= hoy) errores.desde = 'La fecha de inicio tiene que ser posterior a hoy.'
+  else if (desde < hoy) errores.desde = 'La fecha de inicio no puede ser anterior a hoy.'
   if (!hasta) errores.hasta = 'Falta la fecha de fin.'
   else if (desde && desde > hasta) errores.hasta = 'La fecha de fin no puede ser anterior a la de inicio.'
   return errores
