@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from 'react'
 import RentalRequestCard from '../components/RentalRequestCard'
+import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
-import { fetchRentalRequests, voteRentalRequest } from '../services/rentalRequest'
+import { createRentalRequest, fetchRentalRequests, voteRentalRequest } from '../services/rentalRequest'
 
 // TODO: usar el bien del usuario logueado cuando exista el login.
 const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
@@ -14,6 +15,7 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
   const [seleccion, setSeleccion] = useState(null)
   const [modo, setModo] = useState('ver')
   const [envio, setEnvio] = useState({ enviando: false, error: null })
+  const [nuevaAbierta, setNuevaAbierta] = useState(false)
   const idPendientes = useId()
   const idResueltas = useId()
 
@@ -65,6 +67,14 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
     }
   }
 
+  // Errores de red o del server se propagan al modal para mostrarlos ahí.
+  async function crear(solicitud) {
+    const creada = await createRentalRequest({ assetId, userId, ...solicitud })
+    setCarga((prev) => ({ ...prev, solicitudes: [creada, ...prev.solicitudes] }))
+    setNuevaAbierta(false)
+    seleccionar(creada.id)
+  }
+
   const reintentar = () => {
     setCarga({ estado: 'loading', solicitudes: [] })
     setIntento((n) => n + 1)
@@ -100,8 +110,34 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
     )
   }
 
+  const cabecera = (
+    <div className="solicitudes-cabecera">
+      {carga.solicitudes.length > 0 && (
+        <p className="solicitudes-regla">
+          Cada alquiler requiere la aprobación de los {carga.solicitudes[0].coownerCount}{' '}
+          copropietarios
+        </p>
+      )}
+      {userId && (
+        <button type="button" className="nueva-abrir" onClick={() => setNuevaAbierta(true)}>
+          + Nueva solicitud
+        </button>
+      )}
+      <NewRentalRequestModal
+        abierto={nuevaAbierta}
+        onClose={() => setNuevaAbierta(false)}
+        onCreate={crear}
+      />
+    </div>
+  )
+
   if (carga.solicitudes.length === 0) {
-    return <p className="aviso">Todavía no hay solicitudes de alquiler para este bien.</p>
+    return (
+      <div className="solicitudes">
+        {cabecera}
+        <p className="aviso">Todavía no hay solicitudes de alquiler para este bien.</p>
+      </div>
+    )
   }
 
   const { pendientes, resueltas } = agrupar(carga.solicitudes)
@@ -127,10 +163,7 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
 
   return (
     <div className="solicitudes">
-      <p className="solicitudes-regla">
-        Cada alquiler requiere la aprobación de los {carga.solicitudes[0].coownerCount}{' '}
-        copropietarios
-      </p>
+      {cabecera}
 
       <div className="solicitudes-layout">
         <div className="solicitudes-lista">

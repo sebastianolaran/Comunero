@@ -514,3 +514,132 @@
   color: var(--alq-texto);
   cursor: pointer;
 }
+
+.solicitudes-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.solicitudes-cabecera .solicitudes-regla {
+  margin-bottom: 0;
+}
+
+.nueva-abrir {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border-radius: 3px;
+  border: none;
+  background: oklch(22% 0 0);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nueva-abrir:focus-visible,
+.nueva-input:focus-visible,
+.nueva-cancelar:focus-visible {
+  outline: 2px solid var(--alq-activo);
+  outline-offset: 2px;
+}
+
+.nueva-dialogo {
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 32px));
+  padding: 26px;
+  border: none;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--alq-texto);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.nueva-dialogo::backdrop {
+  background: oklch(20% 0 0 / 45%);
+}
+
+.nueva-titulo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--alq-texto);
+  margin: 0 0 16px;
+}
+
+.nueva-fila {
+  display: flex;
+  gap: 8px;
+}
+
+.nueva-fila .nueva-campo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nueva-campo {
+  margin-bottom: 12px;
+}
+
+.nueva-label {
+  display: block;
+  font-size: 12px;
+  color: oklch(50% 0 0);
+  margin-bottom: 4px;
+}
+
+.nueva-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1px solid oklch(85% 0 0);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--alq-texto);
+}
+
+.nueva-campo.is-fecha .nueva-label {
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.nueva-campo.is-fecha .nueva-input {
+  font-size: 12.5px;
+  padding: 7px 8px;
+}
+
+.nueva-comentarios {
+  min-height: 56px;
+  font-size: 13px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.nueva-campo:has(.nueva-comentarios) {
+  margin-bottom: 18px;
+}
+
+.nueva-input[aria-invalid='true'] {
+  border-color: oklch(50% 0.18 25);
+}
+
+.nueva-error {
+  font-size: 12px;
+  color: oklch(45% 0.18 25);
+  margin: 4px 0 0;
+}
+
+.nueva-error.is-general {
+  margin: 0 0 12px;
+}
+
+.nueva-cancelar {
+  border-color: oklch(85% 0 0);
+  color: var(--alq-texto);
+}
