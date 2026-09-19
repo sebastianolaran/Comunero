@@ -1,13 +1,16 @@
 import { useId, useRef, useState } from 'react'
 import { formatRange, resumenEstado, resumenLabel, validarTarea } from '../lib/rentalPreparations'
-import { createRentalTask } from '../services/rentalPreparation'
+import { createRentalTask, deleteRentalTask, updateRentalTask } from '../services/rentalPreparation'
+import RentalPreparationTask from './RentalPreparationTask'
 import './RentalPreparationCard.css'
 
-// Tarjeta de un alquiler aprobado: inquilino, fechas, resumen, tareas y, si el
-// alquiler no terminó, el formulario para agregar una tarea.
-// `alquiler` es un elemento de GET /api/rental-preparations; `onTareaCreada`
-// recibe (alquilerId, tarea) cuando el server confirma el alta.
-function RentalPreparationCard({ alquiler, onTareaCreada }) {
+// Tarjeta de un alquiler aprobado: inquilino, fechas, resumen, tareas (que se
+// pueden tildar, reasignar y eliminar) y, si el alquiler no terminó, el
+// formulario para agregar una tarea.
+// `alquiler` es un elemento de GET /api/rental-preparations. Cada callback
+// avisa cuando el server confirma el cambio: `onTareaCreada(alquilerId, tarea)`,
+// `onTareaActualizada(alquilerId, tarea)` y `onTareaEliminada(alquilerId, tareaId)`.
+function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, onTareaEliminada }) {
   const { id, renterName, startDate, endDate, tasks, summary, finished, coowners } = alquiler
   // El client es un static site que se despliega aparte: si llega antes que el
   // server, `coowners` todavía no viene y el formulario no tendría a quién asignar.
@@ -20,9 +23,59 @@ function RentalPreparationCard({ alquiler, onTareaCreada }) {
   const [enviando, setEnviando] = useState(false)
   const [confirmacion, setConfirmacion] = useState('')
   const nombreRef = useRef(null)
+  const tarjetaRef = useRef(null)
+  const tituloId = useId()
   const campoNombre = useId()
   const campoResponsable = useId()
   const listaErrores = useId()
+
+  // Tildar, reasignar y eliminar: ids de las tareas que se están guardando (la
+  // fila se atenúa y se ignoran sus cambios hasta que termine) y el error del
+  // último cambio que falló.
+  const [guardando, setGuardando] = useState([])
+  const [erroresCambio, setErroresCambio] = useState([])
+  const [avisoCambio, setAvisoCambio] = useState('')
+
+  // El cambio se muestra recién cuando el server lo confirma: si falla (ej. "El
+  // alquiler ya terminó") la tarea queda como estaba, sin nada que deshacer.
+  const cambiar = async (tarea, pedir, alConfirmar, aviso = '') => {
+    if (guardando.includes(tarea.id)) return
+
+    setErroresCambio([])
+    setAvisoCambio('')
+    setGuardando((ids) => [...ids, tarea.id])
+    try {
+      const resultado = await pedir()
+      alConfirmar(resultado)
+      setAvisoCambio(aviso)
+    } catch (err) {
+      setErroresCambio(err.mensajes ?? ['No se pudo modificar la tarea. Probá de nuevo.'])
+      // 404: otro copropietario ya la eliminó. Sin esto quedaría en la lista y
+      // cada acción daría el mismo error hasta recargar la página.
+      if (err.status === 404) onTareaEliminada(id, tarea.id)
+    } finally {
+      setGuardando((ids) => ids.filter((otro) => otro !== tarea.id))
+    }
+  }
+
+  const modificar = (tarea, cambios) =>
+    cambiar(tarea, () => updateRentalTask(tarea.id, cambios), (nueva) => onTareaActualizada(id, nueva))
+
+  const tildar = (tarea, completed) => modificar(tarea, { completed })
+  const reasignar = (tarea, assignedToId) => modificar(tarea, { assignedToId })
+
+  const eliminar = (tarea) =>
+    cambiar(
+      tarea,
+      () => deleteRentalTask(tarea.id),
+      () => {
+        onTareaEliminada(id, tarea.id)
+        // El botón que tenía el foco desaparece con la tarea: el foco pasa a la
+        // tarjeta (y no al campo de nueva tarea, que abriría el teclado en el celular).
+        tarjetaRef.current?.focus()
+      },
+      'Tarea eliminada',
+    )
 
   // Los mensajes del server y del client nombran el campo ("...el nombre...",
   // "...un responsable"), así se marca inválido solo el que corresponde. Un error
@@ -70,10 +123,10 @@ function RentalPreparationCard({ alquiler, onTareaCreada }) {
   }
 
   return (
-    <article className="preparacion">
+    <article className="preparacion" ref={tarjetaRef} tabIndex={-1} aria-labelledby={tituloId}>
       <div className="preparacion-cabecera">
         <div>
-          <h2 className="preparacion-nombre">{renterName ?? 'Sin interesado'}</h2>
+          <h2 id={tituloId} className="preparacion-nombre">{renterName ?? 'Sin interesado'}</h2>
           <p className="preparacion-fechas">{formatRange(startDate, endDate)}</p>
         </div>
         <span className={`preparacion-resumen is-${resumenEstado(summary)}`}>
@@ -85,24 +138,30 @@ function RentalPreparationCard({ alquiler, onTareaCreada }) {
         // list-style: none le quita la semántica de lista en Safari/VoiceOver.
         <ul className="preparacion-tareas" role="list">
           {tasks.map((tarea) => (
-            <li
+            <RentalPreparationTask
               key={tarea.id}
-              className={['preparacion-tarea', tarea.completed && 'is-hecha'].filter(Boolean).join(' ')}
-            >
-              {/* El tilde y el tachado no los lee un lector de pantalla: el estado
-                  va también como texto. */}
-              <span className="preparacion-casilla" aria-hidden="true">
-                {tarea.completed ? '✓' : ''}
-              </span>
-              <span className="preparacion-tarea-nombre">
-                <span className="preparacion-oculto">{tarea.completed ? 'Hecha: ' : 'Pendiente: '}</span>
-                {tarea.name}
-              </span>
-              <span className="preparacion-responsable">Responsable: {tarea.assignedTo.name}</span>
-            </li>
+              tarea={tarea}
+              coowners={coowners}
+              ocupada={guardando.includes(tarea.id)}
+              onTildar={tildar}
+              onReasignar={reasignar}
+              onEliminar={eliminar}
+            />
           ))}
         </ul>
       )}
+
+      {erroresCambio.length > 0 && (
+        <ul className="preparacion-errores" role="alert">
+          {erroresCambio.map((mensaje) => (
+            <li key={mensaje}>{mensaje}</li>
+          ))}
+        </ul>
+      )}
+      {/* Siempre montada, como la del formulario: anuncia "Tarea eliminada". */}
+      <p className="preparacion-oculto" role="status">
+        {avisoCambio}
+      </p>
 
       {/* Un alquiler que terminó ya no recibe tareas. */}
       {puedeAgregar && (
