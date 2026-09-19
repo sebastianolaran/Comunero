@@ -67,7 +67,7 @@ function parseDates(startDate, endDate, today) {
   if (!isValidDate(startDate)) return fail('startDate', 'Falta una fecha de inicio válida');
   if (!isValidDate(endDate)) return fail('endDate', 'Falta una fecha de fin válida');
   // Las fechas YYYY-MM-DD se comparan bien como texto.
-  if (startDate <= today) return fail('startDate', 'La fecha de inicio tiene que ser posterior a hoy');
+  if (startDate < today) return fail('startDate', 'La fecha de inicio no puede ser anterior a hoy');
   if (startDate > endDate) return fail('endDate', 'La fecha de fin no puede ser anterior a la de inicio');
   return { value: { startDate, endDate } };
 }
