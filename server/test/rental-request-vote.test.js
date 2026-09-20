@@ -55,6 +55,10 @@ function fakeDb({ reservation = {}, users = COOWNERS, approvals = [], objections
       create: async ({ data }) => {
         state.objections = [...state.objections, { userId: data.userId, reason: data.reason }];
       },
+      deleteMany: async ({ where }) => {
+        state.objections = state.objections.filter((row) => row.userId !== where.userId);
+      },
+      count: async () => state.objections.length,
     },
   };
 
