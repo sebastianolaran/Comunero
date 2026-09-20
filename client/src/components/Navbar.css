@@ -4,25 +4,27 @@
   height: 100svh;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem 1rem;
+  padding: 20px 14px;
+  background: var(--panel);
   border-right: 1px solid var(--border);
   box-sizing: border-box;
 }
 
 .navbar-header {
-  padding: 0 0.75rem;
+  padding: 6px 10px 20px;
 }
 
 .navbar-app {
-  font-family: var(--heading);
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.011em;
   color: var(--text-h);
 }
 
 .navbar-bien {
-  font-size: 0.9rem;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .navbar-links {
@@ -31,21 +33,22 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 2px;
 }
 
 .navbar-link {
   display: block;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 3px;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--text);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .navbar-link:hover {
-  color: var(--text-h);
-  background: var(--code-bg);
+  background: oklch(94% 0 0);
 }
 
 .navbar-link:focus-visible {
@@ -53,16 +56,16 @@
   outline-offset: 2px;
 }
 
-/* Sección activa: fondo oscuro, texto claro (se invierte en modo oscuro). */
 .navbar-link.active,
 .navbar-link.active:hover {
-  background: var(--text-h);
-  color: var(--bg);
+  font-weight: 600;
+  background: oklch(22% 0 0);
+  color: #fff;
 }
 
 .navbar-footer {
   margin-top: auto;
-  padding: 0 0.75rem;
+  padding: 0 10px;
 }
 
 /* En pantallas chicas el panel pasa a ser una barra arriba con scroll horizontal. */
@@ -70,8 +73,8 @@
   .navbar {
     position: static;
     height: auto;
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 12px;
+    padding: 14px 16px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }

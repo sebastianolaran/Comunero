@@ -98,6 +98,9 @@ model Reservation {
   // como un Movement (type=INCOME) vinculado por reservationId.
   depositAmount Int?
   depositPaidAt DateTime?
+  // Monto total pactado con el inquilino (solo aplica a RENTAL).
+  amount        Int?
+  createdAt     DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
   user         User                  @relation(fields: [userId], references: [id])
