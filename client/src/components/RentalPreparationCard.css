@@ -1,0 +1,265 @@
+/* Usa las variables --alq-* que define .alquiler en Rental.css. */
+.preparacion {
+  --preparacion-error: oklch(45% 0.16 27);
+  background: var(--alq-tarjeta);
+  border: 1px solid var(--alq-borde);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+
+/* Recibe el foco por código al eliminar una tarea (el botón que lo tenía desaparece). */
+.preparacion:focus {
+  outline: none;
+}
+
+.preparacion-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.preparacion-nombre {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--alq-texto);
+  margin: 0;
+}
+
+.preparacion-fechas {
+  font-size: 12.5px;
+  color: var(--alq-apagado);
+  margin: 2px 0 0;
+}
+
+/* Chip del resumen. El texto siempre dice el estado; el estilo solo refuerza. */
+.preparacion-resumen {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: var(--alq-badge);
+  color: var(--alq-badge-texto);
+  white-space: nowrap;
+}
+
+.preparacion-resumen.is-listo {
+  background: var(--alq-activo);
+  color: var(--alq-activo-texto);
+}
+
+.preparacion-resumen.is-sin-tareas {
+  background: none;
+  border: 1px dashed var(--alq-borde-fuerte);
+  color: var(--alq-suave);
+}
+
+.preparacion-tareas {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--alq-borde);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Nombre con su tilde, responsable y eliminar. */
+.preparacion-tarea {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.preparacion-tarea-nombre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--alq-texto);
+  cursor: pointer;
+}
+
+.preparacion-casilla {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--alq-activo);
+  cursor: pointer;
+}
+
+.preparacion-responsable,
+.preparacion-eliminar {
+  font: inherit;
+  font-size: 12px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+.preparacion-responsable {
+  min-width: 0;
+  color: var(--alq-texto);
+  background: var(--alq-tarjeta);
+  border: 1px solid var(--alq-borde-fuerte);
+}
+
+/* Sin la lista de copropietarios el responsable es solo texto. */
+.preparacion-responsable-texto {
+  font-size: 12px;
+  color: var(--alq-apagado);
+}
+
+.preparacion-eliminar {
+  color: var(--preparacion-error);
+  background: none;
+  border: 1px solid var(--alq-borde-fuerte);
+  cursor: pointer;
+}
+
+/* Guardando: se atenúa la fila, pero los controles siguen habilitados (ver RentalPreparationTask). */
+.preparacion-tarea[aria-busy='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.preparacion-tarea[aria-busy='true'] * {
+  cursor: progress;
+}
+
+.preparacion-casilla:focus-visible,
+.preparacion-responsable:focus-visible,
+.preparacion-eliminar:focus-visible {
+  outline: 2px solid var(--alq-texto);
+  outline-offset: 2px;
+}
+
+/* Tarea hecha: nombre tachado y apagado (el tilde lo da el checkbox). */
+.preparacion-tarea.is-hecha .preparacion-tarea-nombre {
+  color: var(--alq-suave);
+}
+
+.preparacion-tarea.is-hecha .preparacion-tarea-nombre span {
+  text-decoration: line-through;
+}
+
+/* Error de tildar, reasignar o eliminar. */
+.preparacion-errores {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--preparacion-error);
+}
+
+/* Formulario de alta al pie de la tarjeta. */
+.preparacion-alta {
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--alq-borde);
+}
+
+.preparacion-tareas + .preparacion-alta {
+  margin-top: 12px;
+}
+
+.preparacion-alta-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preparacion-alta-nombre,
+.preparacion-alta-responsable,
+.preparacion-alta-boton {
+  font: inherit;
+  font-size: 13px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 3px;
+}
+
+.preparacion-alta-nombre,
+.preparacion-alta-responsable {
+  color: var(--alq-texto);
+  background: var(--alq-tarjeta);
+  border: 1px solid var(--alq-borde-fuerte);
+}
+
+.preparacion-alta-nombre {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.preparacion-alta-responsable {
+  flex: 0 1 170px;
+  min-width: 0;
+}
+
+.preparacion-alta-nombre[aria-invalid='true'],
+.preparacion-alta-responsable[aria-invalid='true'] {
+  border-color: var(--preparacion-error);
+}
+
+.preparacion-alta-boton {
+  border: 1px solid var(--alq-activo);
+  background: var(--alq-activo);
+  color: var(--alq-activo-texto);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.preparacion-alta-boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.preparacion-alta-nombre:focus-visible,
+.preparacion-alta-responsable:focus-visible,
+.preparacion-alta-boton:focus-visible {
+  outline: 2px solid var(--alq-texto);
+  outline-offset: 2px;
+}
+
+.preparacion-alta-errores {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--preparacion-error);
+}
+
+.preparacion-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* En pantallas angostas el nombre ocupa el renglón y debajo van responsable y eliminar. */
+@media (max-width: 480px) {
+  .preparacion-tarea {
+    grid-template-columns: 1fr auto;
+  }
+
+  .preparacion-tarea-nombre {
+    grid-column: 1 / -1;
+  }
+
+  /* Caja, desplegable y botón, cada uno en su renglón. */
+  .preparacion-alta-nombre,
+  .preparacion-alta-responsable,
+  .preparacion-alta-boton {
+    flex: 1 1 100%;
+  }
+}

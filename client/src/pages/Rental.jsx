@@ -1,7 +1,11 @@
 import { NavLink, Outlet } from 'react-router'
 import './Rental.css'
 
-const SUBSECCIONES = [{ path: 'solicitudes', label: 'Solicitudes' }]
+const SUBSECCIONES = [
+  { path: 'solicitudes', label: 'Solicitudes' },
+  { path: 'historial-inquilinos', label: 'Historial de inquilinos' },
+  { path: 'tareas-preparacion', label: 'Tareas de preparación' },
+]
 
 function Rental() {
   return (
