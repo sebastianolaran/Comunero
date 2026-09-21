@@ -28,3 +28,8 @@ pnpm-debug.log*
 
 # Cache de Vite
 .vite/
+
+# Tests: se escriben y se corren, pero quedan locales
+server/test/
+server/testing/
+client/test/

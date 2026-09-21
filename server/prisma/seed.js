@@ -114,6 +114,75 @@ async function main() {
     },
   });
 
+  // Turnos de uso propio (pestaña Calendario). Cubren los tres estados que
+  // pinta la grilla: reservado (USE vigente, con el color del integrante),
+  // rechazado, y los dias sin reserva quedan libres.
+
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: ana.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      note: 'Fin de semana con los chicos.',
+      startDate: new Date('2026-09-12T00:00:00.000Z'),
+      endDate: new Date('2026-09-14T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
+  // Pendiente de votacion: se pinta igual que una vigente (el dia ya esta
+  // pedido, no esta libre).
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: bruno.id,
+      type: 'USE',
+      note: 'Me quedo a arreglar el molino.',
+      startDate: new Date('2026-09-22T00:00:00.000Z'),
+      endDate: new Date('2026-09-23T00:00:00.000Z'),
+      approvals: aprobadaPor([bruno]),
+    },
+  });
+
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: carla.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      startDate: new Date('2026-09-26T00:00:00.000Z'),
+      endDate: new Date('2026-09-28T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: flor.id,
+      type: 'USE',
+      status: 'REJECTED',
+      startDate: new Date('2026-09-18T00:00:00.000Z'),
+      endDate: new Date('2026-09-18T00:00:00.000Z'),
+      approvals: aprobadaPor([flor]),
+      objections: { create: [{ userId: carla.id, reason: 'Ese dia viene el plomero.' }] },
+    },
+  });
+
+  // En octubre, para que el mes siguiente tampoco quede vacio.
+  await prisma.reservation.create({
+    data: {
+      assetId: ASSET_ID,
+      userId: ana.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      startDate: new Date('2026-10-24T00:00:00.000Z'),
+      endDate: new Date('2026-10-26T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
   // Tareas de preparación. Alquileres aprobados (status ACTIVE, sí de los 4):
 
   // Ya pasó y es del mismo inquilino que el de septiembre: dos tarjetas. "Todo listo (2/2)".
