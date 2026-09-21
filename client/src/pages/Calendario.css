@@ -44,6 +44,19 @@
   gap: 6px;
 }
 
+.calendario-dia-semana {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--text-h));
+  padding-bottom: 4px;
+}
+
+.calendario-dia--vacio {
+  border-color: transparent;
+}
+
 .calendario-dia {
   aspect-ratio: 1;
   display: flex;
@@ -104,7 +117,8 @@
   margin-bottom: 0.75rem;
 }
 
-.calendario-solicitud-fechas label {
+.calendario-solicitud-fechas label,
+.calendario-solicitud-alquiler label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -112,13 +126,57 @@
   color: var(--text-h);
 }
 
-.calendario-solicitud-fechas input {
+.calendario-solicitud-fechas input,
+.calendario-solicitud-alquiler input,
+.calendario-solicitud-alquiler select {
   font: inherit;
   padding: 0.4rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
+}
+
+.calendario-solicitud-tipo {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendario-solicitud-tipo button {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.calendario-solicitud-tipo button.activo {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.calendario-solicitud-alquiler {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+}
+
+.calendario-solicitud-monto {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.calendario-solicitud-monto label {
+  flex: 1;
 }
 
 .calendario-solicitud-acciones {

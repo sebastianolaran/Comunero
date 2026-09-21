@@ -31,6 +31,15 @@ export function nombreMes(year, month) {
   return formatter.format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
+export const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+// Indice (0=Lunes .. 6=Domingo) del dia de la semana en que cae el dia 1
+// del mes, para poder alinear la grilla bajo el encabezado correcto.
+export function primerDiaSemana(year, month) {
+  const diaJs = new Date(Date.UTC(year, month - 1, 1)).getUTCDay(); // 0=Domingo..6=Sabado
+  return (diaJs + 6) % 7;
+}
+
 function fechaUTC(valor) {
   const d = new Date(valor);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());

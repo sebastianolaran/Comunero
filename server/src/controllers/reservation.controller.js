@@ -1,4 +1,5 @@
 const reservationService = require('../services/reservation.service');
+const { parseFechaISO } = require('../lib/fecha');
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -32,14 +33,6 @@ async function listForCalendar(req, res) {
   res.json({ reservations });
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function parseFecha(valor) {
-  if (!valor || !DATE_RE.test(valor)) return null;
-  const fecha = new Date(`${valor}T00:00:00.000Z`);
-  return Number.isNaN(fecha.getTime()) ? null : fecha;
-}
-
 // POST /api/reservations
 // body: { assetId, userId, startDate, endDate, note? }  (fechas 'YYYY-MM-DD')
 //
@@ -56,8 +49,8 @@ async function create(req, res) {
     return res.status(400).json({ error: 'faltan assetId y/o userId' });
   }
 
-  const inicio = parseFecha(startDate);
-  const fin = parseFecha(endDate);
+  const inicio = parseFechaISO(startDate);
+  const fin = parseFechaISO(endDate);
   if (!inicio || !fin) {
     return res
       .status(400)
