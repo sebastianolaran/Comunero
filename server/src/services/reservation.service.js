@@ -24,6 +24,7 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
       endDate: true,
       type: true,
       status: true,
+      user: { select: { name: true } },
     },
     orderBy: { startDate: 'asc' },
   });

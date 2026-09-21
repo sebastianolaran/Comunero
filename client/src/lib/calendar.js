@@ -68,7 +68,12 @@ export function estadoDelDia(dia, reservas) {
   if (vigente) {
     return vigente.type === 'RENTAL'
       ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId }
-      : { estado: 'reservado', reservationId: vigente.id, userId: vigente.userId };
+      : {
+          estado: 'reservado',
+          reservationId: vigente.id,
+          userId: vigente.userId,
+          userName: vigente.user?.name,
+        };
   }
 
   const rechazada = delDia.find((r) => r.status === 'REJECTED');
@@ -87,4 +92,24 @@ export function colorDeIntegrante(userId) {
     hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
   }
   return PALETA_INTEGRANTES[hash % PALETA_INTEGRANTES.length];
+}
+
+// Arma la leyenda de integrantes a partir de las reservas del mes visible:
+// un integrante aparece si tiene al menos una reserva de uso propio
+// (ACTIVE o PENDING) en el rango cargado. No es la lista completa de
+// integrantes del asset (no hay un endpoint de Users todavia), es "quien
+// aparece pintado este mes".
+export function integrantesEnReservas(reservas) {
+  const vistos = new Map();
+  for (const r of reservas) {
+    if (r.type !== 'USE') continue;
+    if (r.status !== 'ACTIVE' && r.status !== 'PENDING') continue;
+    if (vistos.has(r.userId)) continue;
+    vistos.set(r.userId, {
+      userId: r.userId,
+      nombre: r.user?.name ?? 'Integrante',
+      color: colorDeIntegrante(r.userId),
+    });
+  }
+  return [...vistos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
 }

@@ -7,6 +7,7 @@ import {
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
+  integrantesEnReservas,
   mesAnterior,
   mesSiguiente,
   nombreMes,
@@ -135,6 +136,7 @@ function Calendario() {
 
   const dias = diasDelMes(year, month)
   const espaciosVacios = primerDiaSemana(year, month)
+  const integrantes = integrantesEnReservas(reservas)
 
   return (
     <div className="calendario-layout">
@@ -183,6 +185,27 @@ function Calendario() {
             )
           })}
         </div>
+
+        <ul className="calendario-leyenda">
+          {integrantes.map((i) => (
+            <li key={i.userId}>
+              <span className="calendario-leyenda-color" style={{ background: i.color }} />
+              {i.nombre}
+            </li>
+          ))}
+          <li>
+            <span className="calendario-leyenda-color calendario-leyenda-color--alquilado" />
+            Alquilado
+          </li>
+          <li>
+            <span className="calendario-leyenda-color calendario-leyenda-color--rechazado" />
+            Rechazado
+          </li>
+          <li>
+            <span className="calendario-leyenda-color calendario-leyenda-color--libre" />
+            Libre
+          </li>
+        </ul>
       </section>
 
       <aside className="calendario-panel">
