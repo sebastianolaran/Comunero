@@ -12,9 +12,9 @@ const MODOS_MONTO = new Set(['TOTAL', 'POR_DIA']);
 // aca la fecha de inicio tiene que ser ESTRICTAMENTE anterior a la de fin
 // (regla 2 de esta tarjeta dice "anterior a", no "anterior o igual a").
 //
-// El monto no se guarda en Reservation (ese campo, depositAmount, es la
-// SEÑA, otro concepto): se registra como un Movement type=INCOME vinculado
-// a la reserva, tal como indica el comentario del propio schema.
+// El monto total va en Reservation.amount (es lo que se muestra al votar en
+// Solicitudes) y ademas como Movement type=INCOME vinculado a la reserva.
+// El que NO se toca aca es depositAmount, que es la seña.
 //
 // TODO: mismo TODO que en reservation.controller.js sobre userId sin auth.
 async function create(req, res) {
