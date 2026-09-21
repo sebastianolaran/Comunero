@@ -151,6 +151,12 @@
 
 .calendario-solicitud-titulo {
   font-size: 16px;
+  margin: 0 0 0.25rem;
+}
+
+.calendario-solicitud-ayuda {
+  font-size: 13px;
+  color: var(--text-muted);
   margin: 0 0 0.75rem;
 }
 

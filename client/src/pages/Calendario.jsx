@@ -199,7 +199,12 @@ function Calendario() {
 
       <aside className="calendario-panel">
         {!formAbierto && (
-          <button type="button" className="calendario-btn-reservar" onClick={() => setFormAbierto(true)}>
+          <button
+            type="button"
+            className="calendario-btn-reservar"
+            title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
+            onClick={() => setFormAbierto(true)}
+          >
             Reservar
           </button>
         )}
@@ -207,6 +212,9 @@ function Calendario() {
         {formAbierto && (
           <form className="calendario-solicitud" onSubmit={handleSolicitar}>
             <h2 className="calendario-solicitud-titulo">Nueva reserva</h2>
+            <p className="calendario-solicitud-ayuda">
+              Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
+            </p>
 
             <div className="calendario-solicitud-fechas">
               <label>
