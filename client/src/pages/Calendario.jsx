@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createRental, createReservation, fetchReservations } from '../lib/api'
+import { createReservation, fetchReservations } from '../lib/api'
 import { ASSET_ID } from '../lib/currentAsset'
 import { USER_ID } from '../lib/currentUser'
 import {
@@ -29,13 +29,8 @@ function mesParam(year, month) {
 }
 
 const FORM_INICIAL = {
-  tipo: 'USE', // 'USE' | 'RENTAL'
   inicio: '',
   fin: '',
-  renterName: '',
-  renterPhone: '',
-  montoModo: 'TOTAL', // 'TOTAL' | 'POR_DIA'
-  monto: '',
 }
 
 function Calendario() {
@@ -77,33 +72,19 @@ function Calendario() {
 
   const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
 
-  // Historias "Solicitar turno de uso propio" y "Solicitar alquiler a
-  // terceros". Las validaciones de fechas/monto las hace el backend; aca
-  // solo mostramos el error que devuelva.
+  // Historia "Solicitar turno de uso propio". Las validaciones de fechas las
+  // hace el backend; aca solo mostramos el error que devuelva.
   const handleSolicitar = async (e) => {
     e.preventDefault()
     setFormError(null)
     setEnviando(true)
     try {
-      if (form.tipo === 'USE') {
-        await createReservation({
-          assetId: ASSET_ID,
-          userId: USER_ID,
-          startDate: form.inicio,
-          endDate: form.fin,
-        })
-      } else {
-        await createRental({
-          assetId: ASSET_ID,
-          userId: USER_ID,
-          startDate: form.inicio,
-          endDate: form.fin,
-          renterName: form.renterName,
-          renterPhone: form.renterPhone,
-          montoModo: form.montoModo,
-          monto: form.monto,
-        })
-      }
+      await createReservation({
+        assetId: ASSET_ID,
+        userId: USER_ID,
+        startDate: form.inicio,
+        endDate: form.fin,
+      })
       setForm(FORM_INICIAL)
       setFormAbierto(false)
       setRefreshKey((k) => k + 1)
@@ -237,66 +218,6 @@ function Calendario() {
                 <input type="date" value={form.fin} onChange={setCampo('fin')} required />
               </label>
             </div>
-
-            <div className="calendario-solicitud-tipo">
-              <button
-                type="button"
-                className={form.tipo === 'USE' ? 'activo' : ''}
-                onClick={() => setForm((f) => ({ ...f, tipo: 'USE' }))}
-              >
-                Uso propio
-              </button>
-              <button
-                type="button"
-                className={form.tipo === 'RENTAL' ? 'activo' : ''}
-                onClick={() => setForm((f) => ({ ...f, tipo: 'RENTAL' }))}
-              >
-                Alquiler a tercero
-              </button>
-            </div>
-
-            {form.tipo === 'RENTAL' && (
-              <div className="calendario-solicitud-alquiler">
-                <label>
-                  Nombre del tercero
-                  <input
-                    type="text"
-                    value={form.renterName}
-                    onChange={setCampo('renterName')}
-                    required
-                  />
-                </label>
-                <label>
-                  Telefono del tercero
-                  <input
-                    type="tel"
-                    value={form.renterPhone}
-                    onChange={setCampo('renterPhone')}
-                    required
-                  />
-                </label>
-                <div className="calendario-solicitud-monto">
-                  <label>
-                    Monto
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={form.monto}
-                      onChange={setCampo('monto')}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Modo
-                    <select value={form.montoModo} onChange={setCampo('montoModo')}>
-                      <option value="TOTAL">Total</option>
-                      <option value="POR_DIA">Por dia</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-            )}
 
             <div className="calendario-solicitud-acciones">
               <button type="button" className="calendario-btn-secundario" onClick={cancelarSolicitud}>

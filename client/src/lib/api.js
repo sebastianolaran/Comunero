@@ -34,39 +34,3 @@ export async function createReservation({ assetId, userId, startDate, endDate, n
 
   return body.reservation
 }
-
-// Historia "Solicitar alquiler a terceros". montoModo: 'TOTAL' | 'POR_DIA'.
-export async function createRental({
-  assetId,
-  userId,
-  startDate,
-  endDate,
-  renterName,
-  renterPhone,
-  montoModo,
-  monto,
-  note,
-}) {
-  const res = await fetch(`${API_URL}/api/reservations/rental`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      assetId,
-      userId,
-      startDate,
-      endDate,
-      renterName,
-      renterPhone,
-      montoModo,
-      monto,
-      note,
-    }),
-  })
-
-  const body = await res.json()
-  if (!res.ok) {
-    throw new Error(body.error ?? `HTTP ${res.status}`)
-  }
-
-  return body
-}
