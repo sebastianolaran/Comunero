@@ -1,0 +1,273 @@
+.calendario-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) 280px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.calendario {
+  max-width: 720px;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.calendario-titulo {
+  font-size: 24px;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.calendario-header button {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.calendario-error {
+  color: #b91c1c;
+}
+
+.calendario-grilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendario-dia-semana {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--text-h));
+  padding-bottom: 4px;
+}
+
+.calendario-dia--vacio {
+  border-color: transparent;
+}
+
+.calendario-dia {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/* Regla: cada dia muestra su estado (libre / reservado / alquilado /
+   rechazado) mediante un color o estilo distintivo. */
+
+.calendario-dia--libre {
+  background: var(--bg);
+}
+
+.calendario-dia--reservado {
+  background: var(--color-dia, var(--accent));
+  color: #fff;
+  border-color: transparent;
+}
+
+.calendario-dia--alquilado {
+  background: #0b7285;
+  color: #fff;
+  border-color: transparent;
+}
+
+.calendario-dia--rechazado {
+  background: repeating-linear-gradient(
+    45deg,
+    #f1c0c0,
+    #f1c0c0 4px,
+    #fbe4e4 4px,
+    #fbe4e4 8px
+  );
+  color: #7f1d1d;
+}
+
+.calendario-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.calendario-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.calendario-leyenda-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.calendario-leyenda-color--alquilado {
+  background: #0b7285;
+  border-color: transparent;
+}
+
+.calendario-leyenda-color--rechazado {
+  background: repeating-linear-gradient(
+    45deg,
+    #f1c0c0,
+    #f1c0c0 3px,
+    #fbe4e4 3px,
+    #fbe4e4 6px
+  );
+}
+
+.calendario-leyenda-color--libre {
+  background: var(--bg);
+}
+
+.calendario-solicitud {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.calendario-solicitud-titulo {
+  font-size: 16px;
+  margin: 0 0 0.75rem;
+}
+
+.calendario-solicitud-fechas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendario-solicitud-fechas label,
+.calendario-solicitud-alquiler label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.calendario-solicitud-fechas input,
+.calendario-solicitud-alquiler input,
+.calendario-solicitud-alquiler select {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.calendario-solicitud-tipo {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendario-solicitud-tipo button {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.calendario-solicitud-tipo button.activo {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.calendario-solicitud-alquiler {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+}
+
+.calendario-solicitud-monto {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.calendario-solicitud-monto label {
+  flex: 1;
+}
+
+.calendario-solicitud-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.calendario-solicitud-acciones button {
+  font: inherit;
+  padding: 0.45rem 1.25rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendario-solicitud-acciones button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.calendario-btn-secundario {
+  background: var(--bg) !important;
+  color: var(--text-h) !important;
+}
+
+.calendario-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.calendario-btn-reservar {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendario-solicitud-error {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  font-size: 13px;
+}
