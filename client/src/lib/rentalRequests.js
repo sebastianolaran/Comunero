@@ -10,9 +10,9 @@ export function agrupar(solicitudes) {
 }
 
 // Misma regla que el server: una rechazada sigue abierta para todos, salvo que se
-// pise con una reserva aprobada.
-export function puedeVotar({ status, blockedByOverlap = false }) {
-  return status !== 'APPROVED' && !blockedByOverlap
+// pise con una reserva aprobada o que sea un alquiler cancelado.
+export function puedeVotar({ status, blockedByOverlap = false, cancelled = false }) {
+  return status !== 'APPROVED' && !blockedByOverlap && !cancelled
 }
 
 // El motivo es opcional al rechazar.
@@ -91,6 +91,11 @@ export function etiquetaPago({ status, paid }) {
 
 // Pago es final: no se vuelve a Pendiente.
 export function puedeMarcarPago({ status, paid }) {
+  return status === 'APPROVED' && !paid
+}
+
+// Una vez pago ya no se puede cancelar.
+export function puedeCancelar({ status, paid }) {
   return status === 'APPROVED' && !paid
 }
 

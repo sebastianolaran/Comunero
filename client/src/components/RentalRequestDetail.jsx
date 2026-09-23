@@ -7,6 +7,7 @@ import {
   formatPhone,
   formatRange,
   motivoRechazo,
+  puedeCancelar,
   puedeMarcarPago,
   puedeVotar as admiteVoto,
   VOTO_TEXTO,
@@ -14,8 +15,23 @@ import {
 } from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
-// modo: 'ver' | 'rechazar' | 'cambiar' | 'pagar' (Cambiar voto vuelve a mostrar Aprobar/Rechazar;
-// pagar pide confirmar porque el pago no se puede deshacer).
+// Acciones sobre un alquiler aprobado: las dos piden confirmar porque no se pueden deshacer.
+const ACCIONES = {
+  pagar: {
+    boton: 'Marcar como pago',
+    confirmar: 'Confirmar pago',
+    aviso: (s) =>
+      `Se registra un ingreso de ${formatMoney(s.amount)} repartido entre todos. Después no se puede volver a Pendiente.`,
+  },
+  cancelar: {
+    boton: 'Cancelar alquiler',
+    confirmar: 'Confirmar cancelación',
+    aviso: () => 'Los días quedan libres. Para volver a alquilarlos hay que cargar otra solicitud.',
+  },
+}
+
+// modo: 'ver' | 'rechazar' | 'cambiar' | 'pagar' | 'cancelar' (Cambiar voto vuelve a mostrar
+// Aprobar/Rechazar; pagar y cancelar muestran su confirmación).
 function RentalRequestDetail({
   solicitud,
   modo,
@@ -26,9 +42,9 @@ function RentalRequestDetail({
   onCancelReject,
   onSubmitReject,
   onChangeVote,
-  onOpenPayment,
-  onCancelPayment,
-  onConfirmPayment,
+  onOpenAction,
+  onCancelAction,
+  onConfirmAction,
 }) {
   const [motivo, setMotivo] = useState('')
   const idError = useId()
@@ -51,8 +67,12 @@ function RentalRequestDetail({
   const mostrarVotar = abierta && !rechazando && (!vote || modo === 'cambiar')
   const mostrarMiVoto = abierta && !rechazando && vote && modo !== 'cambiar'
   const pago = etiquetaPago(solicitud)
-  const pagable = puedeMarcarPago(solicitud)
-  const confirmandoPago = pagable && modo === 'pagar'
+  const disponibles = {
+    pagar: puedeMarcarPago(solicitud),
+    cancelar: puedeCancelar(solicitud),
+  }
+  const confirmando = disponibles[modo] ? modo : null
+  const botones = Object.keys(ACCIONES).filter((accion) => disponibles[accion])
 
   return (
     <aside className="detalle" aria-label={`Detalle de la solicitud de ${nombre}`}>
@@ -97,31 +117,36 @@ function RentalRequestDetail({
         <p className="detalle-nota">Aprobada por unanimidad: ya quedó reservada en el calendario.</p>
       )}
 
-      {puedeVotar && pagable && !confirmandoPago && (
+      {puedeVotar && !confirmando && botones.length > 0 && (
         <div className="detalle-acciones">
-          <button type="button" className="detalle-boton is-primario" onClick={onOpenPayment} disabled={envio.enviando}>
-            Marcar como pago
-          </button>
+          {botones.map((accion, i) => (
+            <button
+              key={accion}
+              type="button"
+              className={i === 0 ? 'detalle-boton is-primario' : 'detalle-boton'}
+              onClick={() => onOpenAction(accion)}
+              disabled={envio.enviando}
+            >
+              {ACCIONES[accion].boton}
+            </button>
+          ))}
         </div>
       )}
 
-      {puedeVotar && confirmandoPago && (
+      {puedeVotar && confirmando && (
         <div className="detalle-rechazo">
-          <p className="detalle-nota">
-            Se registra un ingreso de {formatMoney(solicitud.amount)} repartido entre todos. Después no se puede volver a
-            Pendiente.
-          </p>
+          <p className="detalle-nota">{ACCIONES[confirmando].aviso(solicitud)}</p>
           <div className="detalle-acciones">
-            <button type="button" className="detalle-boton" onClick={onCancelPayment} disabled={envio.enviando}>
+            <button type="button" className="detalle-boton" onClick={onCancelAction} disabled={envio.enviando}>
               Volver
             </button>
             <button
               type="button"
               className="detalle-boton is-confirmar"
-              onClick={onConfirmPayment}
+              onClick={() => onConfirmAction(confirmando)}
               disabled={envio.enviando}
             >
-              Confirmar pago
+              {ACCIONES[confirmando].confirmar}
             </button>
           </div>
         </div>
