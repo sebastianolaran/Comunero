@@ -1,0 +1,359 @@
+/* Portado del bloque .login de "Modificaciones de componente HTML".
+   Los tokens se declaran acá y no en index.css porque son los del prototipo
+   (--ink, --line-strong, ...) y todavía conviven con los del resto del
+   client (--text, --border, ...): dejarlos dentro de .login evita que se
+   pisen entre sí mientras las demás pantallas no estén portadas. */
+.login {
+  --ink: oklch(22% 0 0);
+  --ink-2: oklch(32% 0 0);
+  --muted: oklch(46% 0 0);
+  --faint: oklch(56% 0 0);
+  --surface: #fff;
+  --inset: oklch(96% 0 0);
+  --sunken: oklch(98.4% 0 0);
+  --line-strong: oklch(85% 0 0);
+  --line-loud: oklch(74% 0 0);
+  --neg: oklch(50% 0.16 25);
+  --r-sm: 4px;
+  --shadow-raise: 0 1px 2px oklch(20% 0 0 / 6%);
+  --ease: cubic-bezier(0.22, 0.8, 0.25, 1);
+  --t-fast: 120ms;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  min-height: 100svh;
+  width: 100%;
+  background: var(--sunken);
+  color: var(--ink);
+  font: 400 13px/1.5 var(--sans);
+}
+
+.login * {
+  box-sizing: border-box;
+}
+
+/* ---- columna del formulario ---- */
+.login__side {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 44px;
+}
+
+.login__marca {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.014em;
+}
+
+.login__form {
+  width: 100%;
+  max-width: 340px;
+  margin: auto;
+  padding: 48px 0;
+}
+
+.login__t {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.login__s {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 30px;
+  text-wrap: pretty;
+}
+
+.login__alert {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border: 1px solid oklch(85% 0.06 25);
+  border-radius: var(--r-sm);
+  background: oklch(97% 0.015 25);
+  color: oklch(40% 0.14 25);
+  line-height: 1.45;
+}
+
+.login__f + .login__f {
+  margin-top: 14px;
+}
+
+.login__lbl {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: 5px;
+}
+
+.login__in {
+  width: 100%;
+  margin-top: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+
+.login__in:hover {
+  border-color: var(--line-loud);
+}
+
+.login__in:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px oklch(22% 0 0 / 10%);
+}
+
+.login__in--err {
+  border-color: var(--neg);
+}
+
+.login__in--err:focus {
+  box-shadow: 0 0 0 3px oklch(50% 0.16 25 / 14%);
+}
+
+.login__err {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--neg);
+}
+
+/* ---- contraseña con el ojo ---- */
+.login__pass {
+  display: block;
+  position: relative;
+  margin-top: 5px;
+}
+
+.login__pass .login__in {
+  margin-top: 0;
+  padding-right: 44px;
+}
+
+.login__eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.login__eye:hover {
+  color: var(--ink);
+}
+
+.login__eye svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- pie del formulario ---- */
+.login__go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 26px;
+  padding: 11px 16px;
+  border: 1px solid var(--ink);
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  box-shadow: var(--shadow-raise);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.login__go:hover:not(:disabled) {
+  background: oklch(30% 0 0);
+  border-color: oklch(30% 0 0);
+}
+
+.login__go:active:not(:disabled) {
+  background: oklch(17% 0 0);
+}
+
+.login__go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.login__foot {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* ---- panel oscuro ---- */
+.login__panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 36px;
+  padding: 48px;
+  background: var(--ink);
+  color: oklch(92% 0 0);
+}
+
+.login__mes {
+  width: min(100%, 392px);
+}
+
+.login__mes-t {
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+/* nombreMes() devuelve "septiembre de 2026": con `capitalize` quedaría
+   "Septiembre De 2026", así que solo sube la primera letra. */
+.login__mes-t::first-letter {
+  text-transform: uppercase;
+}
+
+.login__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.login__wd {
+  padding-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: oklch(62% 0 0);
+  text-align: center;
+}
+
+.login__d {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  aspect-ratio: 1;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+  background: oklch(27% 0 0);
+  font-size: 11px;
+  color: oklch(62% 0 0);
+}
+
+.login__d--out {
+  background: transparent;
+}
+
+.login__d--on {
+  color: #fff;
+  font-weight: 600;
+  animation: login-paint 520ms var(--ease) backwards;
+}
+
+.login__d--pend {
+  outline: 1px dashed oklch(100% 0 0 / 55%);
+  outline-offset: -3px;
+}
+
+@keyframes login-paint {
+  from {
+    background: oklch(27% 0 0);
+    color: oklch(62% 0 0);
+  }
+}
+
+.login__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: oklch(78% 0 0);
+}
+
+.login__legend-i {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.login__legend-d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.login__p {
+  width: min(100%, 392px);
+  font-size: 15px;
+  line-height: 1.55;
+  color: oklch(78% 0 0);
+  text-wrap: pretty;
+}
+
+/* En pantallas angostas el panel decorativo se va: el formulario es lo que
+   importa y no hay lugar para las dos columnas. */
+@media (max-width: 860px) {
+  .login {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login__panel {
+    display: none;
+  }
+
+  .login__side {
+    padding: 20px 16px 24px;
+  }
+
+  .login__form {
+    margin: 0 auto;
+    padding: 56px 0 40px;
+  }
+
+  .login__foot {
+    margin-top: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login__d--on {
+    animation-duration: 0.01ms;
+  }
+}
