@@ -2,8 +2,9 @@ const prisma = require('../prisma');
 
 // Se deriva de los votos (Approval = si, Objection = no) ademas del status,
 // por si el status guardado no se actualizo al votar.
+// Un alquiler cancelado se muestra como rechazado (con el motivo en rejectionReason).
 function deriveStatus({ status, approvals, objections }, coownerCount) {
-  if (status === 'REJECTED' || objections > 0) return 'REJECTED';
+  if (status === 'CANCELLED' || status === 'REJECTED' || objections > 0) return 'REJECTED';
   if (status === 'ACTIVE') return 'APPROVED';
   if (coownerCount > 0 && approvals >= coownerCount) return 'APPROVED';
   return 'PENDING';
@@ -53,6 +54,7 @@ function toListItem(reservation, coowners, userId, { blockedByOverlap = false } 
     paid: reservation.paidAt != null,
     rejectionReason: reservation.rejectionReason ?? null,
     blockedByOverlap,
+    cancelled: reservation.status === 'CANCELLED',
   };
 }
 
@@ -93,7 +95,7 @@ async function listByAsset(assetId, userId) {
   const [coowners, reservations, approved] = await Promise.all([
     coownersOf(prisma, assetId),
     prisma.reservation.findMany({
-      where: { assetId, type: 'RENTAL', status: { not: 'CANCELLED' } },
+      where: { assetId, type: 'RENTAL' },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: LIST_SELECT,
     }),
@@ -106,7 +108,7 @@ async function listByAsset(assetId, userId) {
 
   return reservations.map((r) =>
     toListItem(r, coowners, userId, {
-      blockedByOverlap: r.status !== 'ACTIVE' && approved.some((a) => sharesDays(a, r)),
+      blockedByOverlap: r.status !== 'ACTIVE' && r.status !== 'CANCELLED' && approved.some((a) => sharesDays(a, r)),
     }),
   );
 }
@@ -165,19 +167,19 @@ async function lockForVote(tx, reservationId) {
   await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
 }
 
-// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'RESOLVED' | 'OVERLAP' }.
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'CANCELLED' | 'RESOLVED' | 'OVERLAP' }.
 async function vote({ reservationId, userId, value, reason }) {
   return prisma.$transaction(async (tx) => {
     await lockForVote(tx, reservationId);
 
     const select = { ...LIST_SELECT, assetId: true, type: true };
     const reservation = await tx.reservation.findUnique({ where: { id: reservationId }, select });
-    if (!reservation || reservation.type !== 'RENTAL' || reservation.status === 'CANCELLED') {
-      return { error: 'NOT_FOUND' };
-    }
+    if (!reservation || reservation.type !== 'RENTAL') return { error: 'NOT_FOUND' };
 
     const coowners = await coownersOf(tx, reservation.assetId);
     if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    // Cancelar libera los dias: para volver a alquilarlos se carga otra solicitud.
+    if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
     if (!canVote(toListItem(reservation, coowners, userId))) return { error: 'RESOLVED' };
     if (await hasApprovedOverlap(tx, reservation)) return { error: 'OVERLAP' };
 
@@ -239,6 +241,34 @@ async function markPaid({ reservationId, userId, now = new Date() }) {
   }, TX_OPTIONS);
 }
 
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'NOT_APPROVED' | 'PAID' }.
+async function cancel({ reservationId, userId }) {
+  return prisma.$transaction(async (tx) => {
+    // Mismo orden de locks que al votar: la cancelacion libera dias que otra votacion puede estar mirando.
+    await lockForVote(tx, reservationId);
+
+    const select = { ...LIST_SELECT, assetId: true, type: true };
+    const reservation = await tx.reservation.findUnique({ where: { id: reservationId }, select });
+    if (!reservation || reservation.type !== 'RENTAL' || reservation.status === 'CANCELLED') {
+      return { error: 'NOT_FOUND' };
+    }
+
+    const coowners = await coownersOf(tx, reservation.assetId);
+    const canceller = coowners.find((u) => u.id === userId);
+    if (!canceller) return { error: 'NOT_COOWNER' };
+    const item = toListItem(reservation, coowners, userId);
+    if (item.status !== 'APPROVED') return { error: 'NOT_APPROVED' };
+    if (item.paid) return { error: 'PAID' };
+
+    const updated = await tx.reservation.update({
+      where: { id: reservationId },
+      data: { status: 'CANCELLED', rejectionReason: `Alquiler cancelado por ${canceller.name}` },
+      select,
+    });
+    return { request: toListItem(updated, coowners, userId) };
+  }, TX_OPTIONS);
+}
+
 // El telefono identifica al inquilino dentro del bien: si ya existe se reutiliza
 // (con su nombre y su historial) en vez de crear un duplicado.
 async function findOrCreateRenter(tx, { assetId, renterName, phone }) {
@@ -294,4 +324,4 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
   }, TX_OPTIONS);
 }
 
-module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create, markPaid };
+module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create, markPaid, cancel };

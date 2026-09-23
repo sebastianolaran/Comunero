@@ -10,6 +10,7 @@ const VOTE_ERRORS = {
   NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden votar'],
   RESOLVED: [409, 'La solicitud ya fue aprobada: no se puede votar de nuevo'],
   OVERLAP: [409, 'Las fechas se pisan con una reserva aprobada: no se puede votar mientras siga'],
+  CANCELLED: [409, 'El alquiler fue cancelado: para volver a alquilar esas fechas cargá otra solicitud'],
 };
 
 function isFilled(value) {
@@ -104,22 +105,46 @@ const PAYMENT_ERRORS = {
   NO_AMOUNT: [409, 'El alquiler no tiene monto cargado: no se puede registrar el ingreso'],
 };
 
-async function markPaid(req, res) {
-  // TODO: el userId tiene que salir de la sesion cuando exista el login.
-  const { userId } = req.body ?? {};
-  if (!isFilled(userId)) return res.status(400).json({ error: 'Falta el copropietario que marca el pago' });
+const CANCEL_ERRORS = {
+  NOT_FOUND: [404, 'No existe el alquiler'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden cancelar el alquiler'],
+  NOT_APPROVED: [409, 'Solo se puede cancelar un alquiler aprobado'],
+  PAID: [409, 'El alquiler ya está pago: no se puede cancelar'],
+};
 
-  try {
-    const result = await rentalRequestService.markPaid({ reservationId: req.params.id, userId });
-    if (result.error) {
-      const [status, message] = PAYMENT_ERRORS[result.error];
-      return res.status(status).json({ error: message });
+// Acciones de un copropietario sobre una solicitud que no llevan mas datos que el userId.
+function userAction({ run, errors, missingUser, failure }) {
+  return async (req, res) => {
+    // TODO: el userId tiene que salir de la sesion cuando exista el login.
+    const { userId } = req.body ?? {};
+    if (!isFilled(userId)) return res.status(400).json({ error: missingUser });
+
+    try {
+      const result = await run({ reservationId: req.params.id, userId });
+      if (result.error) {
+        const [status, message] = errors[result.error];
+        return res.status(status).json({ error: message });
+      }
+      res.json(result.request);
+    } catch (err) {
+      console.error(`rental-requests: ${failure}`, err);
+      res.status(500).json({ error: `No se pudo ${failure}` });
     }
-    res.json(result.request);
-  } catch (err) {
-    console.error('rental-requests: fallo el registro del pago', err);
-    res.status(500).json({ error: 'No se pudo marcar el pago' });
-  }
+  };
 }
 
-module.exports = { list, vote, create, markPaid };
+const markPaid = userAction({
+  run: (args) => rentalRequestService.markPaid(args),
+  errors: PAYMENT_ERRORS,
+  missingUser: 'Falta el copropietario que marca el pago',
+  failure: 'marcar el pago',
+});
+
+const cancel = userAction({
+  run: (args) => rentalRequestService.cancel(args),
+  errors: CANCEL_ERRORS,
+  missingUser: 'Falta el copropietario que cancela el alquiler',
+  failure: 'cancelar el alquiler',
+});
+
+module.exports = { list, vote, create, markPaid, cancel };
