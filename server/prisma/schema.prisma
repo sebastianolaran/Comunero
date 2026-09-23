@@ -41,6 +41,11 @@ enum VoteValue {
   NO
 }
 
+enum RenterRating {
+  RECOMMENDED
+  NOT_RECOMMENDED
+}
+
 // ---------- Modelos ----------
 
 model Asset {
@@ -141,10 +146,12 @@ model Objection {
 }
 
 model Renter {
-  id      String @id @default(cuid())
+  id      String        @id @default(cuid())
   assetId String
   name    String
   phone   String
+  // null = sin definir: todavia nadie lo clasifico.
+  rating  RenterRating?
 
   asset        Asset               @relation(fields: [assetId], references: [id])
   reservations Reservation[]
