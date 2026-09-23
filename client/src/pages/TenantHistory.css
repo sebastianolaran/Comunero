@@ -1,0 +1,83 @@
+.inquilinos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inquilinos-buscador {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--alq-borde-fuerte);
+  border-radius: 3px;
+  background: var(--alq-tarjeta);
+  color: var(--alq-texto);
+}
+
+.inquilinos-buscador:focus-visible {
+  outline: none;
+  border-color: var(--alq-activo);
+  box-shadow: 0 0 0 3px oklch(22% 0 0 / 10%);
+}
+
+.inquilinos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inquilino {
+  background: var(--alq-tarjeta);
+  border: 1px solid var(--alq-borde);
+  border-radius: 4px;
+  padding: 15px 18px;
+}
+
+.inquilino-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.inquilino-nombre {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.inquilino-clasificacion {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border: 1px solid var(--alq-borde-fuerte);
+  border-radius: 3px;
+  background: var(--alq-tarjeta);
+  color: var(--alq-apagado);
+}
+
+.inquilino-clasificacion.is-solida {
+  background: var(--alq-badge);
+  color: var(--alq-texto-2);
+}
+
+.inquilino-clasificacion.is-punteada {
+  border-style: dashed;
+}
+
+.inquilino-meta {
+  font-size: 12px;
+  color: var(--alq-apagado);
+  margin: 0;
+}
