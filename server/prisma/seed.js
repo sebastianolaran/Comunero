@@ -9,6 +9,7 @@ async function limpiar() {
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });
   await prisma.rentalTask.deleteMany({ where: reservas });
+  await prisma.renterObservation.deleteMany({ where: { renter: { assetId: ASSET_ID } } });
   await prisma.reservation.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.renter.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.user.deleteMany({ where: { assetId: ASSET_ID } });
@@ -351,6 +352,14 @@ async function main() {
   await prisma.renter.update({ where: { id: alvarez.id }, data: { rating: 'NOT_RECOMMENDED' } });
 
   await aprobado(martin, '2026-01-10', '2026-01-12');
+  await prisma.renterObservation.create({
+    data: {
+      renterId: martin.id,
+      authorId: ana.id,
+      text: 'Devolvió la llave a tiempo',
+      createdAt: new Date('2026-01-13T15:00:00.000Z'),
+    },
+  });
   // Lucas: dos terminados y uno aprobado para noviembre, que no cuenta.
   await aprobado(lucas, '2026-03-06', '2026-03-08');
   await aprobado(lucas, '2026-06-19', '2026-06-21');

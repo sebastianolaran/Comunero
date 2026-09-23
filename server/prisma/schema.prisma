@@ -163,14 +163,15 @@ model Renter {
 model RenterObservation {
   id            String   @id @default(cuid())
   renterId      String
-  reservationId String
+  // Opcional: una observacion es sobre el inquilino, no sobre un alquiler puntual.
+  reservationId String?
   authorId      String
   text          String
   createdAt     DateTime @default(now())
 
-  renter      Renter      @relation(fields: [renterId], references: [id])
-  reservation Reservation @relation(fields: [reservationId], references: [id])
-  author      User        @relation(fields: [authorId], references: [id])
+  renter      Renter       @relation(fields: [renterId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  author      User         @relation(fields: [authorId], references: [id])
 
   @@index([renterId])
   @@index([reservationId])
