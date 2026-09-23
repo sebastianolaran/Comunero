@@ -81,3 +81,129 @@
   color: var(--alq-apagado);
   margin: 0;
 }
+
+.inquilinos {
+  flex: 1;
+  min-width: 0;
+}
+
+.inquilino {
+  cursor: pointer;
+}
+
+.inquilino:hover {
+  border-color: var(--alq-borde-fuerte);
+}
+
+.inquilino.is-seleccionado {
+  border-color: oklch(45% 0 0);
+}
+
+.inquilino-abrir {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inquilino-abrir:focus-visible,
+.clasificacion-opcion:focus-visible {
+  outline: 2px solid var(--alq-texto);
+  outline-offset: 2px;
+}
+
+.clasificacion-opciones {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--alq-borde-fuerte);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.clasificacion-opcion {
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  padding: 8px 11px;
+  border: none;
+  background: var(--alq-tarjeta);
+  color: var(--alq-texto-2);
+  cursor: pointer;
+}
+
+.clasificacion-opcion + .clasificacion-opcion {
+  border-top: 1px solid var(--alq-borde);
+}
+
+.clasificacion-opcion[aria-pressed='true'] {
+  background: var(--alq-activo);
+  color: var(--alq-activo-texto);
+  font-weight: 500;
+}
+
+.clasificacion-opcion:disabled {
+  cursor: default;
+}
+
+.clasificacion-opcion:disabled:not([aria-pressed='true']) {
+  opacity: 0.6;
+}
+
+.inquilino-estadias {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--alq-texto-2);
+}
+
+.observaciones {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.observacion {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--alq-texto-2);
+  background: var(--alq-badge);
+  border-radius: 3px;
+  padding: 9px 11px;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.observacion-meta {
+  display: block;
+  font-size: 11px;
+  color: var(--alq-suave);
+  margin-top: 4px;
+}
+
+.observaciones-vacio {
+  font-size: 13px;
+  color: var(--alq-suave);
+  margin: 0 0 12px;
+}
+
+.detalle-error {
+  font-size: 12.5px;
+  color: oklch(45% 0.18 25);
+  margin: -8px 0 12px;
+}
+
+.observacion-agregar {
+  display: block;
+  width: 100%;
+}
