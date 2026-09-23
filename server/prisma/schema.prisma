@@ -71,6 +71,7 @@ model User {
   objections           Objection[]
   movementsPaid        Movement[]            @relation("MovementPaidBy")
   movementShares       MovementShare[]
+  movementItemShares   MovementItemShare[]
   settlementsFrom      Settlement[]          @relation("SettlementFrom")
   settlementsTo        Settlement[]          @relation("SettlementTo")
   decisionsRaised      Decision[]            @relation("DecisionProposedBy")
@@ -185,6 +186,11 @@ model RentalTask {
   @@index([assignedToId])
 }
 
+// Gasto o ingreso del bien. amount es la suma de los items cuando esta
+// desglosado. date es el dia, guardado como medianoche UTC. Un movimiento
+// recurrente se copia solo el 1 de cada mes siguiente; generatedNext queda en
+// true cuando ya genero su copia, asi la cadena sigue desde la copia y borrar
+// la del mes corta la repeticion.
 model Movement {
   id            String       @id @default(cuid())
   assetId       String
@@ -194,24 +200,55 @@ model Movement {
   description   String
   date          DateTime
   paidById      String
+  recurring     Boolean      @default(false)
+  generatedNext Boolean      @default(false)
 
   asset       Asset           @relation(fields: [assetId], references: [id])
   reservation Reservation?    @relation(fields: [reservationId], references: [id])
   paidBy      User            @relation("MovementPaidBy", fields: [paidById], references: [id])
   shares      MovementShare[]
+  items       MovementItem[]
 
   @@index([assetId])
   @@index([reservationId])
 }
 
+// Cuanto le toca a cada persona del movimiento completo. Si esta desglosado,
+// es la suma de lo que le toca en cada item.
 model MovementShare {
   movementId String
   userId     String
+  amount     Int
 
-  movement Movement @relation(fields: [movementId], references: [id])
+  movement Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
 
   @@id([movementId, userId])
+}
+
+// Item del desglose de un movimiento, con su propio reparto.
+model MovementItem {
+  id          String @id @default(cuid())
+  movementId  String
+  position    Int
+  description String
+  amount      Int
+
+  movement Movement            @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  shares   MovementItemShare[]
+
+  @@index([movementId])
+}
+
+model MovementItemShare {
+  itemId String
+  userId String
+  amount Int
+
+  item MovementItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id])
+
+  @@id([itemId, userId])
 }
 
 model Settlement {
