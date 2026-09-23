@@ -49,6 +49,7 @@ function toListItem(reservation, coowners, userId) {
     votes,
     rejections: objections.map((o) => ({ name: nameById.get(o.userId) ?? null, reason: o.reason })),
     vote: userId ? voteValue(userId, approvedBy, rejectedBy) : null,
+    paid: reservation.paidAt != null,
   };
 }
 
@@ -59,6 +60,7 @@ const LIST_SELECT = {
   endDate: true,
   note: true,
   amount: true,
+  paidAt: true,
   renter: { select: { name: true, phone: true } },
   approvals: { select: { userId: true } },
   objections: { select: { userId: true, reason: true }, orderBy: { createdAt: 'asc' } },
@@ -147,6 +149,46 @@ async function vote({ reservationId, userId, value, reason }) {
   }, TX_OPTIONS);
 }
 
+function incomeFor(reservation, coowners, now) {
+  const { renter, startDate, endDate } = reservation;
+  return {
+    assetId: reservation.assetId,
+    reservationId: reservation.id,
+    type: 'INCOME',
+    amount: reservation.amount,
+    description: `Alquiler a ${renter?.name ?? 'inquilino'} del ${toDateOnly(startDate)} al ${toDateOnly(endDate)}`,
+    date: now,
+    // Cobra quien gestiona el alquiler (quien lo cargo); el ingreso es de todos.
+    paidById: reservation.userId,
+    shares: { create: coowners.map((u) => ({ userId: u.id })) },
+  };
+}
+
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'NOT_APPROVED' | 'ALREADY_PAID' | 'NO_AMOUNT' }.
+async function markPaid({ reservationId, userId, now = new Date() }) {
+  return prisma.$transaction(async (tx) => {
+    // Lockea la reserva: dos clicks simultaneos no pueden generar dos ingresos.
+    await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
+
+    const select = { ...LIST_SELECT, assetId: true, type: true, userId: true };
+    const reservation = await tx.reservation.findUnique({ where: { id: reservationId }, select });
+    if (!reservation || reservation.type !== 'RENTAL' || reservation.status === 'CANCELLED') {
+      return { error: 'NOT_FOUND' };
+    }
+
+    const coowners = await coownersOf(tx, reservation.assetId);
+    if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    const item = toListItem(reservation, coowners, userId);
+    if (item.status !== 'APPROVED') return { error: 'NOT_APPROVED' };
+    if (item.paid) return { error: 'ALREADY_PAID' };
+    if (reservation.amount == null) return { error: 'NO_AMOUNT' };
+
+    const updated = await tx.reservation.update({ where: { id: reservationId }, data: { paidAt: now }, select });
+    await tx.movement.create({ data: incomeFor(reservation, coowners, now) });
+    return { request: toListItem(updated, coowners, userId) };
+  }, TX_OPTIONS);
+}
+
 // El telefono identifica al inquilino dentro del bien: si ya existe se reutiliza
 // (con su nombre y su historial) en vez de crear un duplicado.
 async function findOrCreateRenter(tx, { assetId, renterName, phone }) {
@@ -194,4 +236,4 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
   }, TX_OPTIONS);
 }
 
-module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create };
+module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create, markPaid };

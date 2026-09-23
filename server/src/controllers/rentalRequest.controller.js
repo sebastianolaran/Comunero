@@ -91,4 +91,30 @@ async function create(req, res) {
   }
 }
 
-module.exports = { list, vote, create };
+const PAYMENT_ERRORS = {
+  NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden marcar el pago'],
+  NOT_APPROVED: [409, 'Solo se puede marcar el pago de un alquiler aprobado'],
+  ALREADY_PAID: [409, 'El alquiler ya estaba marcado como pago'],
+  NO_AMOUNT: [409, 'El alquiler no tiene monto cargado: no se puede registrar el ingreso'],
+};
+
+async function markPaid(req, res) {
+  // TODO: el userId tiene que salir de la sesion cuando exista el login.
+  const { userId } = req.body ?? {};
+  if (!isFilled(userId)) return res.status(400).json({ error: 'Falta el copropietario que marca el pago' });
+
+  try {
+    const result = await rentalRequestService.markPaid({ reservationId: req.params.id, userId });
+    if (result.error) {
+      const [status, message] = PAYMENT_ERRORS[result.error];
+      return res.status(status).json({ error: message });
+    }
+    res.json(result.request);
+  } catch (err) {
+    console.error('rental-requests: fallo el registro del pago', err);
+    res.status(500).json({ error: 'No se pudo marcar el pago' });
+  }
+}
+
+module.exports = { list, vote, create, markPaid };

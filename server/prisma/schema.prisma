@@ -89,23 +89,22 @@ model User {
 }
 
 model Reservation {
-  id            String            @id @default(cuid())
-  assetId       String
-  userId        String
+  id        String            @id @default(cuid())
+  assetId   String
+  userId    String
   // Solo se completa cuando type = RENTAL.
-  renterId      String?
-  startDate     DateTime
-  endDate       DateTime
-  type          ReservationType
-  status        ReservationStatus @default(PENDING)
-  note          String?
-  // Seña esperada (solo aplica a RENTAL). El pago real queda registrado
-  // como un Movement (type=INCOME) vinculado por reservationId.
-  depositAmount Int?
-  depositPaidAt DateTime?
+  renterId  String?
+  startDate DateTime
+  endDate   DateTime
+  type      ReservationType
+  status    ReservationStatus @default(PENDING)
+  note      String?
   // Monto total pactado con el inquilino (solo aplica a RENTAL).
-  amount        Int?
-  createdAt     DateTime          @default(now())
+  amount    Int?
+  // Solo RENTAL. null = pago pendiente; una vez cargado no se vuelve atrás.
+  // El cobro queda registrado como un Movement (type=INCOME) con reservationId.
+  paidAt    DateTime?
+  createdAt DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
   user         User                  @relation(fields: [userId], references: [id])
