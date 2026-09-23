@@ -13,9 +13,22 @@ const ASSET_IDS = [CASA_ID, COSTA_ID];
 // de uno a otro es el mail.
 const PASSWORD_DEMO = 'comunero';
 
+// De hijo a padre: borrar un usuario o una reserva que todavia tenga algo
+// colgando falla por foreign key. Se limpia todo lo que cuelga de los dos
+// bienes, incluso lo que el seed no crea (movimientos, saldos, decisiones):
+// si alguien uso la app contra esta base, esas filas existen y apuntan a los
+// usuarios que estamos por borrar.
 async function limpiar() {
   const deLosBienes = { assetId: { in: ASSET_IDS } };
   const reservas = { reservation: deLosBienes };
+
+  await prisma.movementShare.deleteMany({ where: { movement: deLosBienes } });
+  await prisma.movement.deleteMany({ where: deLosBienes });
+  await prisma.settlement.deleteMany({ where: deLosBienes });
+  await prisma.vote.deleteMany({ where: { decision: deLosBienes } });
+  await prisma.decision.deleteMany({ where: deLosBienes });
+  await prisma.activityLog.deleteMany({ where: deLosBienes });
+  await prisma.renterObservation.deleteMany({ where: reservas });
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });
   await prisma.rentalTask.deleteMany({ where: reservas });
