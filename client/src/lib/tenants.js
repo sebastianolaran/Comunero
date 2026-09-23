@@ -43,3 +43,10 @@ export function observacionMeta({ author, createdAt }) {
 export function conClasificacion(inquilinos, id, rating) {
   return inquilinos.map((i) => (i.id === id ? { ...i, rating } : i))
 }
+
+// Borrador del alta de solicitud para un inquilino que ya existe. El teléfono va
+// tal cual lo guardó el server: es la clave con la que se reutiliza el inquilino.
+export function solicitudPrecargada({ name, phone }) {
+  const [nombre, ...resto] = name.trim().split(/\s+/)
+  return { nombre, apellido: resto.join(' '), telefono: phone }
+}

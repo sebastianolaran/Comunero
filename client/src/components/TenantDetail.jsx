@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { formatPhone, formatRange } from '../lib/rentalRequests'
 import {
   MENSAJE_SIN_OBSERVACIONES,
   OPCIONES_CLASIFICACION,
   observacionMeta,
+  solicitudPrecargada,
   validarObservacion,
 } from '../lib/tenants'
 import { commentTenant, fetchTenant, rateTenant } from '../services/tenant'
@@ -15,6 +17,7 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
   const [borrador, setBorrador] = useState('')
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const idError = useId()
+  const navigate = useNavigate()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -86,6 +89,17 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
     <aside className="detalle" aria-label={`Detalle de ${name}`}>
       <h2 className="detalle-nombre">{name}</h2>
       <p className="detalle-contacto">{formatPhone(phone)}</p>
+      {puedeEvaluar && (
+        <button
+          type="button"
+          className="nueva-abrir inquilino-nueva-solicitud"
+          onClick={() =>
+            navigate('/alquiler/solicitudes', { state: { nuevaSolicitud: solicitudPrecargada({ name, phone }) } })
+          }
+        >
+          + Nueva solicitud para este inquilino
+        </button>
+      )}
 
       <h3 className="detalle-seccion">Clasificación</h3>
       <div className="clasificacion-opciones" role="group" aria-label="Clasificación">

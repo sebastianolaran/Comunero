@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
@@ -23,9 +24,23 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
   const [seleccion, setSeleccion] = useState(null)
   const [modo, setModo] = useState('ver')
   const [envio, setEnvio] = useState({ enviando: false, error: null })
-  const [nuevaAbierta, setNuevaAbierta] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Viene del historial de inquilinos con el nombre y el teléfono para precargar el alta.
+  const [precarga, setPrecarga] = useState(() => location.state?.nuevaSolicitud ?? null)
+  const [nuevaAbierta, setNuevaAbierta] = useState(() => Boolean(location.state?.nuevaSolicitud))
   const idPendientes = useId()
   const idResueltas = useId()
+
+  // Se limpia el state del historial para que recargar la página no vuelva a abrir el alta.
+  useEffect(() => {
+    if (location.state?.nuevaSolicitud) navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate])
+
+  const cerrarNueva = () => {
+    setNuevaAbierta(false)
+    setPrecarga(null)
+  }
 
   useEffect(() => {
     if (!assetId) return
@@ -90,7 +105,7 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
   async function crear(solicitud) {
     const creada = await createRentalRequest({ assetId, userId, ...solicitud })
     setCarga((prev) => ({ ...prev, solicitudes: [creada, ...prev.solicitudes] }))
-    setNuevaAbierta(false)
+    cerrarNueva()
     seleccionar(creada.id)
   }
 
@@ -144,7 +159,8 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
       )}
       <NewRentalRequestModal
         abierto={nuevaAbierta}
-        onClose={() => setNuevaAbierta(false)}
+        inicial={precarga}
+        onClose={cerrarNueva}
         onCreate={crear}
       />
     </div>

@@ -21,9 +21,10 @@ function Campo({ id, label, error, className = '', children }) {
 }
 
 // onCreate(solicitud) tiene que tirar un Error (con .field si es de un campo) si el alta falla.
-function NewRentalRequestModal({ abierto, onClose, onCreate }) {
+// inicial: campos precargados (ej. nombre y teléfono desde el historial de inquilinos).
+function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
   const dialogo = useRef(null)
-  const [borrador, setBorrador] = useState(() => vacio(hoyLocal()))
+  const [borrador, setBorrador] = useState(() => ({ ...vacio(hoyLocal()), ...inicial }))
   const [errores, setErrores] = useState({})
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const id = useId()
@@ -32,13 +33,13 @@ function NewRentalRequestModal({ abierto, onClose, onCreate }) {
   useEffect(() => {
     const d = dialogo.current
     if (abierto && !d.open) {
-      setBorrador(vacio(hoyLocal()))
+      setBorrador({ ...vacio(hoyLocal()), ...inicial })
       setErrores({})
       setEnvio({ enviando: false, error: null })
       d.showModal()
     }
     if (!abierto && d.open) d.close()
-  }, [abierto])
+  }, [abierto, inicial])
 
   const cambiar = (campo) => (e) => {
     const valor = e.target.value
