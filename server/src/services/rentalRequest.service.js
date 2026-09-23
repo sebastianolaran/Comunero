@@ -21,7 +21,8 @@ function voteValue(userId, approvedBy, rejectedBy) {
 }
 
 // coowners: [{ id, name }] del bien, en el orden en que se muestran.
-function toListItem(reservation, coowners, userId) {
+// blockedByOverlap: se pisa con una reserva aprobada, asi que no se puede votar.
+function toListItem(reservation, coowners, userId, { blockedByOverlap = false } = {}) {
   const { approvals, objections } = reservation;
   const approvedBy = new Set(approvals.map((a) => a.userId));
   const rejectedBy = new Set(objections.map((o) => o.userId));
@@ -50,6 +51,8 @@ function toListItem(reservation, coowners, userId) {
     rejections: objections.map((o) => ({ name: nameById.get(o.userId) ?? null, reason: o.reason })),
     vote: userId ? voteValue(userId, approvedBy, rejectedBy) : null,
     paid: reservation.paidAt != null,
+    rejectionReason: reservation.rejectionReason ?? null,
+    blockedByOverlap,
   };
 }
 
@@ -61,6 +64,7 @@ const LIST_SELECT = {
   note: true,
   amount: true,
   paidAt: true,
+  rejectionReason: true,
   renter: { select: { name: true, phone: true } },
   approvals: { select: { userId: true } },
   objections: { select: { userId: true, reason: true }, orderBy: { createdAt: 'asc' } },
@@ -70,21 +74,41 @@ function coownersOf(db, assetId) {
   return db.user.findMany({ where: { assetId }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
 }
 
+const OVERLAP_REASON = 'Rechazada por solapamiento con un alquiler aprobado en esas fechas';
+
+// Otras reservas del bien que comparten al menos un dia con esta (inclusive en ambas puntas).
+function overlapping({ id, assetId, startDate, endDate }, status) {
+  return { assetId, id: { not: id }, status, startDate: { lte: endDate }, endDate: { gte: startDate } };
+}
+
+function sharesDays(a, b) {
+  return a.id !== b.id && a.startDate <= b.endDate && a.endDate >= b.startDate;
+}
+
 // TODO: el userId tiene que salir de la sesion cuando exista el login.
 async function listByAsset(assetId, userId) {
   const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { id: true } });
   if (!asset) return null;
 
-  const [coowners, reservations] = await Promise.all([
+  const [coowners, reservations, approved] = await Promise.all([
     coownersOf(prisma, assetId),
     prisma.reservation.findMany({
       where: { assetId, type: 'RENTAL', status: { not: 'CANCELLED' } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: LIST_SELECT,
     }),
+    // Cualquier tipo: un uso propio aprobado tambien ocupa los dias.
+    prisma.reservation.findMany({
+      where: { assetId, status: 'ACTIVE' },
+      select: { id: true, startDate: true, endDate: true },
+    }),
   ]);
 
-  return reservations.map((r) => toListItem(r, coowners, userId));
+  return reservations.map((r) =>
+    toListItem(r, coowners, userId, {
+      blockedByOverlap: r.status !== 'ACTIVE' && approved.some((a) => sharesDays(a, r)),
+    }),
+  );
 }
 
 // Unanimidad literal: cuenta todos los copropietarios, no Asset.votesNeeded.
@@ -96,9 +120,9 @@ function nextStatus(value, approvals, coownerCount) {
 
 const STORED_STATUS = { PENDING: 'PENDING', APPROVED: 'ACTIVE', REJECTED: 'REJECTED' };
 
-// Rechazada no es final para quien la rechazo: puede cambiar su voto.
-function canVote({ status, vote: currentVote }) {
-  return status === 'PENDING' || (status === 'REJECTED' && currentVote === 'REJECT');
+// Rechazada no es final: cualquier copropietario puede votar o cambiar su voto.
+function canVote({ status }) {
+  return status !== 'APPROVED';
 }
 
 // Los defaults de Prisma (2s / 5s) se quedan cortos si Neon esta despertando.
@@ -119,12 +143,32 @@ async function registerVote(tx, { reservationId, userId, value, reason }) {
   await tx.objection.create({ data: { reservationId, userId, reason } });
 }
 
-// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'RESOLVED' }.
+async function hasApprovedOverlap(tx, reservation) {
+  return (await tx.reservation.count({ where: overlapping(reservation, 'ACTIVE') })) > 0;
+}
+
+// Al aprobarse, los pedidos pendientes que se pisan (uso propio u otras solicitudes) se rechazan solos.
+async function rejectOverlapping(tx, reservation) {
+  await tx.reservation.updateMany({
+    where: overlapping(reservation, 'PENDING'),
+    data: { status: 'REJECTED', rejectionReason: OVERLAP_REASON },
+  });
+}
+
+// Lockea el bien y despues la reserva, siempre en ese orden: sin el lock del bien,
+// dos solicitudes que se pisan podrian aprobarse a la vez; sin el de la reserva,
+// un si y un no simultaneos podrian dejarla ACTIVE y con objecion.
+async function lockForVote(tx, reservationId) {
+  const found = await tx.reservation.findUnique({ where: { id: reservationId }, select: { assetId: true } });
+  if (!found) return;
+  await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${found.assetId} FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
+}
+
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'RESOLVED' | 'OVERLAP' }.
 async function vote({ reservationId, userId, value, reason }) {
   return prisma.$transaction(async (tx) => {
-    // Lockea la reserva: sin esto, un si y un no simultaneos podrian dejarla
-    // ACTIVE y con objecion a la vez.
-    await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
+    await lockForVote(tx, reservationId);
 
     const select = { ...LIST_SELECT, assetId: true, type: true };
     const reservation = await tx.reservation.findUnique({ where: { id: reservationId }, select });
@@ -135,6 +179,7 @@ async function vote({ reservationId, userId, value, reason }) {
     const coowners = await coownersOf(tx, reservation.assetId);
     if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
     if (!canVote(toListItem(reservation, coowners, userId))) return { error: 'RESOLVED' };
+    if (await hasApprovedOverlap(tx, reservation)) return { error: 'OVERLAP' };
 
     await registerVote(tx, { reservationId, userId, value, reason });
 
@@ -142,7 +187,12 @@ async function vote({ reservationId, userId, value, reason }) {
     const approvals = await tx.reservationApproval.count({ where: { reservationId } });
     const objections = await tx.objection.count({ where: { reservationId } });
     const status = deriveStatus({ status: 'PENDING', approvals, objections }, coowners.length);
-    await tx.reservation.update({ where: { id: reservationId }, data: { status: STORED_STATUS[status] } });
+    // Si estaba rechazada por solapamiento y ya no choca, el motivo del sistema deja de aplicar.
+    await tx.reservation.update({
+      where: { id: reservationId },
+      data: { status: STORED_STATUS[status], rejectionReason: null },
+    });
+    if (status === 'APPROVED') await rejectOverlapping(tx, reservation);
 
     const updated = await tx.reservation.findUnique({ where: { id: reservationId }, select: LIST_SELECT });
     return { request: toListItem(updated, coowners, userId) };
@@ -210,29 +260,37 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
   return prisma.$transaction(async (tx) => {
     const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { id: true } });
     if (!asset) return { error: 'ASSET_NOT_FOUND' };
+    // Mismo lock que al votar: con un solo copropietario el alta ya aprueba.
+    await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
 
     const coowners = await coownersOf(tx, assetId);
     if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
 
+    const dates = { id: null, assetId, startDate: toUtcDate(startDate), endDate: toUtcDate(endDate) };
+    // Se puede cargar aunque se pise con otras reservas, pero si choca con una
+    // aprobada nace rechazada, igual que si hubiera existido antes de aprobarla.
+    const blocked = await hasApprovedOverlap(tx, dates);
     const renter = await findOrCreateRenter(tx, { assetId, renterName, phone });
     // Quien la carga ya vota que si.
-    const status = nextStatus('APPROVE', 1, coowners.length);
+    const status = blocked ? 'REJECTED' : nextStatus('APPROVE', 1, coowners.length);
     const created = await tx.reservation.create({
       data: {
         assetId,
         userId,
         renterId: renter.id,
         type: 'RENTAL',
-        status: STORED_STATUS[status] ?? 'PENDING',
-        startDate: toUtcDate(startDate),
-        endDate: toUtcDate(endDate),
+        status: STORED_STATUS[status],
+        rejectionReason: blocked ? OVERLAP_REASON : null,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
         amount,
         note: comments,
         approvals: { create: { userId } },
       },
       select: LIST_SELECT,
     });
-    return { request: toListItem(created, coowners, userId) };
+    if (status === 'APPROVED') await rejectOverlapping(tx, { ...dates, id: created.id });
+    return { request: toListItem(created, coowners, userId, { blockedByOverlap: blocked }) };
   }, TX_OPTIONS);
 }
 

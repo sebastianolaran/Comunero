@@ -8,7 +8,8 @@ const MAX_REASON_LENGTH = 500;
 const VOTE_ERRORS = {
   NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
   NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden votar'],
-  RESOLVED: [409, 'La solicitud ya fue resuelta: no se puede votar de nuevo'],
+  RESOLVED: [409, 'La solicitud ya fue aprobada: no se puede votar de nuevo'],
+  OVERLAP: [409, 'Las fechas se pisan con una reserva aprobada: no se puede votar mientras siga'],
 };
 
 function isFilled(value) {
@@ -44,7 +45,11 @@ function parseVote(body = {}) {
   if (!VOTE_VALUES.includes(value)) return { error: 'El voto tiene que ser APPROVE o REJECT' };
   if (value === 'APPROVE') return { vote: { userId, value, reason: null } };
 
-  if (!isFilled(reason)) return { error: 'Para votar que no tenes que cargar el motivo' };
+  // El motivo es opcional al rechazar.
+  if (reason !== undefined && reason !== null && typeof reason !== 'string') {
+    return { error: 'El motivo tiene que ser texto' };
+  }
+  if (!isFilled(reason)) return { vote: { userId, value, reason: null } };
   const trimmed = reason.trim();
   if (trimmed.length > MAX_REASON_LENGTH) {
     return { error: `El motivo no puede superar los ${MAX_REASON_LENGTH} caracteres` };

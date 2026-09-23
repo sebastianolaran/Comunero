@@ -89,22 +89,25 @@ model User {
 }
 
 model Reservation {
-  id        String            @id @default(cuid())
-  assetId   String
-  userId    String
+  id              String            @id @default(cuid())
+  assetId         String
+  userId          String
   // Solo se completa cuando type = RENTAL.
-  renterId  String?
-  startDate DateTime
-  endDate   DateTime
-  type      ReservationType
-  status    ReservationStatus @default(PENDING)
-  note      String?
+  renterId        String?
+  startDate       DateTime
+  endDate         DateTime
+  type            ReservationType
+  status          ReservationStatus @default(PENDING)
+  note            String?
   // Monto total pactado con el inquilino (solo aplica a RENTAL).
-  amount    Int?
+  amount          Int?
   // Solo RENTAL. null = pago pendiente; una vez cargado no se vuelve atrás.
   // El cobro queda registrado como un Movement (type=INCOME) con reservationId.
-  paidAt    DateTime?
-  createdAt DateTime          @default(now())
+  paidAt          DateTime?
+  // Motivo que pone el sistema al rechazarla (ej. solapamiento con un alquiler
+  // aprobado). Los rechazos de los copropietarios van en Objection.
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
   user         User                  @relation(fields: [userId], references: [id])
@@ -135,7 +138,8 @@ model Objection {
   id            String   @id @default(cuid())
   reservationId String
   userId        String
-  reason        String
+  // Opcional: se puede rechazar sin dar motivo.
+  reason        String?
   createdAt     DateTime @default(now())
 
   reservation Reservation @relation(fields: [reservationId], references: [id])
