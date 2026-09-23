@@ -6,6 +6,7 @@ import {
   formatMoney,
   formatPhone,
   formatRange,
+  motivoRechazo,
   puedeMarcarPago,
   puedeVotar as admiteVoto,
   VOTO_TEXTO,
@@ -42,7 +43,7 @@ function RentalRequestDetail({
     )
   }
 
-  const { renterName, renterPhone, comments, startDate, endDate, status, vote, rejections } = solicitud
+  const { renterName, renterPhone, comments, startDate, endDate, status, vote, rejections, rejectionReason } = solicitud
   const nombre = renterName ?? 'Sin interesado'
   const pendiente = status === 'PENDING'
   const abierta = admiteVoto(solicitud)
@@ -75,14 +76,21 @@ function RentalRequestDetail({
       <h3 className="detalle-seccion">Votación · {votosLabel(solicitud)}</h3>
       <VoteChips votes={solicitud.votes} />
 
-      {rejections.length > 0 && (
+      {(rejections.length > 0 || rejectionReason) && (
         <ul className="detalle-objeciones">
-          {rejections.map((r) => (
-            <li key={`${r.name}-${r.reason}`}>
-              Objeción de {r.name}: {r.reason}
+          {rejectionReason && <li>{rejectionReason}</li>}
+          {rejections.map((r, i) => (
+            <li key={r.name ?? i}>
+              Objeción de {r.name}: {motivoRechazo(r.reason)}
             </li>
           ))}
         </ul>
+      )}
+
+      {solicitud.blockedByOverlap && (
+        <p className="detalle-nota">
+          Se pisa con una reserva aprobada: no se puede votar mientras esa reserva siga en pie.
+        </p>
       )}
 
       {status === 'APPROVED' && (
@@ -154,8 +162,8 @@ function RentalRequestDetail({
         <div className="detalle-rechazo">
           <textarea
             className="detalle-motivo"
-            placeholder="Motivo del rechazo"
-            aria-label="Motivo del rechazo"
+            placeholder="Motivo del rechazo (opcional)"
+            aria-label="Motivo del rechazo (opcional)"
             maxLength={500}
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}

@@ -9,16 +9,21 @@ export function agrupar(solicitudes) {
   }
 }
 
-// Misma regla que el server: una rechazada sigue abierta para quien la rechazó.
-export function puedeVotar({ status, vote }) {
-  return status === 'PENDING' || (status === 'REJECTED' && vote === 'REJECT')
+// Misma regla que el server: una rechazada sigue abierta para todos, salvo que se
+// pise con una reserva aprobada.
+export function puedeVotar({ status, blockedByOverlap = false }) {
+  return status !== 'APPROVED' && !blockedByOverlap
 }
 
+// El motivo es opcional al rechazar.
 export function validarVoto({ value, reason = '' }) {
-  if (value === 'APPROVE') return { voto: { value } }
   const motivo = reason.trim()
-  if (!motivo) return { error: 'Para rechazar tenés que cargar el motivo.' }
+  if (value === 'APPROVE' || !motivo) return { voto: { value } }
   return { voto: { value, reason: motivo } }
+}
+
+export function motivoRechazo(reason) {
+  return reason || 'Sin motivo especificado'
 }
 
 export function votosLabel({ yesCount, coownerCount }) {
