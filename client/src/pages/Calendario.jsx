@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createReservation, fetchReservations } from '../lib/api'
-import { ASSET_ID } from '../lib/currentAsset'
-import { USER_ID } from '../lib/currentUser'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import {
   colorDeIntegrante,
   DIAS_SEMANA,
@@ -34,6 +34,11 @@ const FORM_INICIAL = {
 }
 
 function Calendario() {
+  // Quién entró y a qué bien: el router ya garantiza que hay sesión, pero se
+  // resuelve acá y no al importar el módulo para que valga la de ahora.
+  const assetId = assetIdActual()
+  const userId = userIdActual()
+
   const [year, setYear] = useState(HOY.getUTCFullYear())
   const [month, setMonth] = useState(HOY.getUTCMonth() + 1)
   const [reservas, setReservas] = useState([])
@@ -53,7 +58,7 @@ function Calendario() {
     const controller = new AbortController()
     let vivo = true
 
-    fetchReservations(ASSET_ID, mesParam(year, month), { signal: controller.signal })
+    fetchReservations(assetId, mesParam(year, month), { signal: controller.signal })
       .then((reservations) => {
         if (vivo) {
           setReservas(reservations)
@@ -68,7 +73,7 @@ function Calendario() {
       vivo = false
       controller.abort()
     }
-  }, [year, month, refreshKey])
+  }, [assetId, year, month, refreshKey])
 
   const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
 
@@ -80,8 +85,8 @@ function Calendario() {
     setEnviando(true)
     try {
       await createReservation({
-        assetId: ASSET_ID,
-        userId: USER_ID,
+        assetId,
+        userId,
         startDate: form.inicio,
         endDate: form.fin,
       })
@@ -115,12 +120,8 @@ function Calendario() {
     setMonth(m)
   }
 
-  if (!ASSET_ID) {
-    return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
-      </p>
-    )
+  if (!assetId) {
+    return <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   const dias = diasDelMes(year, month)

@@ -80,9 +80,7 @@ function RentalRequestDetail({
       )}
 
       {!puedeVotar && pendiente && (
-        <p className="detalle-nota">
-          Configurá <code>VITE_DEMO_USER_ID</code> para poder votar.
-        </p>
+        <p className="detalle-nota">No encontramos tu sesión. Volvé a entrar para poder votar.</p>
       )}
 
       {puedeVotar && mostrarVotar && (
