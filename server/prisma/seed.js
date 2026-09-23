@@ -1,18 +1,28 @@
 require('dotenv').config({ quiet: true });
 const prisma = require('../src/prisma');
+const { hashPassword } = require('../src/lib/password');
 
-const ASSET_ID = 'seed-casa-quinta';
-const PASSWORD_HASH = 'seed-sin-login';
+// Dos bienes, cada uno con sus propios copropietarios: entrando con un mail o
+// con otro la app tiene que mostrar el bien que corresponde, y nunca los datos
+// del otro grupo.
+const CASA_ID = 'seed-casa-quinta';
+const COSTA_ID = 'seed-depto-costa';
+const ASSET_IDS = [CASA_ID, COSTA_ID];
+
+// Todos los usuarios del seed entran con la misma contrasena; lo que cambia
+// de uno a otro es el mail.
+const PASSWORD_DEMO = 'comunero';
 
 async function limpiar() {
-  const reservas = { reservation: { assetId: ASSET_ID } };
+  const deLosBienes = { assetId: { in: ASSET_IDS } };
+  const reservas = { reservation: deLosBienes };
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });
   await prisma.rentalTask.deleteMany({ where: reservas });
-  await prisma.reservation.deleteMany({ where: { assetId: ASSET_ID } });
-  await prisma.renter.deleteMany({ where: { assetId: ASSET_ID } });
-  await prisma.user.deleteMany({ where: { assetId: ASSET_ID } });
-  await prisma.asset.deleteMany({ where: { id: ASSET_ID } });
+  await prisma.reservation.deleteMany({ where: deLosBienes });
+  await prisma.renter.deleteMany({ where: deLosBienes });
+  await prisma.user.deleteMany({ where: deLosBienes });
+  await prisma.asset.deleteMany({ where: { id: { in: ASSET_IDS } } });
 }
 
 // Las tareas se cargan "en orden": createdAt explicito y creciente, asi el orden
@@ -28,24 +38,31 @@ const tareas = (lista) =>
     completedAt: hecha ? new Date(BASE_CARGA + i * 60_000) : null,
   }));
 
-async function main() {
-  await limpiar();
+const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
 
-  await prisma.asset.create({ data: { id: ASSET_ID, name: 'Casa quinta' } });
-
-  // Ids fijos para poder usarlos como VITE_DEMO_USER_ID en el client.
-  const [ana, bruno, carla, flor] = await Promise.all(
-    [
-      { id: 'seed-ana', name: 'Ana', phone: '5491100000001' },
-      { id: 'seed-bruno', name: 'Bruno', phone: '5491100000002' },
-      { id: 'seed-carla', name: 'Carla', phone: '5491100000003' },
-      { id: 'seed-flor', name: 'Flor', phone: '5491100000004' },
-    ].map((u) =>
-      prisma.user.create({ data: { ...u, assetId: ASSET_ID, passwordHash: PASSWORD_HASH } }),
+// Un hash por usuario y no uno compartido: con el mismo salt para todos, dos
+// hashes iguales cantarian que la contrasena tambien lo es.
+async function crearUsuarios(assetId, lista) {
+  return Promise.all(
+    lista.map(async (u) =>
+      prisma.user.create({
+        data: { ...u, assetId, passwordHash: await hashPassword(PASSWORD_DEMO) },
+      }),
     ),
   );
+}
+
+async function sembrarCasaQuinta() {
+  await prisma.asset.create({ data: { id: CASA_ID, name: 'Casa quinta' } });
+
+  // Ids fijos: quedaron referenciados en notas y capturas del TP.
+  const [ana, bruno, carla, flor] = await crearUsuarios(CASA_ID, [
+    { id: 'seed-ana', name: 'Ana', email: 'ana@comunero.test', phone: '5491100000001' },
+    { id: 'seed-bruno', name: 'Bruno', email: 'bruno@comunero.test', phone: '5491100000002' },
+    { id: 'seed-carla', name: 'Carla', email: 'carla@comunero.test', phone: '5491100000003' },
+    { id: 'seed-flor', name: 'Flor', email: 'flor@comunero.test', phone: '5491100000004' },
+  ]);
   const todos = [ana, bruno, carla, flor];
-  const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
 
   const [gomez, alvarez, perez, rossi, sosa, torres] = await Promise.all(
     [
@@ -55,14 +72,14 @@ async function main() {
       { name: 'Familia Rossi', phone: '5491155550004' },
       { name: 'Familia Sosa', phone: '5491155550005' },
       { name: 'Familia Torres', phone: '5491155550006' },
-    ].map((r) => prisma.renter.create({ data: { ...r, assetId: ASSET_ID } })),
+    ].map((r) => prisma.renter.create({ data: { ...r, assetId: CASA_ID } })),
   );
 
   const martin = await prisma.renter.create({
-    data: { assetId: ASSET_ID, name: 'Martín Suárez', phone: '1111223344' },
+    data: { assetId: CASA_ID, name: 'Martín Suárez', phone: '1111223344' },
   });
   const lucia = await prisma.renter.create({
-    data: { assetId: ASSET_ID, name: 'Lucía Gómez', phone: '5491155556789' },
+    data: { assetId: CASA_ID, name: 'Lucía Gómez', phone: '5491155556789' },
   });
 
   // Solicitudes de alquiler (pestaña Solicitudes: aprobada, en votación con
@@ -70,7 +87,7 @@ async function main() {
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: bruno.id,
       renterId: lucia.id,
       type: 'RENTAL',
@@ -80,13 +97,13 @@ async function main() {
       startDate: new Date('2026-12-01T00:00:00.000Z'),
       endDate: new Date('2026-12-03T00:00:00.000Z'),
       createdAt: new Date('2026-09-01T12:00:00.000Z'),
-      approvals: { create: [ana, bruno, carla, flor].map((u) => ({ userId: u.id })) },
+      approvals: aprobadaPor(todos),
     },
   });
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: ana.id,
       renterId: martin.id,
       type: 'RENTAL',
@@ -95,13 +112,13 @@ async function main() {
       startDate: new Date('2027-01-10T00:00:00.000Z'),
       endDate: new Date('2027-01-15T00:00:00.000Z'),
       createdAt: new Date('2026-09-15T12:00:00.000Z'),
-      approvals: { create: [{ userId: ana.id }] },
+      approvals: aprobadaPor([ana]),
     },
   });
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: carla.id,
       renterId: lucia.id,
       type: 'RENTAL',
@@ -110,7 +127,7 @@ async function main() {
       endDate: new Date('2026-10-12T00:00:00.000Z'),
       amount: 120000,
       createdAt: new Date('2026-09-17T12:00:00.000Z'),
-      approvals: { create: [ana, bruno].map((u) => ({ userId: u.id })) },
+      approvals: aprobadaPor([ana, bruno]),
     },
   });
 
@@ -120,7 +137,7 @@ async function main() {
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: ana.id,
       type: 'USE',
       status: 'ACTIVE',
@@ -135,7 +152,7 @@ async function main() {
   // pedido, no esta libre).
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: bruno.id,
       type: 'USE',
       note: 'Me quedo a arreglar el molino.',
@@ -147,7 +164,7 @@ async function main() {
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: carla.id,
       type: 'USE',
       status: 'ACTIVE',
@@ -159,7 +176,7 @@ async function main() {
 
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: flor.id,
       type: 'USE',
       status: 'REJECTED',
@@ -173,7 +190,7 @@ async function main() {
   // En octubre, para que el mes siguiente tampoco quede vacio.
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: ana.id,
       type: 'USE',
       status: 'ACTIVE',
@@ -188,7 +205,7 @@ async function main() {
   // Ya pasó y es del mismo inquilino que el de septiembre: dos tarjetas. "Todo listo (2/2)".
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: bruno.id,
       renterId: alvarez.id,
       type: 'RENTAL',
@@ -208,7 +225,7 @@ async function main() {
   // Un solo día, su única tarea hecha: "Todo listo (1/1)".
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: bruno.id,
       renterId: gomez.id,
       type: 'RENTAL',
@@ -223,7 +240,7 @@ async function main() {
   // Rango, una hecha y tres pendientes: "3 pendientes de 4".
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: carla.id,
       renterId: alvarez.id,
       type: 'RENTAL',
@@ -245,7 +262,7 @@ async function main() {
   // Sin tareas cargadas: "Sin tareas asignadas".
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: flor.id,
       renterId: sosa.id,
       type: 'RENTAL',
@@ -259,7 +276,7 @@ async function main() {
   // Diez tareas pendientes, todas de Ana: se muestran sin tope.
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: ana.id,
       renterId: torres.id,
       type: 'RENTAL',
@@ -291,7 +308,7 @@ async function main() {
   // Le falta el voto de Flor.
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: ana.id,
       renterId: perez.id,
       type: 'RENTAL',
@@ -310,7 +327,7 @@ async function main() {
   // Rechazada por Flor.
   await prisma.reservation.create({
     data: {
-      assetId: ASSET_ID,
+      assetId: CASA_ID,
       userId: bruno.id,
       renterId: rossi.id,
       type: 'RENTAL',
@@ -318,12 +335,128 @@ async function main() {
       startDate: new Date('2026-12-05T00:00:00.000Z'),
       endDate: new Date('2026-12-06T00:00:00.000Z'),
       approvals: aprobadaPor([ana, bruno, carla]),
-      objections: { create: [{ userId: flor.id, reason: 'Esa fecha nos queda mal a los que vamos.' }] },
+      objections: {
+        create: [{ userId: flor.id, reason: 'Esa fecha nos queda mal a los que vamos.' }],
+      },
       tasks: { create: tareas([['Limpieza previa', ana]]) },
     },
   });
 
-  console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
+  return [ana, bruno, carla, flor];
+}
+
+// Segundo bien, mas chico y con otro grupo: sirve para comprobar que la app
+// muestra el bien del usuario que entro. Son tres copropietarios, asi la
+// votacion se ve distinta a la de la casa quinta (dos de tres, no tres de
+// cuatro).
+async function sembrarDeptoCosta() {
+  await prisma.asset.create({ data: { id: COSTA_ID, name: 'Depto en la costa' } });
+
+  const [diego, eva, nico] = await crearUsuarios(COSTA_ID, [
+    { id: 'seed-diego', name: 'Diego', email: 'diego@comunero.test', phone: '5492230000001' },
+    { id: 'seed-eva', name: 'Eva', email: 'eva@comunero.test', phone: '5492230000002' },
+    { id: 'seed-nico', name: 'Nico', email: 'nico@comunero.test', phone: '5492230000003' },
+  ]);
+  const todos = [diego, eva, nico];
+
+  const [ruiz, mochileros] = await Promise.all(
+    [
+      { name: 'Familia Ruiz', phone: '5492235550001' },
+      { name: 'Grupo Mochileros', phone: '5492235550002' },
+    ].map((r) => prisma.renter.create({ data: { ...r, assetId: COSTA_ID } })),
+  );
+
+  // Uso propio: uno confirmado, uno esperando votos y uno el mes que viene.
+  await prisma.reservation.create({
+    data: {
+      assetId: COSTA_ID,
+      userId: diego.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      note: 'Puente de septiembre.',
+      startDate: new Date('2026-09-05T00:00:00.000Z'),
+      endDate: new Date('2026-09-07T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
+  await prisma.reservation.create({
+    data: {
+      assetId: COSTA_ID,
+      userId: eva.id,
+      type: 'USE',
+      note: 'Llevo a mis viejos unos días.',
+      startDate: new Date('2026-09-19T00:00:00.000Z'),
+      endDate: new Date('2026-09-21T00:00:00.000Z'),
+      approvals: aprobadaPor([eva]),
+    },
+  });
+
+  await prisma.reservation.create({
+    data: {
+      assetId: COSTA_ID,
+      userId: nico.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      startDate: new Date('2026-10-03T00:00:00.000Z'),
+      endDate: new Date('2026-10-05T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
+  // Alquiler aprobado con tareas a medio hacer: "2 pendientes de 3".
+  await prisma.reservation.create({
+    data: {
+      assetId: COSTA_ID,
+      userId: diego.id,
+      renterId: ruiz.id,
+      type: 'RENTAL',
+      status: 'ACTIVE',
+      note: 'Matrimonio con dos nenes.',
+      amount: 150000,
+      startDate: new Date('2026-11-07T00:00:00.000Z'),
+      endDate: new Date('2026-11-09T00:00:00.000Z'),
+      createdAt: new Date('2026-09-10T12:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+      tasks: {
+        create: tareas([
+          ['Limpieza y cambio de ropa blanca', eva, true],
+          ['Revisar el termotanque', nico],
+          ['Dejar las llaves en la inmobiliaria', diego],
+        ]),
+      },
+    },
+  });
+
+  // En votacion: falta el voto de Nico.
+  await prisma.reservation.create({
+    data: {
+      assetId: COSTA_ID,
+      userId: eva.id,
+      renterId: mochileros.id,
+      type: 'RENTAL',
+      note: 'Cuatro chicos de 20, una semana entre Navidad y Año Nuevo.',
+      amount: 320000,
+      startDate: new Date('2026-12-27T00:00:00.000Z'),
+      endDate: new Date('2027-01-02T00:00:00.000Z'),
+      createdAt: new Date('2026-09-18T12:00:00.000Z'),
+      approvals: aprobadaPor([eva, diego]),
+    },
+  });
+
+  return [diego, eva, nico];
+}
+
+async function main() {
+  await limpiar();
+
+  const casa = await sembrarCasaQuinta();
+  const costa = await sembrarDeptoCosta();
+
+  const mails = (usuarios) => usuarios.map((u) => u.email).join(', ');
+  console.log(`seed ok. Se entra con estos mails y la contraseña "${PASSWORD_DEMO}":`);
+  console.log(`  Casa quinta       : ${mails(casa)}`);
+  console.log(`  Depto en la costa : ${mails(costa)}`);
 }
 
 main()
