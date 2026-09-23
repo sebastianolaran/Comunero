@@ -78,6 +78,17 @@ export const ESTADOS = {
 
 export const VOTO_TEXTO = { APPROVE: 'Sí', REJECT: 'No' }
 
+// El pago solo existe para un alquiler aprobado.
+export function etiquetaPago({ status, paid }) {
+  if (status !== 'APPROVED') return null
+  return paid ? 'Pago' : 'Pendiente de pago'
+}
+
+// Pago es final: no se vuelve a Pendiente.
+export function puedeMarcarPago({ status, paid }) {
+  return status === 'APPROVED' && !paid
+}
+
 const TELEFONO = /^[\d\s()+.-]+$/
 const MONTO = /^-?\d+$/
 // Tope del Int de la base.

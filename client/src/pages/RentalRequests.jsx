@@ -3,7 +3,7 @@ import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
-import { createRentalRequest, fetchRentalRequests, voteRentalRequest } from '../services/rentalRequest'
+import { createRentalRequest, fetchRentalRequests, markRentalPaid, voteRentalRequest } from '../services/rentalRequest'
 
 // TODO: usar el bien del usuario logueado cuando exista el login.
 const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
@@ -60,6 +60,17 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
     setEnvio({ enviando: true, error: null })
     try {
       reemplazar(await voteRentalRequest(id, { userId, ...voto }))
+      setModo('ver')
+      setEnvio({ enviando: false, error: null })
+    } catch (err) {
+      setEnvio({ enviando: false, error: err.message })
+    }
+  }
+
+  async function marcarPago(id) {
+    setEnvio({ enviando: true, error: null })
+    try {
+      reemplazar(await markRentalPaid(id, { userId }))
       setModo('ver')
       setEnvio({ enviando: false, error: null })
     } catch (err) {
@@ -205,6 +216,15 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
           }}
           onSubmitReject={(motivo) => votar(seleccion, { value: 'REJECT', reason: motivo })}
           onChangeVote={() => setModo('cambiar')}
+          onOpenPayment={() => {
+            setModo('pagar')
+            setEnvio({ enviando: false, error: null })
+          }}
+          onCancelPayment={() => {
+            setModo('ver')
+            setEnvio({ enviando: false, error: null })
+          }}
+          onConfirmPayment={() => marcarPago(seleccion)}
         />
       </div>
     </div>

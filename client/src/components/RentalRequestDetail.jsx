@@ -2,16 +2,19 @@ import { useId, useState } from 'react'
 import {
   daysLabel,
   ESTADOS,
+  etiquetaPago,
   formatMoney,
   formatPhone,
   formatRange,
+  puedeMarcarPago,
   puedeVotar as admiteVoto,
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
-// modo: 'ver' | 'rechazar' | 'cambiar' (Cambiar voto vuelve a mostrar Aprobar/Rechazar).
+// modo: 'ver' | 'rechazar' | 'cambiar' | 'pagar' (Cambiar voto vuelve a mostrar Aprobar/Rechazar;
+// pagar pide confirmar porque el pago no se puede deshacer).
 function RentalRequestDetail({
   solicitud,
   modo,
@@ -22,6 +25,9 @@ function RentalRequestDetail({
   onCancelReject,
   onSubmitReject,
   onChangeVote,
+  onOpenPayment,
+  onCancelPayment,
+  onConfirmPayment,
 }) {
   const [motivo, setMotivo] = useState('')
   const idError = useId()
@@ -43,6 +49,9 @@ function RentalRequestDetail({
   const rechazando = abierta && modo === 'rechazar'
   const mostrarVotar = abierta && !rechazando && (!vote || modo === 'cambiar')
   const mostrarMiVoto = abierta && !rechazando && vote && modo !== 'cambiar'
+  const pago = etiquetaPago(solicitud)
+  const pagable = puedeMarcarPago(solicitud)
+  const confirmandoPago = pagable && modo === 'pagar'
 
   return (
     <aside className="detalle" aria-label={`Detalle de la solicitud de ${nombre}`}>
@@ -50,6 +59,7 @@ function RentalRequestDetail({
       {renterPhone && <p className="detalle-contacto">{formatPhone(renterPhone)}</p>}
       <div className="detalle-badges">
         <span className="solicitud-estado">{ESTADOS[status] ?? status}</span>
+        {pago && <span className={`solicitud-estado is-pago${solicitud.paid ? ' is-pagado' : ''}`}>{pago}</span>}
       </div>
       <p className="detalle-fechas">
         {`${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`}
@@ -77,6 +87,36 @@ function RentalRequestDetail({
 
       {status === 'APPROVED' && (
         <p className="detalle-nota">Aprobada por unanimidad: ya quedó reservada en el calendario.</p>
+      )}
+
+      {puedeVotar && pagable && !confirmandoPago && (
+        <div className="detalle-acciones">
+          <button type="button" className="detalle-boton is-primario" onClick={onOpenPayment} disabled={envio.enviando}>
+            Marcar como pago
+          </button>
+        </div>
+      )}
+
+      {puedeVotar && confirmandoPago && (
+        <div className="detalle-rechazo">
+          <p className="detalle-nota">
+            Se registra un ingreso de {formatMoney(solicitud.amount)} repartido entre todos. Después no se puede volver a
+            Pendiente.
+          </p>
+          <div className="detalle-acciones">
+            <button type="button" className="detalle-boton" onClick={onCancelPayment} disabled={envio.enviando}>
+              Volver
+            </button>
+            <button
+              type="button"
+              className="detalle-boton is-confirmar"
+              onClick={onConfirmPayment}
+              disabled={envio.enviando}
+            >
+              Confirmar pago
+            </button>
+          </div>
+        </div>
       )}
 
       {!puedeVotar && pendiente && (
