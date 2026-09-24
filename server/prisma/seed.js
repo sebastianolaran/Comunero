@@ -1,7 +1,10 @@
 require('dotenv').config({ quiet: true });
 const prisma = require('../src/prisma');
 const movementRepo = require('../src/services/movement.repo');
+const movementService = require('../src/services/movement.service');
 const { validateMovementInput, buildShares } = require('../src/services/movement.rules');
+const balanceRepo = require('../src/services/balance.repo');
+const balanceRules = require('../src/services/balance.rules');
 
 const ASSET_ID = 'seed-casa-quinta';
 const PASSWORD_HASH = 'seed-sin-login';
@@ -107,21 +110,43 @@ async function cargarMovimientos({ ana, bruno, carla, flor }, { alquilerGomez, a
   }
 }
 
+// Saldo cerrado entre a y b como lo guarda "Saldar deuda total", pero con fecha
+// pasada: el que debia a esa fecha le paga todo lo de hasta ese dia, y el
+// cierre se lleva esos movimientos (y los pagos parciales que hubiera).
+async function cerrarEntre(a, b, date) {
+  const hasta = new Date(date);
+  const aLaFecha = async (from) => ({
+    movements: (await balanceRepo.findMovementsOf(ASSET_ID, from.id)).filter((m) => m.date <= hasta),
+    settlements: (await balanceRepo.findSettlementsOf(ASSET_ID, from.id)).filter((s) => s.date <= hasta),
+  });
+  const desdeA = await aLaFecha(a);
+  const { balance } = balanceRules.computeBalanceWith(a.id, b, desdeA.movements, desdeA.settlements);
+  const [deudor, acreedor] = balance < 0 ? [a, b] : [b, a];
+  const { movements, settlements } = deudor === a ? desdeA : await aLaFecha(b);
+  const closing = balanceRules.buildClosing(deudor.id, acreedor, movements, settlements, Math.abs(balance));
+  const cierre = await balanceRepo.createClosing(
+    { assetId: ASSET_ID, fromUserId: deudor.id, toUserId: acreedor.id, ...closing },
+    prisma,
+  );
+  await prisma.settlement.update({ where: { id: cierre.id }, data: { date: hasta } });
+}
+
 // Pagos entre copropietarios para Balance, vistos por Flor (la usuaria demo):
 //  Ana:   pago parcial de Flor -> Flor le debe menos y ve "Con pagos parciales".
 //  Bruno: saldo cerrado el 20/08 -> solo cuentan Expensas en adelante (le debe a Flor).
 //  Carla: saldo cerrado despues de todo -> "Al día".
 async function cargarPagos({ ana, bruno, carla, flor }) {
-  const pago = (from, to, amount, date, closesBalance = false) => ({
-    assetId: ASSET_ID, fromUserId: from.id, toUserId: to.id, amount, date: new Date(date), closesBalance,
+  // Las copias de los recurrentes (Internet de agosto) tienen que existir
+  // antes de cerrar, para que el cierre se las lleve.
+  await movementService.generateDueRecurrences(ASSET_ID);
+  await prisma.settlement.create({
+    data: {
+      assetId: ASSET_ID, fromUserId: flor.id, toUserId: ana.id, amount: 1000,
+      date: new Date('2026-09-10T15:00:00.000Z'),
+    },
   });
-  await prisma.settlement.createMany({
-    data: [
-      pago(flor, ana, 1000, '2026-09-10T15:00:00.000Z'),
-      pago(bruno, flor, 21750, '2026-08-20T15:00:00.000Z', true),
-      pago(carla, flor, 6583, '2026-09-20T15:00:00.000Z', true),
-    ],
-  });
+  await cerrarEntre(bruno, flor, '2026-08-20T15:00:00.000Z');
+  await cerrarEntre(carla, flor, '2026-09-20T15:00:00.000Z');
 }
 
 async function main() {
