@@ -272,3 +272,27 @@
     padding-left: 14px;
   }
 }
+
+/* Saldos cerrados */
+
+.bal-section-title {
+  margin: 28px 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bal-muted);
+}
+
+.bal-closed-date {
+  font-size: 12px;
+  color: var(--bal-muted);
+}
+
+/* Modal de Saldar: pago total / parcial */
+
+.bal-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
