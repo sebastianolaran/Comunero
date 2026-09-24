@@ -8,6 +8,7 @@ const healthDbRoutes = require('./routes/healthDb');
 const rentalRequestRoutes = require('./routes/rentalRequest');
 const reservationRoutes = require('./routes/reservation');
 const movementRoutes = require('./routes/movement');
+const balanceRoutes = require('./routes/balance');
 const movementService = require('./services/movement.service');
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/rental-requests', rentalRequestRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/movements', movementRoutes);
+app.use('/api/balances', balanceRoutes);
 
 // Un JSON roto en el body lo rechaza express.json antes de llegar a un controller;
 // sin esto la respuesta seria una pagina HTML en vez de { error }.

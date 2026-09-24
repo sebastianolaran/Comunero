@@ -251,13 +251,17 @@ model MovementItemShare {
   @@id([itemId, userId])
 }
 
+// Pago de una persona a otra para saldar su balance. closesBalance es true
+// cuando el pago salda toda la deuda: cierra el periodo y el balance entre los
+// dos arranca de cero desde su fecha. false es un pago parcial.
 model Settlement {
-  id         String   @id @default(cuid())
-  assetId    String
-  fromUserId String
-  toUserId   String
-  amount     Int
-  date       DateTime
+  id            String   @id @default(cuid())
+  assetId       String
+  fromUserId    String
+  toUserId      String
+  amount        Int
+  date          DateTime
+  closesBalance Boolean  @default(false)
 
   asset    Asset @relation(fields: [assetId], references: [id])
   fromUser User  @relation("SettlementFrom", fields: [fromUserId], references: [id])

@@ -8,6 +8,7 @@ const PASSWORD_HASH = 'seed-sin-login';
 
 async function limpiar() {
   // Los repartos y los items de cada movimiento se borran en cascada.
+  await prisma.settlement.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.movement.deleteMany({ where: { assetId: ASSET_ID } });
   const reservas = { reservation: { assetId: ASSET_ID } };
   await prisma.reservationApproval.deleteMany({ where: reservas });
@@ -17,6 +18,28 @@ async function limpiar() {
   await prisma.renter.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.user.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.asset.deleteMany({ where: { id: ASSET_ID } });
+}
+
+// PARCHE TEMPORAL: la base de Neon tiene aplicada la migracion user_email
+// (User.email obligatorio y unico), que todavia no esta en el schema de main.
+// Si la columna existe, el usuario se crea por SQL con un email de demo; si no,
+// con Prisma como siempre. Sacar cuando la migracion llegue al schema: ahi
+// alcanza con pasar email en prisma.user.create.
+async function tieneColumnaEmail() {
+  const filas = await prisma.$queryRaw`
+    SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'email'`;
+  return filas.length > 0;
+}
+
+async function crearUsuario(u, conEmail) {
+  if (!conEmail) {
+    return prisma.user.create({ data: { ...u, assetId: ASSET_ID, passwordHash: PASSWORD_HASH } });
+  }
+  const email = `${u.name.toLowerCase()}@comunero.test`;
+  await prisma.$executeRaw`
+    INSERT INTO "User" ("id", "assetId", "name", "phone", "passwordHash", "email")
+    VALUES (${u.id}, ${ASSET_ID}, ${u.name}, ${u.phone}, ${PASSWORD_HASH}, ${email})`;
+  return prisma.user.findUniqueOrThrow({ where: { id: u.id } });
 }
 
 // Las tareas se cargan "en orden": createdAt explicito y creciente, asi el orden
@@ -36,15 +59,16 @@ const tareas = (lista) =>
 // Movimientos: gastos e ingresos, un desglose con reparto por item, repartos
 // parciales y dos recurrentes. Internet (julio) es recurrente: sus copias de
 // agosto y septiembre no se cargan aca, las genera el server al arrancar o al
-// abrir Movimientos.
-async function cargarMovimientos({ ana, bruno, carla, flor }) {
+// abrir Movimientos. Los dos alquileres quedan ligados a su reserva: Balance
+// los muestra con la etiqueta ALQUILER.
+async function cargarMovimientos({ ana, bruno, carla, flor }, { alquilerGomez, alquilerAlvarez }) {
   const todos = [ana, bruno, carla, flor].map((u) => u.id);
   const ids = (...usuarios) => usuarios.map((u) => u.id);
   const gasto = (description, amount, date, pagador, shareIds = todos, extra = {}) => ({
     type: 'EXPENSE', description, amount, date, paidById: pagador.id, shareIds, ...extra,
   });
-  const ingreso = (description, amount, date, cobrador, shareIds = todos) => ({
-    type: 'INCOME', description, amount, date, paidById: cobrador.id, shareIds,
+  const ingreso = (description, amount, date, cobrador, shareIds = todos, reserva = null) => ({
+    type: 'INCOME', description, amount, date, paidById: cobrador.id, shareIds, reserva,
   });
 
   const movimientos = [
@@ -64,20 +88,40 @@ async function cargarMovimientos({ ana, bruno, carla, flor }) {
         { description: 'Bebidas', amount: 2000, shareIds: ids(flor, bruno) },
       ],
     },
-    ingreso('Alquiler amigos', 120000, '2026-08-16', bruno),
+    ingreso('Alquiler amigos', 120000, '2026-08-16', bruno, todos, alquilerGomez),
     gasto('Compra de carbón', 9000, '2026-08-23', ana),
     gasto('Compra de carbón', 9000, '2026-08-23', ana),
     // Septiembre
     gasto('Expensas', 48000, '2026-09-05', flor, todos, { recurring: true }),
     ingreso('Venta de herramientas viejas', 5000, '2026-09-12', ana, ids(ana)),
-    ingreso('Alquiler finde', 10000, '2026-09-14', carla, ids(flor, bruno, carla)),
+    ingreso('Alquiler finde', 10000, '2026-09-14', carla, ids(flor, bruno, carla), alquilerAlvarez),
     gasto('Jardinero', 20000, '2026-09-18', carla),
   ];
 
   for (const body of movimientos) {
     const input = validateMovementInput(body, todos);
-    await movementRepo.insertMovement(ASSET_ID, input, buildShares(input));
+    const movimiento = await movementRepo.insertMovement(ASSET_ID, input, buildShares(input));
+    if (body.reserva) {
+      await prisma.movement.update({ where: { id: movimiento.id }, data: { reservationId: body.reserva.id } });
+    }
   }
+}
+
+// Pagos entre copropietarios para Balance, vistos por Flor (la usuaria demo):
+//  Ana:   pago parcial de Flor -> Flor le debe menos y ve "Con pagos parciales".
+//  Bruno: saldo cerrado el 20/08 -> solo cuentan Expensas en adelante (le debe a Flor).
+//  Carla: saldo cerrado despues de todo -> "Al día".
+async function cargarPagos({ ana, bruno, carla, flor }) {
+  const pago = (from, to, amount, date, closesBalance = false) => ({
+    assetId: ASSET_ID, fromUserId: from.id, toUserId: to.id, amount, date: new Date(date), closesBalance,
+  });
+  await prisma.settlement.createMany({
+    data: [
+      pago(flor, ana, 1000, '2026-09-10T15:00:00.000Z'),
+      pago(bruno, flor, 21750, '2026-08-20T15:00:00.000Z', true),
+      pago(carla, flor, 6583, '2026-09-20T15:00:00.000Z', true),
+    ],
+  });
 }
 
 async function main() {
@@ -86,15 +130,14 @@ async function main() {
   await prisma.asset.create({ data: { id: ASSET_ID, name: 'Casa quinta' } });
 
   // Ids fijos para poder usarlos como VITE_DEMO_USER_ID en el client.
+  const conEmail = await tieneColumnaEmail();
   const [ana, bruno, carla, flor] = await Promise.all(
     [
       { id: 'seed-ana', name: 'Ana', phone: '5491100000001' },
       { id: 'seed-bruno', name: 'Bruno', phone: '5491100000002' },
       { id: 'seed-carla', name: 'Carla', phone: '5491100000003' },
       { id: 'seed-flor', name: 'Flor', phone: '5491100000004' },
-    ].map((u) =>
-      prisma.user.create({ data: { ...u, assetId: ASSET_ID, passwordHash: PASSWORD_HASH } }),
-    ),
+    ].map((u) => crearUsuario(u, conEmail)),
   );
   const todos = [ana, bruno, carla, flor];
   const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
@@ -258,7 +301,7 @@ async function main() {
   });
 
   // Un solo día, su única tarea hecha: "Todo listo (1/1)".
-  await prisma.reservation.create({
+  const alquilerGomez = await prisma.reservation.create({
     data: {
       assetId: ASSET_ID,
       userId: bruno.id,
@@ -273,7 +316,7 @@ async function main() {
   });
 
   // Rango, una hecha y tres pendientes: "3 pendientes de 4".
-  await prisma.reservation.create({
+  const alquilerAlvarez = await prisma.reservation.create({
     data: {
       assetId: ASSET_ID,
       userId: carla.id,
@@ -375,7 +418,8 @@ async function main() {
     },
   });
 
-  await cargarMovimientos({ ana, bruno, carla, flor });
+  await cargarMovimientos({ ana, bruno, carla, flor }, { alquilerGomez, alquilerAlvarez });
+  await cargarPagos({ ana, bruno, carla, flor });
 
   console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
 }
