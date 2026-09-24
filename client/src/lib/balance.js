@@ -25,3 +25,8 @@ export function entryWho(entry, meId) {
 export function sinceLabel(since) {
   return since ? `Desde el saldo cerrado del ${dayLabel(since)}` : 'Sin saldos cerrados: desde el inicio'
 }
+
+// Quién le pagó a quién en un saldo cerrado, desde quien mira.
+export function closedWho(settlement, otherName) {
+  return settlement.paidByMe ? `Le pagaste a ${otherName}` : `${otherName} te pagó`
+}

@@ -1,10 +1,38 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { ASSET_ID } from '../lib/currentAsset'
 import { USER_ID } from '../lib/currentUser'
-import { balanceStatus, entryWho, netSummary, sinceLabel } from '../lib/balance'
+import { balanceStatus, closedWho, entryWho, netSummary, sinceLabel } from '../lib/balance'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
+// Los modales usan los estilos de los de Movimientos (mov-modal, mov-btn).
+import './Movimientos.css'
 import './Balance.css'
+
+// Líneas de un detalle (abierto o de un saldo cerrado), en orden de fecha.
+function EntryList({ entries }) {
+  return (
+    <ul className="bal-entries">
+      {entries.map((entry) => (
+        <li key={`${entry.kind}-${entry.id}`} className="bal-entry">
+          <span className="bal-entry-date">{dayLabel(entry.date)}</span>
+          <span className="bal-entry-desc">
+            <span className="bal-entry-title">
+              {entry.description}
+              {entry.isRental && <span className="bal-tag bal-tag-rental">ALQUILER</span>}
+            </span>
+            <span className="bal-entry-who">
+              {entryWho(entry, USER_ID)} · total {fmtMoney(entry.total)}
+            </span>
+          </span>
+          <span className={`bal-entry-amount bal-tone-${balanceStatus(entry.amount).tone}`}>
+            {fmtSigned(entry.amount)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 // Detalle de lo que compone el balance con una persona: movimientos y pagos
 // parciales del período vigente, en orden de fecha.
@@ -15,31 +43,13 @@ function BalanceDetail({ coowner, id }) {
       {coowner.entries.length === 0 ? (
         <p className="bal-empty">Sin movimientos compartidos en este período.</p>
       ) : (
-        <ul className="bal-entries">
-          {coowner.entries.map((entry) => (
-            <li key={`${entry.kind}-${entry.id}`} className="bal-entry">
-              <span className="bal-entry-date">{dayLabel(entry.date)}</span>
-              <span className="bal-entry-desc">
-                <span className="bal-entry-title">
-                  {entry.description}
-                  {entry.isRental && <span className="bal-tag bal-tag-rental">ALQUILER</span>}
-                </span>
-                <span className="bal-entry-who">
-                  {entryWho(entry, USER_ID)} · total {fmtMoney(entry.total)}
-                </span>
-              </span>
-              <span className={`bal-entry-amount bal-tone-${balanceStatus(entry.amount).tone}`}>
-                {fmtSigned(entry.amount)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <EntryList entries={coowner.entries} />
       )}
     </div>
   )
 }
 
-function BalanceItem({ coowner }) {
+function BalanceItem({ coowner, onSettle }) {
   const [open, setOpen] = useState(false)
   const status = balanceStatus(coowner.balance)
   const detailId = `bal-detail-${coowner.user.id}`
@@ -65,8 +75,7 @@ function BalanceItem({ coowner }) {
             {!coowner.upToDate && <span className="bal-status">{status.text}</span>}
           </span>
           {coowner.canSettle && (
-            // Saldar la deuda es otra historia: por ahora el botón solo se muestra.
-            <button type="button" className="bal-btn bal-btn-primary" disabled title="Próximamente">
+            <button type="button" className="bal-btn bal-btn-primary" onClick={() => onSettle(coowner)}>
               Saldar
             </button>
           )}
@@ -77,10 +86,88 @@ function BalanceItem({ coowner }) {
   )
 }
 
+// Primer paso de "Saldar": pago total o parcial. El parcial es otra historia.
+function SettleChoice({ name, onTotal, onCancel }) {
+  const dialogo = useRef(null)
+  const total = useRef(null)
+  const id = useId()
+
+  useEffect(() => {
+    dialogo.current.showModal()
+    total.current.focus()
+  }, [])
+
+  return (
+    <dialog
+      ref={dialogo}
+      className="mov-modal mov-modal-sm"
+      aria-labelledby={`${id}-titulo`}
+      onClose={onCancel}
+      onClick={(e) => {
+        if (e.target === dialogo.current) onCancel()
+      }}
+    >
+      <h2 id={`${id}-titulo`} className="mov-modal-title">
+        Saldar deuda con {name}
+      </h2>
+      <div className="bal-choice">
+        <button ref={total} type="button" className="mov-btn mov-btn-primary" onClick={onTotal}>
+          Pago total
+        </button>
+        <button type="button" className="mov-btn" disabled title="Próximamente">
+          Pago parcial (próximamente)
+        </button>
+      </div>
+      <button type="button" className="mov-btn" onClick={onCancel}>
+        Cancelar
+      </button>
+    </dialog>
+  )
+}
+
+function ClosedSettlement({ settlement }) {
+  const [open, setOpen] = useState(false)
+  const detailId = `bal-closed-${settlement.id}`
+
+  return (
+    <li className="bal-item">
+      <div className="bal-row">
+        <button
+          type="button"
+          className="bal-toggle"
+          aria-expanded={open}
+          aria-controls={detailId}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="bal-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
+          <span className="bal-name">Saldo cerrado con {settlement.other.name}</span>
+          <span className="bal-closed-date">{dayLabel(settlement.date)}</span>
+        </button>
+        <span className="bal-amount-wrap">
+          <span className="bal-amount">{fmtMoney(settlement.amount)}</span>
+          <span className="bal-status">{closedWho(settlement, settlement.other.name)}</span>
+        </span>
+      </div>
+      {open && (
+        <div className="bal-detail" id={detailId}>
+          {settlement.entries.length === 0 ? (
+            <p className="bal-empty">Sin detalle guardado.</p>
+          ) : (
+            <EntryList entries={settlement.entries} />
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
 function Balance() {
   const quien = useMemo(() => ({ assetId: ASSET_ID, userId: USER_ID }), [])
   const [data, setData] = useState(null) // { net, coowners }
   const [error, setError] = useState(null)
+  const [recarga, setRecarga] = useState(0)
+  // Saldar en curso: { user, amount, step: 'choice' | 'confirm', busy, error }
+  const [settling, setSettling] = useState(null)
   const configurado = Boolean(ASSET_ID && USER_ID)
 
   useEffect(() => {
@@ -94,7 +181,43 @@ function Balance() {
       })
       .catch((err) => !controlador.signal.aborted && setError(err.message))
     return () => controlador.abort()
-  }, [quien, configurado])
+  }, [quien, configurado, recarga])
+
+  // Todos los saldos cerrados, con quién, del más nuevo al más viejo.
+  const cerrados = useMemo(() => {
+    if (!data) return []
+    return data.coowners
+      .flatMap((coowner) => coowner.closedSettlements.map((s) => ({ ...s, other: coowner.user })))
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+  }, [data])
+
+  function empezarASaldar(coowner) {
+    setSettling({ user: coowner.user, amount: -coowner.balance, step: 'choice', busy: false, error: null })
+  }
+
+  // Cerrar el diálogo de elección al pasar a confirmar también dispara su
+  // onClose: solo cancela si seguimos en la elección.
+  function cancelarEleccion() {
+    setSettling((actual) => (actual?.step === 'choice' ? null : actual))
+  }
+
+  async function confirmarPagoTotal() {
+    const { user, amount } = settling
+    setSettling((actual) => ({ ...actual, busy: true, error: null }))
+    try {
+      await balanceService.closeBalance({ assetId: ASSET_ID, fromUserId: USER_ID, toUserId: user.id, amount })
+      setSettling(null)
+    } catch (err) {
+      // Si el balance cambió, el modal pasa a mostrar el monto actual.
+      const error = err.currentAmount
+        ? `El balance cambió mientras confirmabas: ahora le debés ${fmtMoney(err.currentAmount)}.`
+        : err.message
+      setSettling((actual) =>
+        actual && { ...actual, busy: false, error, amount: err.currentAmount ?? actual.amount },
+      )
+    }
+    setRecarga((n) => n + 1)
+  }
 
   if (!configurado) {
     return (
@@ -130,11 +253,49 @@ function Balance() {
           ) : (
             <ul className="bal-list">
               {data.coowners.map((coowner) => (
-                <BalanceItem key={coowner.user.id} coowner={coowner} />
+                <BalanceItem key={coowner.user.id} coowner={coowner} onSettle={empezarASaldar} />
+              ))}
+            </ul>
+          )}
+
+          <h2 className="bal-section-title">Saldos cerrados</h2>
+          {cerrados.length === 0 ? (
+            <p className="bal-empty">Todavía no hay saldos cerrados.</p>
+          ) : (
+            <ul className="bal-list">
+              {cerrados.map((settlement) => (
+                <ClosedSettlement key={settlement.id} settlement={settlement} />
               ))}
             </ul>
           )}
         </>
+      )}
+
+      {/* Los modales toman las variables de color de .mov */}
+      {settling && (
+        <div className="mov">
+          {settling.step === 'choice' ? (
+            <SettleChoice
+              name={settling.user.name}
+              onTotal={() => setSettling((actual) => ({ ...actual, step: 'confirm' }))}
+              onCancel={cancelarEleccion}
+            />
+          ) : (
+            <ConfirmDialog
+              title={`Saldar deuda con ${settling.user.name}`}
+              lines={[
+                `¿Confirmás que le pagaste ${fmtMoney(settling.amount)} a ${settling.user.name}?`,
+                'El balance entre ustedes pasa a $0 y el detalle queda guardado en Saldos cerrados.',
+              ]}
+              confirmLabel="Confirmar pago"
+              busyLabel="Guardando…"
+              busy={settling.busy}
+              error={settling.error}
+              onConfirm={confirmarPagoTotal}
+              onCancel={() => setSettling(null)}
+            />
+          )}
+        </div>
       )}
     </section>
   )
