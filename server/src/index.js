@@ -7,6 +7,8 @@ const rentalPreparationRoutes = require('./routes/rentalPreparation');
 const healthDbRoutes = require('./routes/healthDb');
 const rentalRequestRoutes = require('./routes/rentalRequest');
 const reservationRoutes = require('./routes/reservation');
+const movementRoutes = require('./routes/movement');
+const movementService = require('./services/movement.service');
 
 const app = express();
 
@@ -22,6 +24,7 @@ app.use('/api/health/db', healthDbRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/rental-requests', rentalRequestRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/movements', movementRoutes);
 
 // Un JSON roto en el body lo rechaza express.json antes de llegar a un controller;
 // sin esto la respuesta seria una pagina HTML en vez de { error }.
@@ -40,6 +43,15 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`server escuchando en http://localhost:${PORT}`);
   });
+
+  // Los recurrentes tambien se generan al abrir Movimientos; esto los deja
+  // listos el 1 de cada mes aunque nadie entre a la pantalla.
+  const generateRecurrences = () =>
+    movementService.generateAllDueRecurrences().catch((err) => {
+      console.error('recurrentes: fallo la generacion', err);
+    });
+  generateRecurrences();
+  setInterval(generateRecurrences, 60 * 60 * 1000).unref();
 }
 
 module.exports = app;

@@ -1,10 +1,14 @@
 require('dotenv').config({ quiet: true });
 const prisma = require('../src/prisma');
+const movementRepo = require('../src/services/movement.repo');
+const { validateMovementInput, buildShares } = require('../src/services/movement.rules');
 
 const ASSET_ID = 'seed-casa-quinta';
 const PASSWORD_HASH = 'seed-sin-login';
 
 async function limpiar() {
+  // Los repartos y los items de cada movimiento se borran en cascada.
+  await prisma.movement.deleteMany({ where: { assetId: ASSET_ID } });
   const reservas = { reservation: { assetId: ASSET_ID } };
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });
@@ -27,6 +31,54 @@ const tareas = (lista) =>
     createdAt: new Date(BASE_CARGA + i * 60_000),
     completedAt: hecha ? new Date(BASE_CARGA + i * 60_000) : null,
   }));
+
+// Movimientos de julio a septiembre 2026 que cubren las historias de
+// Movimientos: gastos e ingresos, un desglose con reparto por item, repartos
+// parciales y dos recurrentes. Internet (julio) es recurrente: sus copias de
+// agosto y septiembre no se cargan aca, las genera el server al arrancar o al
+// abrir Movimientos.
+async function cargarMovimientos({ ana, bruno, carla, flor }) {
+  const todos = [ana, bruno, carla, flor].map((u) => u.id);
+  const ids = (...usuarios) => usuarios.map((u) => u.id);
+  const gasto = (description, amount, date, pagador, shareIds = todos, extra = {}) => ({
+    type: 'EXPENSE', description, amount, date, paidById: pagador.id, shareIds, ...extra,
+  });
+  const ingreso = (description, amount, date, cobrador, shareIds = todos) => ({
+    type: 'INCOME', description, amount, date, paidById: cobrador.id, shareIds,
+  });
+
+  const movimientos = [
+    // Julio
+    gasto('Internet', 15000, '2026-07-10', ana, todos, { recurring: true }),
+    gasto('Corte de pasto', 15000, '2026-07-15', carla),
+    // Agosto: 1 alquiler y 5 gastos (contando la copia de Internet del 01/08)
+    gasto('Gas envasado', 18000, '2026-08-05', bruno),
+    {
+      type: 'EXPENSE',
+      description: 'Compra supermercado',
+      date: '2026-08-09',
+      paidById: bruno.id,
+      items: [
+        { description: 'Carne', amount: 10000, shareIds: todos },
+        { description: 'Verdura', amount: 5000, shareIds: todos },
+        { description: 'Bebidas', amount: 2000, shareIds: ids(flor, bruno) },
+      ],
+    },
+    ingreso('Alquiler amigos', 120000, '2026-08-16', bruno),
+    gasto('Compra de carbón', 9000, '2026-08-23', ana),
+    gasto('Compra de carbón', 9000, '2026-08-23', ana),
+    // Septiembre
+    gasto('Expensas', 48000, '2026-09-05', flor, todos, { recurring: true }),
+    ingreso('Venta de herramientas viejas', 5000, '2026-09-12', ana, ids(ana)),
+    ingreso('Alquiler finde', 10000, '2026-09-14', carla, ids(flor, bruno, carla)),
+    gasto('Jardinero', 20000, '2026-09-18', carla),
+  ];
+
+  for (const body of movimientos) {
+    const input = validateMovementInput(body, todos);
+    await movementRepo.insertMovement(ASSET_ID, input, buildShares(input));
+  }
+}
 
 async function main() {
   await limpiar();
@@ -322,6 +374,8 @@ async function main() {
       tasks: { create: tareas([['Limpieza previa', ana]]) },
     },
   });
+
+  await cargarMovimientos({ ana, bruno, carla, flor });
 
   console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
 }

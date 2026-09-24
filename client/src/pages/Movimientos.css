@@ -1,0 +1,662 @@
+/* Movimientos usa la misma UI que el resto de la app: grises oklch sobre
+   Inter, solo en claro, bordes de 3-4 px y el botón principal oscuro, como en
+   Alquiler. Verde y rojo se reservan para lo que te deben y lo que debés. */
+.mov {
+  --mov-surface: #fff;
+  --mov-strong: oklch(22% 0 0);
+  --mov-text: oklch(35% 0 0);
+  --mov-muted: oklch(50% 0 0);
+  --mov-line: oklch(90% 0 0);
+  --mov-line-strong: oklch(85% 0 0);
+  --mov-line-soft: oklch(94% 0 0);
+  --mov-soft: oklch(96% 0 0);
+  --mov-accent: oklch(22% 0 0);
+  --mov-accent-text: #fff;
+  --mov-pos: oklch(48% 0.13 150);
+  --mov-neg: oklch(45% 0.18 25);
+  --mov-neg-soft: oklch(96% 0.02 25);
+
+  box-sizing: border-box;
+  max-width: 960px;
+  color: var(--mov-text);
+}
+
+.mov *,
+.mov *::before,
+.mov *::after {
+  box-sizing: inherit;
+}
+
+.mov :focus-visible,
+.mov-modal :focus-visible {
+  outline: 2px solid var(--mov-strong);
+  outline-offset: 2px;
+}
+
+.mov-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mov-title {
+  margin-bottom: 20px;
+}
+
+.mov-loading,
+.mov-empty {
+  font-size: 13.5px;
+  color: var(--mov-muted);
+}
+
+.mov-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--mov-line-strong);
+  border-radius: 4px;
+}
+
+.mov-alert,
+.mov-form-error {
+  margin: 0 0 12px;
+  padding: 9px 10px;
+  border-radius: 3px;
+  background: var(--mov-neg-soft);
+  color: var(--mov-neg);
+  font-size: 12.5px;
+}
+
+.mov-tone-pos {
+  color: var(--mov-pos);
+}
+
+.mov-tone-neg {
+  color: var(--mov-neg);
+}
+
+.mov-tone-muted {
+  color: var(--mov-muted);
+}
+
+/* Resumen del mes y barra de filtros */
+
+.mov-summary {
+  margin-bottom: 20px;
+}
+
+.mov-summary-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mov-muted);
+}
+
+.mov-net {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--mov-muted);
+}
+
+.mov-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mov-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Mismos filtros que las pestañas de Alquiler. */
+.mov-pills {
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mov-line-strong);
+  border-radius: 3px;
+  background: var(--mov-surface);
+}
+
+.mov-pill {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 15px;
+  border: none;
+  background: none;
+  color: var(--mov-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mov-pill[aria-pressed='true'] {
+  font-weight: 600;
+  background: var(--mov-accent);
+  color: var(--mov-accent-text);
+}
+
+/* Botones e inputs */
+
+.mov-btn {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px 16px;
+  border-radius: 3px;
+  border: 1px solid oklch(80% 0 0);
+  background: var(--mov-surface);
+  color: var(--mov-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mov-btn-primary {
+  font-weight: 500;
+  border-color: transparent;
+  background: var(--mov-accent);
+  color: var(--mov-accent-text);
+}
+
+/* Gris, como el "Confirmar rechazo" de Alquiler: el rojo queda para los
+   errores y para lo que debés. */
+.mov-btn-danger {
+  font-weight: 500;
+  border-color: transparent;
+  background: oklch(50% 0 0);
+  color: #fff;
+}
+
+.mov-btn-icon {
+  font-size: 16px;
+  line-height: 1;
+  padding: 8px 12px;
+}
+
+.mov-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mov-period-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.mov-link-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: var(--mov-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.mov-link-btn:hover {
+  color: var(--mov-strong);
+}
+
+.mov-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1px solid var(--mov-line-strong);
+  border-radius: 3px;
+  background: var(--mov-surface);
+  color: var(--mov-strong);
+}
+
+.mov-input-select {
+  width: auto;
+  font-size: 13px;
+}
+
+.mov-input[aria-invalid='true'],
+.mov-field.is-error .mov-input {
+  border-color: oklch(50% 0.18 25);
+}
+
+/* Tabla de movimientos */
+
+.mov-table-wrap {
+  overflow-x: auto;
+  background: var(--mov-surface);
+  border: 1px solid var(--mov-line);
+  border-radius: 4px;
+}
+
+.mov-table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mov-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mov-muted);
+  padding: 10px;
+  border-bottom: 1px solid var(--mov-line);
+}
+
+.mov-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--mov-line-soft);
+  vertical-align: middle;
+}
+
+.mov-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mov-table .mov-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mov-date {
+  width: 4.5rem;
+  color: var(--mov-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-desc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mov-desc-btn {
+  font: inherit;
+  color: var(--mov-strong);
+  background: none;
+  border: none;
+  border-bottom: 1px dotted var(--mov-muted);
+  padding: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mov-amount {
+  font-weight: 600;
+  color: var(--mov-strong);
+}
+
+.mov-arrow-in {
+  color: var(--mov-pos);
+}
+
+.mov-arrow-out {
+  color: var(--mov-muted);
+}
+
+.mov-part {
+  display: block;
+  font-weight: 600;
+}
+
+.mov-part-sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--mov-muted);
+}
+
+.mov-row-actions {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Mismas etiquetas que los estados de Alquiler. */
+.mov-tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: var(--mov-soft);
+  color: oklch(40% 0 0);
+  white-space: nowrap;
+}
+
+.mov-tag-income {
+  background: none;
+  border: 1px solid currentcolor;
+  color: var(--mov-pos);
+}
+
+.mov-tag-fixed {
+  background: none;
+  border: 1px dashed oklch(70% 0 0);
+  color: var(--mov-muted);
+}
+
+/* Reparto de un movimiento, al desplegar la fila */
+
+.mov-table tr.is-open td,
+.mov-detail-row td {
+  background: oklch(98% 0 0);
+}
+
+.mov-detail-row td {
+  padding-top: 0;
+}
+
+.mov-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 8px 32px;
+  padding: 2px 0 6px;
+  font-size: 12.5px;
+}
+
+.mov-detail-title {
+  font-weight: 600;
+  color: var(--mov-strong);
+  margin-bottom: 4px;
+}
+
+.mov-share-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mov-share-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-share-list li.is-me {
+  font-weight: 600;
+  color: var(--mov-strong);
+}
+
+.mov-item-shares {
+  display: block;
+  font-size: 11.5px;
+  color: var(--mov-muted);
+}
+
+.mov-share-note {
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--mov-muted);
+}
+
+.mov-detail-rule {
+  grid-column: 1 / -1;
+  color: var(--mov-muted);
+}
+
+/* Modales (alta/edición y confirmación de borrado) */
+
+.mov-modal {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(80vh, 680px);
+  padding: 26px;
+  border: none;
+  border-radius: 4px;
+  background: var(--mov-surface);
+  color: var(--mov-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.mov-modal-sm {
+  width: min(380px, calc(100vw - 32px));
+}
+
+.mov-modal::backdrop {
+  background: oklch(20% 0 0 / 45%);
+}
+
+.mov-modal-form,
+.mov-modal-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mov-modal-title {
+  font-size: 16px;
+  margin: 0;
+  color: var(--mov-strong);
+}
+
+.mov-confirm-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.mov-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Gasto / Ingreso */
+.mov-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--mov-line-strong);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mov-segmented button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px;
+  border: none;
+  background: var(--mov-surface);
+  color: var(--mov-text);
+  cursor: pointer;
+}
+
+.mov-segmented button[aria-pressed='true'] {
+  font-weight: 600;
+  background: var(--mov-accent);
+  color: var(--mov-accent-text);
+}
+
+.mov-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.mov-field-label {
+  font-size: 12px;
+  color: var(--mov-muted);
+  padding: 0;
+}
+
+.mov-field-hint {
+  font-size: 12px;
+  color: var(--mov-muted);
+  line-height: 1.4;
+}
+
+.mov-field-error {
+  font-size: 12px;
+  color: var(--mov-neg);
+}
+
+.mov-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 12px;
+}
+
+.mov-money-input {
+  position: relative;
+}
+
+.mov-money-input span {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mov-muted);
+  pointer-events: none;
+}
+
+.mov-money-input .mov-input {
+  padding-left: 22px;
+  text-align: right;
+}
+
+.mov-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 10px;
+  border-radius: 3px;
+  background: var(--mov-soft);
+  font-size: 12.5px;
+  color: var(--mov-muted);
+}
+
+.mov-total-row strong {
+  font-size: 15px;
+  color: var(--mov-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.mov-person,
+.mov-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--mov-text);
+}
+
+.mov-person-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* Ítems del desglose: cada uno con su monto y su reparto */
+
+.mov-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mov-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--mov-line);
+  border-radius: 4px;
+}
+
+.mov-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mov-item-row > .mov-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.mov-item-amount {
+  flex: none;
+  width: 7.5rem;
+}
+
+.mov-icon-btn {
+  flex: none;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--mov-muted);
+  cursor: pointer;
+}
+
+.mov-icon-btn:hover {
+  color: var(--mov-neg);
+}
+
+.mov-icon-btn:disabled,
+.mov-btn-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.mov-add-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 8px;
+  border: 1px dashed var(--mov-line-strong);
+  border-radius: 3px;
+  background: none;
+  color: var(--mov-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mov-toolbar {
+    align-items: stretch;
+  }
+
+  .mov-toolbar-right {
+    justify-content: space-between;
+  }
+}

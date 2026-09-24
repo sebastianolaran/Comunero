@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import AppLayout from './layouts/AppLayout'
 import Calendario from './pages/Calendario'
+import Movimientos from './pages/Movimientos'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
 import Rental from './pages/Rental'
 import RentalPreparations from './pages/RentalPreparations'
@@ -9,6 +10,7 @@ import { SECCIONES } from './sections'
 
 const PANTALLAS = {
   calendario: { element: <Calendario /> },
+  movimientos: { element: <Movimientos /> },
   alquiler: {
     element: <Rental />,
     children: [

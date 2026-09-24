@@ -48,6 +48,11 @@ npm run dev
 
 Abre http://localhost:5173.
 
+Las pantallas que ya tienen datos (Calendario, Alquiler, Movimientos) trabajan
+sobre el bien y el usuario de demo mientras no exista el login: corré
+`npm run seed` en `server/` y copiá los ids que imprime a `VITE_DEMO_ASSET_ID`
+y `VITE_DEMO_USER_ID`.
+
 ---
 
 ## Variables de entorno
@@ -57,6 +62,8 @@ Abre http://localhost:5173.
 | server   | `DATABASE_URL` | Connection string de Neon (usar un branch para desarrollo local). |
 | server   | `PORT`         | Puerto local, default `3000`.                   |
 | client   | `VITE_API_URL` | URL base del server (local o el de Render).     |
+| client   | `VITE_DEMO_ASSET_ID` | Id del bien que se muestra. Lo imprime `npm run seed`. Temporal, hasta que haya login. |
+| client   | `VITE_DEMO_USER_ID`  | Id del copropietario que usa la app. Lo imprime `npm run seed`. Temporal, hasta que haya login. |
 
 ---
 
