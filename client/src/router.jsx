@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import AppLayout from './layouts/AppLayout'
+import Balance from './pages/Balance'
 import Calendario from './pages/Calendario'
 import Movimientos from './pages/Movimientos'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
@@ -11,6 +12,7 @@ import { SECCIONES } from './sections'
 const PANTALLAS = {
   calendario: { element: <Calendario /> },
   movimientos: { element: <Movimientos /> },
+  balance: { element: <Balance /> },
   alquiler: {
     element: <Rental />,
     children: [
