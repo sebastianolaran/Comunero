@@ -30,3 +30,23 @@ export async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
   }
   return data
 }
+
+// Pago parcial de tu deuda con toUserId: tiene que ser menor que lo que le
+// debés. Devuelve { payment, remaining }. Si el monto iguala o supera la deuda
+// actual (por ejemplo, porque cambió en el medio), el error trae
+// currentAmount con la deuda actual.
+// TODO: fromUserId sale de la sesión cuando exista el login.
+export async function payPartial({ assetId, fromUserId, toUserId, amount }) {
+  const res = await fetch(`${API_URL}/api/balances/partial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assetId, fromUserId, toUserId, amount }),
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    const err = new Error(data?.error ?? `HTTP ${res.status}`)
+    err.currentAmount = data?.currentAmount
+    throw err
+  }
+  return data
+}

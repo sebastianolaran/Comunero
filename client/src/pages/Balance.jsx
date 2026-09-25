@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { ASSET_ID } from '../lib/currentAsset'
 import { USER_ID } from '../lib/currentUser'
-import { balanceStatus, closedWho, entryWho, netSummary, sinceLabel } from '../lib/balance'
+import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
 // Los modales usan los estilos de los de Movimientos (mov-modal, mov-btn).
@@ -86,8 +86,8 @@ function BalanceItem({ coowner, onSettle }) {
   )
 }
 
-// Primer paso de "Saldar": pago total o parcial. El parcial es otra historia.
-function SettleChoice({ name, onTotal, onCancel }) {
+// Primer paso de "Saldar": pago total o parcial.
+function SettleChoice({ name, onTotal, onPartial, onCancel }) {
   const dialogo = useRef(null)
   const total = useRef(null)
   const id = useId()
@@ -114,13 +114,97 @@ function SettleChoice({ name, onTotal, onCancel }) {
         <button ref={total} type="button" className="mov-btn mov-btn-primary" onClick={onTotal}>
           Pago total
         </button>
-        <button type="button" className="mov-btn" disabled title="Próximamente">
-          Pago parcial (próximamente)
+        <button type="button" className="mov-btn" onClick={onPartial}>
+          Pago parcial
         </button>
       </div>
       <button type="button" className="mov-btn" onClick={onCancel}>
         Cancelar
       </button>
+    </dialog>
+  )
+}
+
+// Segundo paso del pago parcial: cuánto le pagaste. Solo pasa a confirmar si
+// el monto es mayor a $0 y menor que la deuda vigente (owed).
+function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, onCancel }) {
+  const dialogo = useRef(null)
+  const campo = useRef(null)
+  const id = useId()
+  const [value, setValue] = useState(initialValue)
+  const [error, setError] = useState(serverError)
+
+  useEffect(() => {
+    dialogo.current.showModal()
+    campo.current.focus()
+  }, [])
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    const problema = partialAmountError(value, owed, name)
+    if (problema) {
+      setError(problema)
+      return
+    }
+    onSubmit(Number(value))
+  }
+
+  return (
+    <dialog
+      ref={dialogo}
+      className="mov-modal mov-modal-sm"
+      aria-labelledby={`${id}-titulo`}
+      onClose={onCancel}
+      onClick={(e) => {
+        if (e.target === dialogo.current) onCancel()
+      }}
+    >
+      <h2 id={`${id}-titulo`} className="mov-modal-title">
+        Pago parcial a {name}
+      </h2>
+      <form className="mov-modal-form" onSubmit={handleSubmit} noValidate>
+        <div className={`mov-field${error ? ' is-error' : ''}`}>
+          <label className="mov-field-label" htmlFor={`${id}-monto`}>
+            ¿Cuánto le pagaste?
+          </label>
+          <div className="mov-money-input">
+            <span aria-hidden="true">$</span>
+            <input
+              ref={campo}
+              id={`${id}-monto`}
+              className="mov-input"
+              type="number"
+              inputMode="numeric"
+              step="1"
+              placeholder="0"
+              value={value}
+              aria-invalid={Boolean(error)}
+              aria-describedby={`${id}-ayuda`}
+              onChange={(event) => {
+                setValue(event.target.value)
+                setError(null)
+              }}
+            />
+          </div>
+          {error ? (
+            <p id={`${id}-ayuda`} className="mov-field-error" role="alert">
+              {error}
+            </p>
+          ) : (
+            <p id={`${id}-ayuda`} className="mov-field-hint">
+              Le debés {fmtMoney(owed)}. Tiene que ser menos: para saldar todo usá el pago total.
+            </p>
+          )}
+        </div>
+        <div className="mov-modal-actions">
+          <button type="button" className="mov-btn" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button type="submit" className="mov-btn mov-btn-primary">
+            Continuar
+          </button>
+        </div>
+      </form>
     </dialog>
   )
 }
@@ -166,7 +250,10 @@ function Balance() {
   const [data, setData] = useState(null) // { net, coowners }
   const [error, setError] = useState(null)
   const [recarga, setRecarga] = useState(0)
-  // Saldar en curso: { user, amount, step: 'choice' | 'confirm', busy, error }
+  // Saldar en curso: { user, amount, step, busy, error, partial }. amount es la
+  // deuda vigente; partial, el monto del pago parcial. step: 'choice' (total
+  // o parcial), 'confirm' (pago total), 'partial' (cargar el monto) o
+  // 'confirmPartial'.
   const [settling, setSettling] = useState(null)
   const configurado = Boolean(ASSET_ID && USER_ID)
 
@@ -192,13 +279,42 @@ function Balance() {
   }, [data])
 
   function empezarASaldar(coowner) {
-    setSettling({ user: coowner.user, amount: -coowner.balance, step: 'choice', busy: false, error: null })
+    setSettling({
+      user: coowner.user,
+      amount: -coowner.balance,
+      step: 'choice',
+      busy: false,
+      error: null,
+      partial: null,
+    })
   }
 
-  // Cerrar el diálogo de elección al pasar a confirmar también dispara su
-  // onClose: solo cancela si seguimos en la elección.
-  function cancelarEleccion() {
-    setSettling((actual) => (actual?.step === 'choice' ? null : actual))
+  // Cerrar un diálogo al pasar al paso siguiente también dispara su onClose:
+  // solo cancela si seguimos en ese paso.
+  function cancelarPaso(step) {
+    setSettling((actual) => (actual?.step === step ? null : actual))
+  }
+
+  const irA = (step, cambios = {}) => setSettling((actual) => ({ ...actual, step, ...cambios }))
+
+  async function confirmarPagoParcial() {
+    const { user, partial } = settling
+    setSettling((actual) => ({ ...actual, busy: true, error: null }))
+    try {
+      await balanceService.payPartial({ assetId: ASSET_ID, fromUserId: USER_ID, toUserId: user.id, amount: partial })
+      setSettling(null)
+    } catch (err) {
+      // Si la deuda cambió y el monto ya no entra, vuelve a cargar el monto
+      // con la deuda actual; si no, el error queda en el modal.
+      setSettling((actual) => {
+        if (!actual) return actual
+        if (err.currentAmount) {
+          return { ...actual, busy: false, step: 'partial', error: err.message, amount: err.currentAmount }
+        }
+        return { ...actual, busy: false, error: err.message }
+      })
+    }
+    setRecarga((n) => n + 1)
   }
 
   async function confirmarPagoTotal() {
@@ -274,13 +390,40 @@ function Balance() {
       {/* Los modales toman las variables de color de .mov */}
       {settling && (
         <div className="mov">
-          {settling.step === 'choice' ? (
+          {settling.step === 'choice' && (
             <SettleChoice
               name={settling.user.name}
-              onTotal={() => setSettling((actual) => ({ ...actual, step: 'confirm' }))}
-              onCancel={cancelarEleccion}
+              onTotal={() => irA('confirm')}
+              onPartial={() => irA('partial')}
+              onCancel={() => cancelarPaso('choice')}
             />
-          ) : (
+          )}
+          {settling.step === 'partial' && (
+            <PartialAmountForm
+              name={settling.user.name}
+              owed={settling.amount}
+              initialValue={settling.partial === null ? '' : String(settling.partial)}
+              serverError={settling.error}
+              onSubmit={(partial) => irA('confirmPartial', { partial, error: null })}
+              onCancel={() => cancelarPaso('partial')}
+            />
+          )}
+          {settling.step === 'confirmPartial' && (
+            <ConfirmDialog
+              title={`Pago parcial a ${settling.user.name}`}
+              lines={[
+                `¿Confirmás que le pagaste ${fmtMoney(settling.partial)} a ${settling.user.name}?`,
+                `Le vas a seguir debiendo ${fmtMoney(settling.amount - settling.partial)}.`,
+              ]}
+              confirmLabel="Confirmar pago"
+              busyLabel="Guardando…"
+              busy={settling.busy}
+              error={settling.error}
+              onConfirm={confirmarPagoParcial}
+              onCancel={() => cancelarPaso('confirmPartial')}
+            />
+          )}
+          {settling.step === 'confirm' && (
             <ConfirmDialog
               title={`Saldar deuda con ${settling.user.name}`}
               lines={[
