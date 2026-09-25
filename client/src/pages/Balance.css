@@ -1,0 +1,298 @@
+/* Balance sigue la UI de Movimientos: grises oklch, solo en claro, bordes de
+   3-4 px. Verde y rojo se reservan para lo que te deben y lo que debés. */
+.bal {
+  --bal-surface: #fff;
+  --bal-strong: oklch(22% 0 0);
+  --bal-text: oklch(35% 0 0);
+  --bal-muted: oklch(50% 0 0);
+  --bal-line: oklch(90% 0 0);
+  --bal-line-soft: oklch(94% 0 0);
+  --bal-soft: oklch(96% 0 0);
+  --bal-pos: oklch(48% 0.13 150);
+  --bal-neg: oklch(45% 0.18 25);
+  --bal-neg-soft: oklch(96% 0.02 25);
+
+  box-sizing: border-box;
+  max-width: 960px;
+  color: var(--bal-text);
+}
+
+.bal *,
+.bal *::before,
+.bal *::after {
+  box-sizing: inherit;
+}
+
+.bal :focus-visible {
+  outline: 2px solid var(--bal-strong);
+  outline-offset: 2px;
+}
+
+.bal-title {
+  margin-bottom: 20px;
+}
+
+.bal-loading,
+.bal-empty {
+  font-size: 13.5px;
+  color: var(--bal-muted);
+}
+
+.bal-alert {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  border-radius: 3px;
+  background: var(--bal-neg-soft);
+  color: var(--bal-neg);
+}
+
+.bal-tone-pos {
+  color: var(--bal-pos);
+}
+
+.bal-tone-neg {
+  color: var(--bal-neg);
+}
+
+.bal-tone-muted {
+  color: var(--bal-muted);
+}
+
+/* Neto */
+
+.bal-summary {
+  margin-bottom: 20px;
+}
+
+.bal-summary-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bal-muted);
+}
+
+.bal-net {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bal-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--bal-muted);
+}
+
+/* Lista de copropietarios */
+
+.bal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--bal-line);
+  border-radius: 4px;
+  background: var(--bal-surface);
+}
+
+.bal-item + .bal-item {
+  border-top: 1px solid var(--bal-line);
+}
+
+.bal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.bal-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+  font: inherit;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bal-caret {
+  width: 12px;
+  color: var(--bal-muted);
+}
+
+.bal-name {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--bal-strong);
+}
+
+.bal-tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: var(--bal-soft);
+  color: oklch(40% 0 0);
+  white-space: nowrap;
+}
+
+.bal-tag-rental {
+  margin-left: 8px;
+  background: none;
+  border: 1px solid currentcolor;
+  color: var(--bal-pos);
+}
+
+.bal-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.bal-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.bal-amount {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bal-status {
+  font-size: 12px;
+  color: var(--bal-muted);
+}
+
+.bal-btn {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 8px 14px;
+  border-radius: 3px;
+  border: 1px solid oklch(80% 0 0);
+  background: var(--bal-surface);
+  color: var(--bal-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bal-btn-primary {
+  font-weight: 500;
+  border-color: transparent;
+  background: var(--bal-strong);
+  color: #fff;
+}
+
+.bal-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Detalle */
+
+.bal-detail {
+  padding: 0 14px 14px 34px;
+}
+
+.bal-since {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--bal-muted);
+}
+
+.bal-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bal-entry {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--bal-line-soft);
+  font-size: 13.5px;
+}
+
+.bal-entry-date {
+  font-variant-numeric: tabular-nums;
+  color: var(--bal-muted);
+}
+
+.bal-entry-desc {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bal-entry-title {
+  color: var(--bal-strong);
+}
+
+.bal-entry-who {
+  font-size: 12px;
+  color: var(--bal-muted);
+}
+
+.bal-entry-amount {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .bal-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bal-right {
+    justify-content: space-between;
+  }
+
+  .bal-amount-wrap {
+    align-items: flex-start;
+  }
+
+  .bal-detail {
+    padding-left: 14px;
+  }
+}
+
+/* Saldos cerrados */
+
+.bal-section-title {
+  margin: 28px 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bal-muted);
+}
+
+.bal-closed-date {
+  font-size: 12px;
+  color: var(--bal-muted);
+}
+
+/* Modal de Saldar: pago total / parcial */
+
+.bal-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

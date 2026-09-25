@@ -1,8 +1,11 @@
 require('dotenv').config({ quiet: true });
 const prisma = require('../src/prisma');
 const movementRepo = require('../src/services/movement.repo');
+const movementService = require('../src/services/movement.service');
 const { validateMovementInput, buildShares } = require('../src/services/movement.rules');
 const { hashPassword } = require('../src/lib/password');
+const balanceRepo = require('../src/services/balance.repo');
+const balanceRules = require('../src/services/balance.rules');
 
 // Dos bienes, cada uno con sus propios copropietarios: entrando con un mail o
 // con otro la app tiene que mostrar el bien que corresponde, y nunca los datos
@@ -99,6 +102,45 @@ async function cargarMovimientos({ ana, bruno, carla, flor }) {
     const input = validateMovementInput(body, todos);
     await movementRepo.insertMovement(CASA_ID, input, buildShares(input));
   }
+}
+
+// Saldo cerrado entre a y b como lo guarda "Saldar deuda total", pero con fecha
+// pasada: el que debia a esa fecha le paga todo lo de hasta ese dia, y el
+// cierre se lleva esos movimientos (y los pagos parciales que hubiera).
+async function cerrarEntre(a, b, date) {
+  const hasta = new Date(date);
+  const aLaFecha = async (from) => ({
+    movements: (await balanceRepo.findMovementsOf(CASA_ID, from.id)).filter((m) => m.date <= hasta),
+    settlements: (await balanceRepo.findSettlementsOf(CASA_ID, from.id)).filter((s) => s.date <= hasta),
+  });
+  const desdeA = await aLaFecha(a);
+  const { balance } = balanceRules.computeBalanceWith(a.id, b, desdeA.movements, desdeA.settlements);
+  const [deudor, acreedor] = balance < 0 ? [a, b] : [b, a];
+  const { movements, settlements } = deudor === a ? desdeA : await aLaFecha(b);
+  const closing = balanceRules.buildClosing(deudor.id, acreedor, movements, settlements, Math.abs(balance));
+  const cierre = await balanceRepo.createClosing(
+    { assetId: CASA_ID, fromUserId: deudor.id, toUserId: acreedor.id, ...closing },
+    prisma,
+  );
+  await prisma.settlement.update({ where: { id: cierre.id }, data: { date: hasta } });
+}
+
+// Pagos entre copropietarios para Balance, vistos por Flor:
+//  Ana:   pago parcial de Flor -> "Con pagos parciales".
+//  Bruno: saldo cerrado el 20/08 -> solo cuenta lo posterior.
+//  Carla: saldo cerrado despues de todo -> "Al día".
+async function cargarPagos({ ana, bruno, carla, flor }) {
+  // Las copias de los recurrentes (Internet de agosto) tienen que existir
+  // antes de cerrar, para que el cierre se las lleve.
+  await movementService.generateDueRecurrences(CASA_ID);
+  await prisma.settlement.create({
+    data: {
+      assetId: CASA_ID, fromUserId: flor.id, toUserId: ana.id, amount: 1000,
+      date: new Date('2026-09-10T15:00:00.000Z'),
+    },
+  });
+  await cerrarEntre(bruno, flor, '2026-08-20T15:00:00.000Z');
+  await cerrarEntre(carla, flor, '2026-09-20T15:00:00.000Z');
 }
 
 const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
@@ -569,6 +611,9 @@ async function sembrarCasaQuinta() {
       approvals: aprobadaPor([flor, bruno, carla]),
     },
   });
+
+  // Al final: los cierres tambien se llevan los cobros de alquiler.
+  await cargarPagos({ ana, bruno, carla, flor });
   return [ana, bruno, carla, flor];
 }
 
