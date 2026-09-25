@@ -3,7 +3,6 @@ import { createReservation, fetchReservations } from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import {
-  colorDeIntegrante,
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
@@ -12,6 +11,7 @@ import {
   mesSiguiente,
   nombreMes,
   primerDiaSemana,
+  tonoDeIntegrante,
 } from '../lib/calendar'
 import './Calendario.css'
 
@@ -121,125 +121,180 @@ function Calendario() {
   }
 
   if (!assetId) {
-    return <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
+    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   const dias = diasDelMes(year, month)
   const espaciosVacios = primerDiaSemana(year, month)
+  const espaciosFinales = (7 - ((espaciosVacios + dias.length) % 7)) % 7
   const integrantes = integrantesEnReservas(reservas)
 
   return (
-    <div className="calendario-layout">
-      <section className="calendario">
-        <header className="calendario-header">
-          <button type="button" onClick={irMesAnterior} aria-label="Mes anterior">
-            ‹
+    <div className="split split--fill">
+      <section className="split__main" aria-label="Calendario">
+        <header className="cal-head">
+          <button
+            type="button"
+            className="btn btn--icon"
+            onClick={irMesAnterior}
+            aria-label="Mes anterior"
+          >
+            <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </button>
-          <h1 className="calendario-titulo">{nombreMes(year, month)}</h1>
-          <button type="button" onClick={irMesSiguiente} aria-label="Mes siguiente">
-            ›
+          <h2 className="cal-head__t">{nombreMes(year, month).replace(' de ', ' ')}</h2>
+          <button
+            type="button"
+            className="btn btn--icon"
+            onClick={irMesSiguiente}
+            aria-label="Mes siguiente"
+          >
+            <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         </header>
 
         {estadoCarga === 'error' && (
-          <p className="calendario-error">No se pudo cargar el calendario.</p>
+          <p className="note cal-error" role="alert">
+            No se pudo cargar el calendario.
+          </p>
         )}
 
-        <div className="calendario-grilla" aria-busy={estadoCarga === 'loading'}>
+        <div className="cal" aria-busy={estadoCarga === 'loading'}>
           {DIAS_SEMANA.map((nombreDia) => (
-            <div key={nombreDia} className="calendario-dia-semana">
+            <div key={nombreDia} className="cal__wd">
               {nombreDia}
             </div>
           ))}
 
           {Array.from({ length: espaciosVacios }).map((_, i) => (
-            <div key={`vacio-${i}`} className="calendario-dia calendario-dia--vacio" />
+            <div key={`antes-${i}`} className="cal__c cal__c--out" />
           ))}
 
-          {dias.map((dia) => {
-            const info = estadoDelDia(dia, reservas)
-            const estiloDia =
-              info.estado === 'reservado'
-                ? { '--color-dia': colorDeIntegrante(info.userId) }
-                : undefined
+          {dias.map((dia) => (
+            <Dia key={dia.toISOString()} dia={dia} info={estadoDelDia(dia, reservas)} />
+          ))}
 
-            return (
-              <div
-                key={dia.toISOString()}
-                className={`calendario-dia calendario-dia--${info.estado}`}
-                style={estiloDia}
-                title={ETIQUETA_ESTADO[info.estado]}
-              >
-                <span className="calendario-dia-numero">{dia.getUTCDate()}</span>
-              </div>
-            )
-          })}
+          {Array.from({ length: espaciosFinales }).map((_, i) => (
+            <div key={`despues-${i}`} className="cal__c cal__c--out" />
+          ))}
         </div>
 
-        <ul className="calendario-leyenda">
+        <ul className="legend">
           {integrantes.map((i) => (
-            <li key={i.userId}>
-              <span className="calendario-leyenda-color" style={{ background: i.color }} />
+            <li key={i.userId} className="legend__i">
+              <span className="legend__d" style={{ background: `oklch(56% 0.12 ${i.tono})` }} />
               {i.nombre}
             </li>
           ))}
-          <li>
-            <span className="calendario-leyenda-color calendario-leyenda-color--alquilado" />
+          <li className="legend__i">
+            <span className="legend__d cal-dot--alquilado" />
             Alquilado
           </li>
-          <li>
-            <span className="calendario-leyenda-color calendario-leyenda-color--rechazado" />
-            Rechazado
+          <li className="legend__i">
+            <span className="legend__d cal-dot--pendiente" />
+            Pendiente
           </li>
-          <li>
-            <span className="calendario-leyenda-color calendario-leyenda-color--libre" />
-            Libre
+          <li className="legend__i">
+            <span className="legend__d cal-dot--rechazado" />
+            Rechazado
           </li>
         </ul>
       </section>
 
-      <aside className="calendario-panel">
-        {!formAbierto && (
-          <button
-            type="button"
-            className="calendario-btn-reservar"
-            title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
-            onClick={() => setFormAbierto(true)}
-          >
-            Reservar
-          </button>
-        )}
+      <aside className="rail cal-rail">
+        <div className="panel">
+          {!formAbierto && (
+            <button
+              type="button"
+              className="btn btn--block btn--primary"
+              title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
+              onClick={() => setFormAbierto(true)}
+            >
+              Reservar
+            </button>
+          )}
 
-        {formAbierto && (
-          <form className="calendario-solicitud" onSubmit={handleSolicitar}>
-            <h2 className="calendario-solicitud-titulo">Nueva reserva</h2>
-            <p className="calendario-solicitud-ayuda">
-              Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
-            </p>
+          {formAbierto && (
+            <form onSubmit={handleSolicitar}>
+              <h2 className="cal-form__t">Nueva reserva</h2>
+              <p className="hint cal-form__hint">
+                Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
+              </p>
 
-            <div className="calendario-solicitud-fechas">
-              <label>
-                Desde
-                <input type="date" value={form.inicio} onChange={setCampo('inicio')} required />
-              </label>
-              <label>
-                Hasta
-                <input type="date" value={form.fin} onChange={setCampo('fin')} required />
-              </label>
-            </div>
+              <div className="cal-form__fechas">
+                <label className="lbl">
+                  Desde
+                  <input
+                    className="in"
+                    type="date"
+                    value={form.inicio}
+                    onChange={setCampo('inicio')}
+                    required
+                  />
+                </label>
+                <label className="lbl">
+                  Hasta
+                  <input
+                    className="in"
+                    type="date"
+                    value={form.fin}
+                    onChange={setCampo('fin')}
+                    required
+                  />
+                </label>
+              </div>
 
-            <div className="calendario-solicitud-acciones">
-              <button type="button" className="calendario-btn-secundario" onClick={cancelarSolicitud}>
-                Cancelar
-              </button>
-              <button type="submit" disabled={enviando}>
-                {enviando ? 'Enviando...' : 'Confirmar reserva'}
-              </button>
-            </div>
-            {formError && <p className="calendario-solicitud-error">{formError}</p>}
-          </form>
-        )}
+              {formError && (
+                <p className="cal-form__err" role="alert">
+                  {formError}
+                </p>
+              )}
+
+              <div className="cal-form__acciones">
+                <button type="button" className="btn btn--grow btn--sm" onClick={cancelarSolicitud}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--grow btn--primary btn--sm" disabled={enviando}>
+                  {enviando ? 'Enviando…' : 'Confirmar reserva'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </aside>
+    </div>
+  )
+}
+
+// Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
+// está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
+function Dia({ dia, info }) {
+  const { estado } = info
+  const clases = ['cal__c', 'cal__c--static', `cal__c--${estado}`]
+  let etiqueta = ''
+  let estilo
+
+  if (estado === 'reservado') {
+    if (info.pendiente) clases.push('cal__c--pendiente')
+    estilo = { '--h': tonoDeIntegrante(info.userId) }
+    etiqueta = (info.userName ?? '').slice(0, 2)
+  } else if (estado === 'alquilado') {
+    etiqueta = 'Alq.'
+  } else if (estado === 'rechazado') {
+    etiqueta = 'Rech.'
+  }
+
+  const titulo = info.userName
+    ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${info.pendiente ? ' (pendiente)' : ''}`
+    : ETIQUETA_ESTADO[estado]
+
+  return (
+    <div className={clases.join(' ')} style={estilo} title={titulo}>
+      <span className="cal__n">{dia.getUTCDate()}</span>
+      {etiqueta && <span className="cal__t">{etiqueta}</span>}
     </div>
   )
 }
