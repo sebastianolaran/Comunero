@@ -1,0 +1,195 @@
+/* Siempre en claro, como el prototipo y Alquiler, aunque el sistema esté en modo oscuro. */
+.decisiones {
+  color-scheme: light;
+  --dec-texto: oklch(22% 0 0);
+  --dec-texto-2: oklch(35% 0 0);
+  --dec-apagado: oklch(50% 0 0);
+  --dec-suave: oklch(55% 0 0);
+  --dec-tenue: oklch(60% 0 0);
+  --dec-tarjeta: #fff;
+  --dec-borde: oklch(90% 0 0);
+  --dec-borde-fuerte: oklch(85% 0 0);
+  --dec-badge: oklch(94% 0 0);
+  --dec-badge-texto: oklch(40% 0 0);
+  --dec-activo: oklch(22% 0 0);
+  --dec-activo-texto: #fff;
+  --dec-hover: oklch(96% 0 0);
+
+  font-family: Inter, system-ui, sans-serif;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--dec-texto);
+  background: oklch(97% 0 0);
+
+  /* Tapa el padding de .app-content para que el fondo llegue a los bordes. */
+  box-sizing: border-box;
+  min-height: 100svh;
+  margin: -2.5rem -3rem;
+  padding: 22px 32px 40px;
+}
+
+@media (max-width: 768px) {
+  .decisiones {
+    min-height: auto;
+    margin: -1.5rem -1rem;
+    padding: 18px 16px 32px;
+  }
+}
+
+.decisiones-titulo {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--dec-texto);
+  margin: 0 -32px 28px;
+  padding: 0 32px 18px;
+  border-bottom: 1px solid var(--dec-borde);
+}
+
+@media (max-width: 768px) {
+  .decisiones-titulo {
+    margin: 0 -16px 20px;
+    padding: 0 16px 14px;
+  }
+}
+
+.decisiones-historial {
+  max-width: 760px;
+}
+
+.decisiones-historial-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.decisiones-grupo {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--dec-apagado);
+  margin: 0;
+}
+
+.decisiones-filtro {
+  display: inline-flex;
+  border: 1px solid var(--dec-borde-fuerte);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--dec-tarjeta);
+}
+
+.decisiones-filtro-opcion {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border: none;
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto-2);
+  cursor: pointer;
+}
+
+.decisiones-filtro-opcion + .decisiones-filtro-opcion {
+  border-left: 1px solid var(--dec-borde);
+}
+
+.decisiones-filtro-opcion:hover {
+  background: var(--dec-hover);
+  color: var(--dec-texto);
+}
+
+.decisiones-filtro-opcion[aria-pressed='true'],
+.decisiones-filtro-opcion[aria-pressed='true']:hover {
+  background: var(--dec-activo);
+  color: var(--dec-activo-texto);
+  font-weight: 600;
+}
+
+.decisiones-filtro-opcion:focus-visible,
+.decisiones-reintentar:focus-visible {
+  outline: 2px solid var(--dec-texto);
+  outline-offset: -2px;
+}
+
+.decisiones-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.decision {
+  background: var(--dec-tarjeta);
+  border: 1px solid var(--dec-borde);
+  border-radius: 4px;
+  padding: 14px 18px;
+}
+
+.decision-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.decision-titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--dec-texto);
+  margin: 0;
+}
+
+.decision-estado {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: var(--dec-badge);
+  color: var(--dec-badge-texto);
+  white-space: nowrap;
+}
+
+.decision-monto {
+  font-size: 12px;
+  color: var(--dec-apagado);
+  margin: 0 0 4px;
+}
+
+.decision-votos {
+  font-size: 12px;
+  color: var(--dec-tenue);
+  margin: 0;
+}
+
+.decisiones-aviso {
+  padding: 2rem 1rem;
+  font-size: 13.5px;
+  color: var(--dec-suave);
+  border: 1px dashed var(--dec-borde-fuerte);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.decisiones-aviso-hint {
+  font-size: 12.5px;
+  margin-top: 0.25rem;
+}
+
+.decisiones-reintentar {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  padding: 6px 14px;
+  border-radius: 3px;
+  border: 1px solid oklch(70% 0 0);
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto);
+  cursor: pointer;
+}
