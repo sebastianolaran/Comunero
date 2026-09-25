@@ -5,7 +5,7 @@ import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
-// Los modales usan los estilos de los de Movimientos (mov-modal, mov-btn).
+// Los modales usan las clases del sistema y la composición de Movimientos.css (mov-campo, mov-money).
 import './Movimientos.css'
 import './Balance.css'
 
@@ -19,7 +19,7 @@ function EntryList({ entries }) {
           <span className="bal-entry-desc">
             <span className="bal-entry-title">
               {entry.description}
-              {entry.isRental && <span className="bal-tag bal-tag-rental">ALQUILER</span>}
+              {entry.isRental && <span className="tag bal-tag-rental">Alquiler</span>}
             </span>
             <span className="bal-entry-who">
               {entryWho(entry, userIdActual())} · total {fmtMoney(entry.total)}
@@ -66,8 +66,8 @@ function BalanceItem({ coowner, onSettle }) {
         >
           <span className="bal-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
           <span className="bal-name">{coowner.user.name}</span>
-          {coowner.upToDate && <span className="bal-tag">Al día</span>}
-          {coowner.hasPartialPayments && <span className="bal-tag">Con pagos parciales</span>}
+          {coowner.upToDate && <span className="badge">Al día</span>}
+          {coowner.hasPartialPayments && <span className="badge badge--line">Con pagos parciales</span>}
         </button>
         <div className="bal-right">
           <span className="bal-amount-wrap">
@@ -75,7 +75,7 @@ function BalanceItem({ coowner, onSettle }) {
             {!coowner.upToDate && <span className="bal-status">{status.text}</span>}
           </span>
           {coowner.canSettle && (
-            <button type="button" className="bal-btn bal-btn-primary" onClick={() => onSettle(coowner)}>
+            <button type="button" className="btn btn--sm btn--primary" onClick={() => onSettle(coowner)}>
               Saldar
             </button>
           )}
@@ -100,25 +100,25 @@ function SettleChoice({ name, onTotal, onPartial, onCancel }) {
   return (
     <dialog
       ref={dialogo}
-      className="mov-modal mov-modal-sm"
+      className="modal"
       aria-labelledby={`${id}-titulo`}
       onClose={onCancel}
       onClick={(e) => {
         if (e.target === dialogo.current) onCancel()
       }}
     >
-      <h2 id={`${id}-titulo`} className="mov-modal-title">
+      <h2 id={`${id}-titulo`} className="modal__t">
         Saldar deuda con {name}
       </h2>
       <div className="bal-choice">
-        <button ref={total} type="button" className="mov-btn mov-btn-primary" onClick={onTotal}>
+        <button ref={total} type="button" className="btn btn--primary" onClick={onTotal}>
           Pago total
         </button>
-        <button type="button" className="mov-btn" onClick={onPartial}>
+        <button type="button" className="btn" onClick={onPartial}>
           Pago parcial
         </button>
       </div>
-      <button type="button" className="mov-btn" onClick={onCancel}>
+      <button type="button" className="btn btn--link bal-cancel" onClick={onCancel}>
         Cancelar
       </button>
     </dialog>
@@ -152,27 +152,27 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
   return (
     <dialog
       ref={dialogo}
-      className="mov-modal mov-modal-sm"
+      className="modal"
       aria-labelledby={`${id}-titulo`}
       onClose={onCancel}
       onClick={(e) => {
         if (e.target === dialogo.current) onCancel()
       }}
     >
-      <h2 id={`${id}-titulo`} className="mov-modal-title">
+      <h2 id={`${id}-titulo`} className="modal__t">
         Pago parcial a {name}
       </h2>
-      <form className="mov-modal-form" onSubmit={handleSubmit} noValidate>
-        <div className={`mov-field${error ? ' is-error' : ''}`}>
-          <label className="mov-field-label" htmlFor={`${id}-monto`}>
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="mov-campo">
+          <label className="lbl" htmlFor={`${id}-monto`}>
             ¿Cuánto le pagaste?
           </label>
-          <div className="mov-money-input">
+          <div className="mov-money">
             <span aria-hidden="true">$</span>
             <input
               ref={campo}
               id={`${id}-monto`}
-              className="mov-input"
+              className="in in--num"
               type="number"
               inputMode="numeric"
               step="1"
@@ -187,20 +187,20 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
             />
           </div>
           {error ? (
-            <p id={`${id}-ayuda`} className="mov-field-error" role="alert">
+            <p id={`${id}-ayuda`} className="mov-err" role="alert">
               {error}
             </p>
           ) : (
-            <p id={`${id}-ayuda`} className="mov-field-hint">
+            <p id={`${id}-ayuda`} className="hint mov-hint">
               Le debés {fmtMoney(owed)}. Tiene que ser menos: para saldar todo usá el pago total.
             </p>
           )}
         </div>
-        <div className="mov-modal-actions">
-          <button type="button" className="mov-btn" onClick={onCancel}>
+        <div className="mov-acciones">
+          <button type="button" className="btn btn--grow" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="mov-btn mov-btn-primary">
+          <button type="submit" className="btn btn--grow btn--primary">
             Continuar
           </button>
         </div>
@@ -336,22 +336,18 @@ function Balance() {
   }
 
   if (!configurado) {
-    return (
-      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
-    )
+    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   return (
     <section className="bal">
-      <h1 className="bal-title">Balance</h1>
-
       {error && (
         <p className="bal-alert" role="alert">
           No se pudo cargar el balance: {error}
         </p>
       )}
 
-      {!data && !error && <p className="bal-loading">Cargando balance…</p>}
+      {!data && !error && <p className="panel empty" role="status">Cargando balance…</p>}
 
       {data && (
         <>
@@ -384,9 +380,8 @@ function Balance() {
         </>
       )}
 
-      {/* Los modales toman las variables de color de .mov */}
       {settling && (
-        <div className="mov">
+        <>
           {settling.step === 'choice' && (
             <SettleChoice
               name={settling.user.name}
@@ -435,7 +430,7 @@ function Balance() {
               onCancel={() => setSettling(null)}
             />
           )}
-        </div>
+        </>
       )}
     </section>
   )

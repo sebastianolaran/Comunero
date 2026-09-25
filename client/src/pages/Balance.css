@@ -1,35 +1,18 @@
-/* Balance sigue la UI de Movimientos: grises oklch, solo en claro, bordes de
-   3-4 px. Verde y rojo se reservan para lo que te deben y lo que debés. */
+/* Balance sobre los tokens de styles/system.css. Verde y rojo se reservan para
+   lo que te deben y lo que debés. */
 .bal {
-  --bal-surface: #fff;
-  --bal-strong: oklch(22% 0 0);
-  --bal-text: oklch(35% 0 0);
-  --bal-muted: oklch(50% 0 0);
-  --bal-line: oklch(90% 0 0);
-  --bal-line-soft: oklch(94% 0 0);
-  --bal-soft: oklch(96% 0 0);
-  --bal-pos: oklch(48% 0.13 150);
-  --bal-neg: oklch(45% 0.18 25);
+  --bal-surface: var(--surface);
+  --bal-strong: var(--ink);
+  --bal-text: var(--ink-2);
+  --bal-muted: var(--muted);
+  --bal-line: var(--line);
+  --bal-line-soft: var(--line-soft);
+  --bal-soft: var(--inset);
+  --bal-pos: var(--pos);
+  --bal-neg: var(--neg);
   --bal-neg-soft: oklch(96% 0.02 25);
 
-  box-sizing: border-box;
-  max-width: 960px;
   color: var(--bal-text);
-}
-
-.bal *,
-.bal *::before,
-.bal *::after {
-  box-sizing: inherit;
-}
-
-.bal :focus-visible {
-  outline: 2px solid var(--bal-strong);
-  outline-offset: 2px;
-}
-
-.bal-title {
-  margin-bottom: 20px;
 }
 
 .bal-loading,
@@ -92,7 +75,7 @@
   margin: 0;
   padding: 0;
   border: 1px solid var(--bal-line);
-  border-radius: 4px;
+  border-radius: var(--r-md);
   background: var(--bal-surface);
 }
 
@@ -134,22 +117,8 @@
   color: var(--bal-strong);
 }
 
-.bal-tag {
-  flex: none;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 9px;
-  border-radius: 3px;
-  background: var(--bal-soft);
-  color: oklch(40% 0 0);
-  white-space: nowrap;
-}
-
 .bal-tag-rental {
   margin-left: 8px;
-  background: none;
-  border: 1px solid currentcolor;
-  color: var(--bal-pos);
 }
 
 .bal-right {
@@ -176,29 +145,6 @@
   color: var(--bal-muted);
 }
 
-.bal-btn {
-  font: inherit;
-  font-size: 13.5px;
-  padding: 8px 14px;
-  border-radius: 3px;
-  border: 1px solid oklch(80% 0 0);
-  background: var(--bal-surface);
-  color: var(--bal-text);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.bal-btn-primary {
-  font-weight: 500;
-  border-color: transparent;
-  background: var(--bal-strong);
-  color: #fff;
-}
-
-.bal-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
 
 /* Detalle */
 
@@ -295,4 +241,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.bal-cancel {
+  display: block;
+  margin: 16px auto 0;
 }
