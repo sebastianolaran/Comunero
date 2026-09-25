@@ -53,11 +53,15 @@
   }
 }
 
-.decisiones-historial {
+.decisiones-seccion {
   max-width: 760px;
 }
 
-.decisiones-historial-cabecera {
+.decisiones-seccion + .decisiones-seccion {
+  margin-top: 28px;
+}
+
+.decisiones-seccion-cabecera {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -155,6 +159,12 @@
   white-space: nowrap;
 }
 
+.decision-fecha {
+  font-size: 12px;
+  color: var(--dec-tenue);
+  margin: 0 0 4px;
+}
+
 .decision-monto {
   font-size: 12px;
   color: var(--dec-apagado);
@@ -192,4 +202,116 @@
   background: var(--dec-tarjeta);
   color: var(--dec-texto);
   cursor: pointer;
+}
+
+.decisiones-nueva {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 3px;
+  background: var(--dec-activo);
+  color: var(--dec-activo-texto);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.decisiones-nueva:focus-visible,
+.nueva-decision-input:focus-visible,
+.nueva-decision-boton:focus-visible {
+  outline: 2px solid var(--dec-activo);
+  outline-offset: 2px;
+}
+
+.nueva-decision {
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 32px));
+  padding: 26px;
+  border: none;
+  border-radius: 4px;
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.nueva-decision::backdrop {
+  background: oklch(20% 0 0 / 45%);
+}
+
+.nueva-decision-titulo {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.nueva-decision-campo {
+  margin-bottom: 12px;
+}
+
+.nueva-decision-campo:last-of-type {
+  margin-bottom: 18px;
+}
+
+.nueva-decision-label {
+  display: block;
+  font-size: 12px;
+  color: var(--dec-apagado);
+  margin-bottom: 4px;
+}
+
+.nueva-decision-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1px solid var(--dec-borde-fuerte);
+  border-radius: 3px;
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto);
+}
+
+.nueva-decision-input[aria-invalid='true'] {
+  border-color: oklch(50% 0.18 25);
+}
+
+.nueva-decision-error {
+  font-size: 12px;
+  color: oklch(45% 0.18 25);
+  margin: 4px 0 0;
+}
+
+.nueva-decision-error.is-general {
+  margin: 0 0 12px;
+}
+
+.nueva-decision-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.nueva-decision-boton {
+  flex: 1;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px;
+  border-radius: 3px;
+  border: 1px solid var(--dec-borde-fuerte);
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto);
+  cursor: pointer;
+}
+
+.nueva-decision-boton.is-primario {
+  font-weight: 500;
+  border-color: transparent;
+  background: var(--dec-activo);
+  color: var(--dec-activo-texto);
+}
+
+.nueva-decision-boton:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
