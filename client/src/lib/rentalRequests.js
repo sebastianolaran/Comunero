@@ -9,16 +9,21 @@ export function agrupar(solicitudes) {
   }
 }
 
-// Misma regla que el server: una rechazada sigue abierta para quien la rechazó.
-export function puedeVotar({ status, vote }) {
-  return status === 'PENDING' || (status === 'REJECTED' && vote === 'REJECT')
+// Misma regla que el server: una rechazada sigue abierta para todos, salvo que se
+// pise con una reserva aprobada o que sea un alquiler cancelado.
+export function puedeVotar({ status, blockedByOverlap = false, cancelled = false }) {
+  return status !== 'APPROVED' && !blockedByOverlap && !cancelled
 }
 
+// El motivo es opcional al rechazar.
 export function validarVoto({ value, reason = '' }) {
-  if (value === 'APPROVE') return { voto: { value } }
   const motivo = reason.trim()
-  if (!motivo) return { error: 'Para rechazar tenés que cargar el motivo.' }
+  if (value === 'APPROVE' || !motivo) return { voto: { value } }
   return { voto: { value, reason: motivo } }
+}
+
+export function motivoRechazo(reason) {
+  return reason || 'Sin motivo especificado'
 }
 
 export function votosLabel({ yesCount, coownerCount }) {
@@ -77,6 +82,22 @@ export const ESTADOS = {
 }
 
 export const VOTO_TEXTO = { APPROVE: 'Sí', REJECT: 'No' }
+
+// El pago solo existe para un alquiler aprobado.
+export function etiquetaPago({ status, paid }) {
+  if (status !== 'APPROVED') return null
+  return paid ? 'Pago' : 'Pendiente de pago'
+}
+
+// Pago es final: no se vuelve a Pendiente.
+export function puedeMarcarPago({ status, paid }) {
+  return status === 'APPROVED' && !paid
+}
+
+// Una vez pago ya no se puede cancelar.
+export function puedeCancelar({ status, paid }) {
+  return status === 'APPROVED' && !paid
+}
 
 const TELEFONO = /^[\d\s()+.-]+$/
 const MONTO = /^-?\d+$/

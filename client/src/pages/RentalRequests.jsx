@@ -1,23 +1,44 @@
 import { useEffect, useId, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
-import { createRentalRequest, fetchRentalRequests, voteRentalRequest } from '../services/rentalRequest'
+import {
+  cancelRental,
+  createRentalRequest,
+  fetchRentalRequests,
+  markRentalPaid,
+  voteRentalRequest,
+} from '../services/rentalRequest'
 
-// TODO: usar el bien del usuario logueado cuando exista el login.
-const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
-const USER_ID = import.meta.env.VITE_DEMO_USER_ID
+const ACCIONES = { pagar: markRentalPaid, cancelar: cancelRental }
 
-function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
+function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) {
   const [carga, setCarga] = useState({ estado: 'loading', solicitudes: [] })
   const [intento, setIntento] = useState(0)
   const [seleccion, setSeleccion] = useState(null)
   const [modo, setModo] = useState('ver')
   const [envio, setEnvio] = useState({ enviando: false, error: null })
-  const [nuevaAbierta, setNuevaAbierta] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Viene del historial de inquilinos con el nombre y el teléfono para precargar el alta.
+  const [precarga, setPrecarga] = useState(() => location.state?.nuevaSolicitud ?? null)
+  const [nuevaAbierta, setNuevaAbierta] = useState(() => Boolean(location.state?.nuevaSolicitud))
   const idPendientes = useId()
   const idResueltas = useId()
+
+  // Se limpia el state del historial para que recargar la página no vuelva a abrir el alta.
+  useEffect(() => {
+    if (location.state?.nuevaSolicitud) navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate])
+
+  const cerrarNueva = () => {
+    setNuevaAbierta(false)
+    setPrecarga(null)
+  }
 
   useEffect(() => {
     if (!assetId) return
@@ -67,11 +88,22 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
     }
   }
 
+  async function accionar(id, accion) {
+    setEnvio({ enviando: true, error: null })
+    try {
+      reemplazar(await ACCIONES[accion](id, { userId }))
+      setModo('ver')
+      setEnvio({ enviando: false, error: null })
+    } catch (err) {
+      setEnvio({ enviando: false, error: err.message })
+    }
+  }
+
   // Errores de red o del server se propagan al modal para mostrarlos ahí.
   async function crear(solicitud) {
     const creada = await createRentalRequest({ assetId, userId, ...solicitud })
     setCarga((prev) => ({ ...prev, solicitudes: [creada, ...prev.solicitudes] }))
-    setNuevaAbierta(false)
+    cerrarNueva()
     seleccionar(creada.id)
   }
 
@@ -82,9 +114,7 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
 
   if (!assetId) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 
@@ -125,7 +155,8 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
       )}
       <NewRentalRequestModal
         abierto={nuevaAbierta}
-        onClose={() => setNuevaAbierta(false)}
+        inicial={precarga}
+        onClose={cerrarNueva}
         onCreate={crear}
       />
     </div>
@@ -205,6 +236,15 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
           }}
           onSubmitReject={(motivo) => votar(seleccion, { value: 'REJECT', reason: motivo })}
           onChangeVote={() => setModo('cambiar')}
+          onOpenAction={(accion) => {
+            setModo(accion)
+            setEnvio({ enviando: false, error: null })
+          }}
+          onCancelAction={() => {
+            setModo('ver')
+            setEnvio({ enviando: false, error: null })
+          }}
+          onConfirmAction={(accion) => accionar(seleccion, accion)}
         />
       </div>
     </div>

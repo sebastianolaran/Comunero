@@ -1,3 +1,11 @@
-// TODO: sacar el userId del usuario logueado (GET /api/me) cuando exista
-// auth. Mismo criterio que ASSET_ID en currentAsset.js.
-export const USER_ID = import.meta.env.VITE_DEMO_USER_ID
+import { leerSesion } from './session'
+
+// Mismo criterio que assetIdActual: se resuelve en cada llamada, contra la
+// sesión de quien entró.
+export function userIdActual() {
+  return leerSesion()?.id ?? null
+}
+
+export function userNameActual() {
+  return leerSesion()?.name ?? null
+}

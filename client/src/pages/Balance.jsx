@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { ASSET_ID } from '../lib/currentAsset'
-import { USER_ID } from '../lib/currentUser'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
@@ -22,7 +22,7 @@ function EntryList({ entries }) {
               {entry.isRental && <span className="bal-tag bal-tag-rental">ALQUILER</span>}
             </span>
             <span className="bal-entry-who">
-              {entryWho(entry, USER_ID)} · total {fmtMoney(entry.total)}
+              {entryWho(entry, userIdActual())} · total {fmtMoney(entry.total)}
             </span>
           </span>
           <span className={`bal-entry-amount bal-tone-${balanceStatus(entry.amount).tone}`}>
@@ -246,7 +246,7 @@ function ClosedSettlement({ settlement }) {
 }
 
 function Balance() {
-  const quien = useMemo(() => ({ assetId: ASSET_ID, userId: USER_ID }), [])
+  const quien = useMemo(() => ({ assetId: assetIdActual(), userId: userIdActual() }), [])
   const [data, setData] = useState(null) // { net, coowners }
   const [error, setError] = useState(null)
   const [recarga, setRecarga] = useState(0)
@@ -255,7 +255,7 @@ function Balance() {
   // o parcial), 'confirm' (pago total), 'partial' (cargar el monto) o
   // 'confirmPartial'.
   const [settling, setSettling] = useState(null)
-  const configurado = Boolean(ASSET_ID && USER_ID)
+  const configurado = Boolean(quien.assetId && quien.userId)
 
   useEffect(() => {
     if (!configurado) return undefined
@@ -301,7 +301,7 @@ function Balance() {
     const { user, partial } = settling
     setSettling((actual) => ({ ...actual, busy: true, error: null }))
     try {
-      await balanceService.payPartial({ assetId: ASSET_ID, fromUserId: USER_ID, toUserId: user.id, amount: partial })
+      await balanceService.payPartial({ assetId: quien.assetId, fromUserId: quien.userId, toUserId: user.id, amount: partial })
       setSettling(null)
     } catch (err) {
       // Si la deuda cambió y el monto ya no entra, vuelve a cargar el monto
@@ -321,7 +321,7 @@ function Balance() {
     const { user, amount } = settling
     setSettling((actual) => ({ ...actual, busy: true, error: null }))
     try {
-      await balanceService.closeBalance({ assetId: ASSET_ID, fromUserId: USER_ID, toUserId: user.id, amount })
+      await balanceService.closeBalance({ assetId: quien.assetId, fromUserId: quien.userId, toUserId: user.id, amount })
       setSettling(null)
     } catch (err) {
       // Si el balance cambió, el modal pasa a mostrar el monto actual.
@@ -337,10 +337,7 @@ function Balance() {
 
   if (!configurado) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> y <code>VITE_DEMO_USER_ID</code> en{' '}
-        <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 
