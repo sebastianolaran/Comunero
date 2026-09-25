@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { buildShares } = require('./movement.rules');
 
 // Se deriva de los votos (Approval = si, Objection = no) ademas del status,
 // por si el status guardado no se actualizo al votar.
@@ -212,7 +213,13 @@ function incomeFor(reservation, coowners, now) {
     date: now,
     // Cobra quien gestiona el alquiler (quien lo cargo); el ingreso es de todos.
     paidById: reservation.userId,
-    shares: { create: coowners.map((u) => ({ userId: u.id })) },
+    shares: {
+      create: buildShares({
+        amount: reservation.amount,
+        shareIds: coowners.map((u) => u.id),
+        paidById: reservation.userId,
+      }).shares,
+    },
   };
 }
 
