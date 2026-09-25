@@ -28,11 +28,11 @@ async function getBalances({ assetId, userId }) {
   return rules.buildBalances(userId, coowners, movements, settlements);
 }
 
-// Pago total: fromUserId (quien pide, y tiene que ser el deudor) le salda
-// toda la deuda a toUserId. amount es el monto que vio en el modal. Recalcula
-// el balance adentro de la transaccion y, si coincide, guarda el saldo
-// cerrado. Devuelve el saldo cerrado visto por quien pago.
-async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
+// Lo comun a los pagos (total y parcial) de fromUserId a toUserId: chequea
+// que los dos sean copropietarios del bien y corre
+// save(tx, payee, movements, settlements) en una transaccion, con el balance
+// recalculado adentro para validar contra la deuda vigente al confirmar.
+async function payInTransaction({ assetId, fromUserId, toUserId }, save) {
   if (fromUserId === toUserId) throw badRequest('No podés saldar una deuda con vos mismo');
   if (!(await repo.assetExists(assetId))) throw notFound('No existe el bien');
   const coowners = await repo.listCoowners(assetId);
@@ -47,9 +47,7 @@ async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
     return await repo.inTransaction(async (tx) => {
       const movements = await repo.findMovementsOf(assetId, fromUserId, tx);
       const settlements = await repo.findSettlementsOf(assetId, fromUserId, tx);
-      const closing = rules.buildClosing(fromUserId, payee, movements, settlements, amount);
-      const settlement = await repo.createClosing({ assetId, fromUserId, toUserId, ...closing }, tx);
-      return rules.closedSettlementView(settlement, fromUserId, payee);
+      return save(tx, payee, movements, settlements);
     });
   } catch (err) {
     if (repo.isSerializationFailure(err)) {
@@ -59,4 +57,28 @@ async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
   }
 }
 
-module.exports = { getBalances, closeBalance };
+// Pago total: fromUserId (quien pide, y tiene que ser el deudor) le salda
+// toda la deuda a toUserId. amount es el monto que vio en el modal; si
+// coincide con la deuda vigente, guarda el saldo cerrado. Devuelve el saldo
+// cerrado visto por quien pago.
+async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
+  return payInTransaction({ assetId, fromUserId, toUserId }, async (tx, payee, movements, settlements) => {
+    const closing = rules.buildClosing(fromUserId, payee, movements, settlements, amount);
+    const settlement = await repo.createClosing({ assetId, fromUserId, toUserId, ...closing }, tx);
+    return rules.closedSettlementView(settlement, fromUserId, payee);
+  });
+}
+
+// Pago parcial: fromUserId (el deudor) le paga amount a toUserId, que tiene
+// que ser menos que la deuda vigente. No cierra nada: el pago queda en el
+// periodo abierto de los dos. Devuelve { payment, remaining }: el pago visto
+// por quien pago y lo que le queda debiendo.
+async function payPartial({ assetId, fromUserId, toUserId, amount }) {
+  return payInTransaction({ assetId, fromUserId, toUserId }, async (tx, payee, movements, settlements) => {
+    const { remaining } = rules.buildPartialPayment(fromUserId, payee, movements, settlements, amount);
+    const settlement = await repo.createPartialPayment({ assetId, fromUserId, toUserId, amount }, tx);
+    return { payment: rules.partialPaymentView(settlement, fromUserId, payee), remaining };
+  });
+}
+
+module.exports = { getBalances, closeBalance, payPartial };

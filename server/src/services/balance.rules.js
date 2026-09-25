@@ -16,7 +16,7 @@
 // movimiento cargado despues del cierre cuenta aunque tenga fecha anterior.
 
 const { fromDateOnly } = require('./movement.rules');
-const { forbidden, conflict } = require('../lib/httpError');
+const { badRequest, forbidden, conflict } = require('../lib/httpError');
 
 // Lo que un movimiento suma o resta a tu balance con otro, o null si no lo
 // afecta. Solo cuenta entre quien pago o cobro y cada otro participante:
@@ -142,6 +142,19 @@ function computeBalanceWith(viewerId, other, movements, settlements) {
   };
 }
 
+// $8.500, para los mensajes de error.
+const fmtMoney = (amount) => `$${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+
+// Deuda vigente del usuario con other, recalculada en el momento de pagar:
+// la valida igual el pago total y el parcial. Solo el deudor puede pagar, y
+// no hay nada que pagar si estan al dia.
+function currentDebt(viewerId, other, movements, settlements) {
+  const current = computeBalanceWith(viewerId, other, movements, settlements);
+  if (current.balance > 0) throw forbidden('Solo quien debe puede saldar la deuda');
+  if (current.balance === 0) throw conflict(`Ya estás al día con ${other.name}`);
+  return { current, owed: -current.balance };
+}
+
 // Pago total de la deuda del usuario (deudor) con other. amount es el monto
 // que vio en el modal: si no es exactamente lo que debe ahora (se cargo algo
 // en el medio), no se cierra y el 409 trae el monto actual.
@@ -149,10 +162,7 @@ function computeBalanceWith(viewerId, other, movements, settlements) {
 // parciales se lleva, y la copia del detalle vista desde el deudor (los pagos
 // parciales van como "Pago parcial": el texto depende de quien mire).
 function buildClosing(viewerId, other, movements, settlements, amount) {
-  const current = computeBalanceWith(viewerId, other, movements, settlements);
-  if (current.balance > 0) throw forbidden('Solo quien debe puede saldar la deuda');
-  if (current.balance === 0) throw conflict(`Ya estás al día con ${other.name}`);
-  const owed = -current.balance;
+  const { current, owed } = currentDebt(viewerId, other, movements, settlements);
   if (owed !== amount) {
     throw conflict(`El balance con ${other.name} cambió mientras confirmabas`, { currentAmount: owed });
   }
@@ -166,6 +176,34 @@ function buildClosing(viewerId, other, movements, settlements, amount) {
       entry.kind === 'PAYMENT' ? { ...entry, description: 'Pago parcial' } : entry,
     ),
   };
+}
+
+// Pago parcial del usuario (deudor) a other: tiene que ser mayor a 0 y menor
+// que la deuda vigente, que ya descuenta los pagos parciales anteriores. Si
+// cubre toda la deuda o mas, va por el pago total. Los 409 traen el monto
+// actual por si la deuda cambio desde que se abrio el modal.
+// Devuelve el monto a guardar y lo que queda debiendo.
+function buildPartialPayment(viewerId, other, movements, settlements, amount) {
+  if (!(amount > 0)) throw badRequest('El monto tiene que ser mayor a $0');
+  const { owed } = currentDebt(viewerId, other, movements, settlements);
+  if (amount === owed) {
+    throw conflict(`Ese monto es toda tu deuda con ${other.name}: para saldar todo usá el pago total`, {
+      currentAmount: owed,
+    });
+  }
+  if (amount > owed) {
+    throw conflict(
+      `El monto supera tu deuda con ${other.name} (${fmtMoney(owed)}). Para saldar todo usá el pago total`,
+      { currentAmount: owed },
+    );
+  }
+  return { amount, remaining: owed - amount };
+}
+
+// Un pago parcial recien guardado, como lo ve quien lo hizo.
+function partialPaymentView(settlement, viewerId, other) {
+  const { at, ...entry } = paymentEntry(settlement, viewerId, other);
+  return entry;
 }
 
 // Un saldo cerrado como lo ve el usuario. El detalle se guardo desde el
@@ -215,6 +253,8 @@ module.exports = {
   lastClosing,
   computeBalanceWith,
   buildClosing,
+  buildPartialPayment,
+  partialPaymentView,
   closedSettlementView,
   buildBalances,
 };
