@@ -103,6 +103,29 @@ async function cargarMovimientos({ ana, bruno, carla, flor }) {
 
 const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
 
+const soloFecha = (d) => d.toISOString().slice(0, 10);
+
+// Lo mismo que hace "Marcar como pago" en Solicitudes: paidAt en la reserva y
+// un ingreso de todos en Movimientos, cobrado por quien gestiona el alquiler.
+async function cobrar(reserva, inquilino, todos) {
+  await prisma.reservation.update({ where: { id: reserva.id }, data: { paidAt: reserva.endDate } });
+  await prisma.movement.create({
+    data: {
+      assetId: reserva.assetId,
+      reservationId: reserva.id,
+      type: 'INCOME',
+      amount: reserva.amount,
+      description: `Alquiler a ${inquilino.name} del ${soloFecha(reserva.startDate)} al ${soloFecha(reserva.endDate)}`,
+      date: reserva.endDate,
+      paidById: reserva.userId,
+      shares: {
+        create: buildShares({ amount: reserva.amount, shareIds: todos.map((u) => u.id), paidById: reserva.userId })
+          .shares,
+      },
+    },
+  });
+}
+
 // Un hash por usuario y no uno compartido: con el mismo salt para todos, dos
 // hashes iguales cantarian que la contrasena tambien lo es.
 async function crearUsuarios(assetId, lista) {
@@ -266,13 +289,14 @@ async function sembrarCasaQuinta() {
   // Tareas de preparación. Alquileres aprobados (status ACTIVE, sí de los 4):
 
   // Ya pasó y es del mismo inquilino que el de septiembre: dos tarjetas. "Todo listo (2/2)".
-  await prisma.reservation.create({
+  const alvarezJulio = await prisma.reservation.create({
     data: {
       assetId: CASA_ID,
       userId: bruno.id,
       renterId: alvarez.id,
       type: 'RENTAL',
       status: 'ACTIVE',
+      amount: 150000,
       startDate: new Date('2026-07-10T00:00:00.000Z'),
       endDate: new Date('2026-07-12T00:00:00.000Z'),
       approvals: aprobadaPor(todos),
@@ -286,13 +310,14 @@ async function sembrarCasaQuinta() {
   });
 
   // Un solo día, su única tarea hecha: "Todo listo (1/1)".
-  await prisma.reservation.create({
+  const gomezAgosto = await prisma.reservation.create({
     data: {
       assetId: CASA_ID,
       userId: bruno.id,
       renterId: gomez.id,
       type: 'RENTAL',
       status: 'ACTIVE',
+      amount: 60000,
       startDate: new Date('2026-08-20T00:00:00.000Z'),
       endDate: new Date('2026-08-20T00:00:00.000Z'),
       approvals: aprobadaPor(todos),
@@ -308,6 +333,8 @@ async function sembrarCasaQuinta() {
       renterId: alvarez.id,
       type: 'RENTAL',
       status: 'ACTIVE',
+      // Ya pasó y no se cobró: queda "Pendiente" para marcarlo como pago.
+      amount: 150000,
       startDate: new Date('2026-09-04T00:00:00.000Z'),
       endDate: new Date('2026-09-06T00:00:00.000Z'),
       approvals: aprobadaPor(todos),
@@ -330,6 +357,7 @@ async function sembrarCasaQuinta() {
       renterId: sosa.id,
       type: 'RENTAL',
       status: 'ACTIVE',
+      amount: 70000,
       startDate: new Date('2026-11-14T00:00:00.000Z'),
       endDate: new Date('2026-11-14T00:00:00.000Z'),
       approvals: aprobadaPor(todos),
@@ -344,6 +372,7 @@ async function sembrarCasaQuinta() {
       renterId: torres.id,
       type: 'RENTAL',
       status: 'ACTIVE',
+      amount: 210000,
       startDate: new Date('2026-12-20T00:00:00.000Z'),
       endDate: new Date('2026-12-22T00:00:00.000Z'),
       approvals: aprobadaPor(todos),
@@ -408,20 +437,24 @@ async function sembrarCasaQuinta() {
   await cargarMovimientos({ ana, bruno, carla, flor });
   // Historial de inquilinos: solo cuentan los alquileres aprobados cuyo último
   // día ya pasó. Lucía Gómez (solo uno aprobado a futuro) no tiene que aparecer.
-  const aprobado = (renter, desde, hasta) =>
-    prisma.reservation.create({
+  const aprobado = async (renter, desde, hasta, { monto = 120000, gestor = ana, pagado = true } = {}) => {
+    const reserva = await prisma.reservation.create({
       data: {
         assetId: CASA_ID,
-        userId: ana.id,
+        userId: gestor.id,
         renterId: renter.id,
         type: 'RENTAL',
         status: 'ACTIVE',
+        amount: monto,
         startDate: new Date(`${desde}T00:00:00.000Z`),
         endDate: new Date(`${hasta}T00:00:00.000Z`),
         createdAt: new Date(`${desde}T00:00:00.000Z`),
         approvals: aprobadaPor(todos),
       },
     });
+    if (pagado) await cobrar(reserva, renter, todos);
+    return reserva;
+  };
 
   const [lucas, luciaF, lucrecia, lucio] = await Promise.all(
     [
@@ -433,22 +466,109 @@ async function sembrarCasaQuinta() {
   );
   await prisma.renter.update({ where: { id: alvarez.id }, data: { rating: 'NOT_RECOMMENDED' } });
 
-  await aprobado(martin, '2026-01-10', '2026-01-12');
-  await prisma.renterObservation.create({
+  const martinEnero = await aprobado(martin, '2026-01-10', '2026-01-12', { monto: 90000 });
+  // Lucas: dos terminados y uno aprobado para noviembre, que no cuenta.
+  const lucasMarzo = await aprobado(lucas, '2026-03-06', '2026-03-08', { gestor: bruno });
+  await aprobado(lucas, '2026-06-19', '2026-06-21', { monto: 130000, gestor: carla });
+  await aprobado(lucas, '2026-11-21', '2026-11-23', { monto: 140000, pagado: false });
+  await aprobado(luciaF, '2026-02-14', '2026-02-16', { monto: 100000, gestor: flor });
+  await aprobado(lucrecia, '2026-04-02', '2026-04-05', { monto: 160000 });
+  const lucioMayo = await aprobado(lucio, '2026-05-23', '2026-05-25', { gestor: bruno });
+
+  await cobrar(alvarezJulio, alvarez, todos);
+  await cobrar(gomezAgosto, gomez, todos);
+
+  // Observaciones: una suelta y otras atadas al alquiler del que hablan.
+  const observacion = (renter, autor, text, fecha, reserva) =>
+    prisma.renterObservation.create({
+      data: {
+        renterId: renter.id,
+        authorId: autor.id,
+        reservationId: reserva?.id ?? null,
+        text,
+        createdAt: new Date(`${fecha}T15:00:00.000Z`),
+      },
+    });
+  await observacion(martin, ana, 'Devolvió la llave a tiempo', '2026-01-13', martinEnero);
+  await observacion(lucas, bruno, 'Dejaron todo impecable, hasta lavaron la vajilla.', '2026-03-09', lucasMarzo);
+  await observacion(lucas, carla, 'Volvería a alquilarle sin dudarlo.', '2026-06-22');
+  await observacion(lucio, bruno, 'Música fuerte hasta la madrugada, se quejaron los vecinos.', '2026-05-26', lucioMayo);
+  await observacion(alvarez, flor, 'Rompieron una reposera y la pileta quedó sucia.', '2026-07-13', alvarezJulio);
+
+  // Solicitudes que muestran el resto de los estados:
+
+  const [castro, medina, quiroga] = await Promise.all(
+    [
+      { name: 'Familia Castro', phone: '5491155550007' },
+      { name: 'Familia Medina', phone: '5491155550008' },
+      { name: 'Grupo Quiroga', phone: '5491155550009' },
+    ].map((r) => prisma.renter.create({ data: { ...r, assetId: CASA_ID } })),
+  );
+
+  // Falta el voto de Ana: al entrar con ana@ se puede aprobar o rechazar.
+  await prisma.reservation.create({
     data: {
-      renterId: martin.id,
-      authorId: ana.id,
-      text: 'Devolvió la llave a tiempo',
-      createdAt: new Date('2026-01-13T15:00:00.000Z'),
+      assetId: CASA_ID,
+      userId: bruno.id,
+      renterId: castro.id,
+      type: 'RENTAL',
+      note: 'Aniversario de casados, 4 adultos.',
+      amount: 200000,
+      startDate: new Date('2026-11-27T00:00:00.000Z'),
+      endDate: new Date('2026-11-29T00:00:00.000Z'),
+      createdAt: new Date('2026-09-20T12:00:00.000Z'),
+      approvals: aprobadaPor([bruno, carla]),
     },
   });
-  // Lucas: dos terminados y uno aprobado para noviembre, que no cuenta.
-  await aprobado(lucas, '2026-03-06', '2026-03-08');
-  await aprobado(lucas, '2026-06-19', '2026-06-21');
-  await aprobado(lucas, '2026-11-21', '2026-11-23');
-  await aprobado(luciaF, '2026-02-14', '2026-02-16');
-  await aprobado(lucrecia, '2026-04-02', '2026-04-05');
-  await aprobado(lucio, '2026-05-23', '2026-05-25');
+
+  // Aprobado y después cancelado (antes de cobrarlo).
+  await prisma.reservation.create({
+    data: {
+      assetId: CASA_ID,
+      userId: bruno.id,
+      renterId: medina.id,
+      type: 'RENTAL',
+      status: 'CANCELLED',
+      rejectionReason: 'Alquiler cancelado por Bruno',
+      note: 'Se les cayó el viaje.',
+      amount: 110000,
+      startDate: new Date('2026-10-31T00:00:00.000Z'),
+      endDate: new Date('2026-11-02T00:00:00.000Z'),
+      createdAt: new Date('2026-09-02T12:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
+  // Rechazada sola al aprobarse el cumpleaños de Lucía Gómez (1 al 3/12).
+  await prisma.reservation.create({
+    data: {
+      assetId: CASA_ID,
+      userId: carla.id,
+      renterId: quiroga.id,
+      type: 'RENTAL',
+      status: 'REJECTED',
+      rejectionReason: 'Rechazada por solapamiento con un alquiler aprobado en esas fechas',
+      note: 'Despedida de soltero, 10 personas.',
+      amount: 260000,
+      startDate: new Date('2026-12-02T00:00:00.000Z'),
+      endDate: new Date('2026-12-04T00:00:00.000Z'),
+      createdAt: new Date('2026-08-28T12:00:00.000Z'),
+      approvals: aprobadaPor([carla]),
+    },
+  });
+
+  // Uso propio de Flor esperando el voto de Ana (Calendario).
+  await prisma.reservation.create({
+    data: {
+      assetId: CASA_ID,
+      userId: flor.id,
+      type: 'USE',
+      note: 'Voy con amigas a descansar.',
+      startDate: new Date('2026-10-17T00:00:00.000Z'),
+      endDate: new Date('2026-10-18T00:00:00.000Z'),
+      approvals: aprobadaPor([flor, bruno, carla]),
+    },
+  });
   return [ana, bruno, carla, flor];
 }
 
