@@ -15,7 +15,7 @@ function ConfirmDialog({ title, lines, confirmLabel, busyLabel, busy, error, onC
   return (
     <dialog
       ref={dialogo}
-      className="mov-modal mov-modal-sm"
+      className="modal"
       aria-labelledby={`${id}-titulo`}
       aria-describedby={`${id}-texto`}
       onClose={onCancel}
@@ -23,24 +23,24 @@ function ConfirmDialog({ title, lines, confirmLabel, busyLabel, busy, error, onC
         if (e.target === dialogo.current) onCancel()
       }}
     >
-      <h2 id={`${id}-titulo`} className="mov-modal-title">
+      <h2 id={`${id}-titulo`} className="modal__t">
         {title}
       </h2>
-      <div id={`${id}-texto`} className="mov-confirm-text">
+      <div id={`${id}-texto`} className="mov-confirm">
         {lines.map((line) => (
           <p key={line}>{line}</p>
         ))}
       </div>
       {error && (
-        <p className="mov-form-error" role="alert">
+        <p className="mov-err mov-campo" role="alert">
           {error}
         </p>
       )}
-      <div className="mov-modal-actions">
-        <button ref={cancelar} type="button" className="mov-btn" onClick={onCancel}>
+      <div className="mov-acciones">
+        <button ref={cancelar} type="button" className="btn btn--grow" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="button" className="mov-btn mov-btn-danger" onClick={onConfirm} disabled={busy}>
+        <button type="button" className="btn btn--grow btn--danger" onClick={onConfirm} disabled={busy}>
           {busy ? busyLabel : confirmLabel}
         </button>
       </div>

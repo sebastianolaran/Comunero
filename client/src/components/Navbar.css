@@ -1,154 +1,18 @@
-.navbar {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: flex;
-  flex-direction: column;
-  padding: 20px 14px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  box-sizing: border-box;
-}
-
-.navbar-header {
-  padding: 6px 10px 20px;
-}
-
-.navbar-app {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.011em;
-  color: var(--text-h);
-}
-
-.navbar-bien {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.navbar-links {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.navbar-link {
+/* NavLink renderiza <a>; el sistema estiliza .nav__b pensando en <button>. */
+.nav__b {
   display: block;
-  padding: 10px 14px;
-  border-radius: 3px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text);
   text-decoration: none;
-  white-space: nowrap;
 }
 
-.navbar-link:hover {
-  background: oklch(94% 0 0);
-}
-
-.navbar-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.navbar-link.active,
-.navbar-link.active:hover {
-  font-weight: 600;
-  background: oklch(22% 0 0);
-  color: #fff;
-}
-
-.navbar-footer {
+.side__foot {
   margin-top: auto;
-  padding: 0 10px;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--line-soft);
+  color: var(--faint);
 }
 
-/* Quién entró. En el prototipo esto vive en la barra de arriba; acá va al pie
-   del panel porque el layout del client todavía no tiene esa barra. */
-.navbar-quien {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.navbar-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: oklch(22% 0 0);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.navbar-nombre {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-h);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.navbar-salir {
-  flex: none;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-.navbar-salir:hover {
-  color: var(--text-h);
-}
-
-.navbar-salir:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* En pantallas chicas el panel pasa a ser una barra arriba con scroll horizontal. */
-@media (max-width: 768px) {
-  .navbar {
-    position: static;
-    height: auto;
-    gap: 12px;
-    padding: 14px 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .navbar-header,
-  .navbar-footer {
-    padding: 0;
-  }
-
-  .navbar-links {
-    flex-direction: row;
-    overflow-x: auto;
-  }
-
-  .navbar-footer {
-    margin-top: 0;
+@media (max-width: 760px) {
+  .side__foot {
+    display: none;
   }
 }

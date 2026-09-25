@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useNavigate } from 'react-router'
+import { userIdActual } from '../lib/currentUser'
 import './Rental.css'
 
 const SUBSECCIONES = [
@@ -7,22 +8,30 @@ const SUBSECCIONES = [
   { path: 'tareas-preparacion', label: 'Tareas de preparación' },
 ]
 
-function Rental() {
-  return (
-    <section className="alquiler">
-      <h1 className="alquiler-titulo">Alquiler a terceros</h1>
+const claseTab = ({ isActive }) => (isActive ? 'seg__b seg__b--on' : 'seg__b')
 
-      <nav aria-label="Alquiler a terceros">
-        <ul className="alquiler-tabs">
+function Rental() {
+  const navigate = useNavigate()
+
+  // Solicitudes abre el alta cuando llega este state (lo usa también el historial de inquilinos).
+  const nuevaSolicitud = () => navigate('solicitudes', { state: { nuevaSolicitud: {} } })
+
+  return (
+    <section>
+      <div className="alq-bar">
+        <nav className="seg alq-tabs" aria-label="Alquiler a terceros">
           {SUBSECCIONES.map(({ path, label }) => (
-            <li key={path}>
-              <NavLink to={path} className="alquiler-tab">
-                {label}
-              </NavLink>
-            </li>
+            <NavLink key={path} to={path} className={claseTab}>
+              {label}
+            </NavLink>
           ))}
-        </ul>
-      </nav>
+        </nav>
+        {userIdActual() && (
+          <button type="button" className="btn btn--primary" onClick={nuevaSolicitud}>
+            + Nueva solicitud
+          </button>
+        )}
+      </div>
 
       <Outlet />
     </section>

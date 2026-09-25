@@ -70,6 +70,7 @@ export function estadoDelDia(dia, reservas) {
       ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId }
       : {
           estado: 'reservado',
+          pendiente: vigente.status === 'PENDING',
           reservationId: vigente.id,
           userId: vigente.userId,
           userName: vigente.user?.name,
@@ -83,15 +84,21 @@ export function estadoDelDia(dia, reservas) {
 // Color deterministico por integrante (mismo userId -> mismo color
 // siempre), mientras no exista un campo "color" persistido en User.
 // TODO: reemplazar por el color real cuando el schema lo tenga.
-const PALETA_INTEGRANTES = ['#2f9e44', '#1c7ed6', '#e8590c', '#9c36b5', '#e64980', '#0ca678'];
+// Son tonos oklch, como en el diseño: la celda del calendario usa el tono
+// como tinte y el resto de la app como color sólido. El 195 queda para Alquilado.
+const TONOS_INTEGRANTES = [250, 40, 150, 320, 80, 285];
 
-export function colorDeIntegrante(userId) {
-  if (!userId) return PALETA_INTEGRANTES[0];
+export function tonoDeIntegrante(userId) {
+  if (!userId) return TONOS_INTEGRANTES[0];
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
   }
-  return PALETA_INTEGRANTES[hash % PALETA_INTEGRANTES.length];
+  return TONOS_INTEGRANTES[hash % TONOS_INTEGRANTES.length];
+}
+
+export function colorDeIntegrante(userId) {
+  return `oklch(56% 0.12 ${tonoDeIntegrante(userId)})`;
 }
 
 // Arma la leyenda de integrantes a partir de las reservas del mes visible:
@@ -108,7 +115,7 @@ export function integrantesEnReservas(reservas) {
     vistos.set(r.userId, {
       userId: r.userId,
       nombre: r.user?.name ?? 'Integrante',
-      color: colorDeIntegrante(r.userId),
+      tono: tonoDeIntegrante(r.userId),
     });
   }
   return [...vistos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));

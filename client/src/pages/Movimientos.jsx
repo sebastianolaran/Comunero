@@ -25,6 +25,41 @@ const FILTERS = [
 
 const tone = (amount) => (amount > 0 ? 'pos' : amount < 0 ? 'neg' : 'muted')
 
+const SALDO_TEXTO = { pos: 'te deben', neg: 'debés', muted: 'estás al día' }
+
+// Lo principal es tu saldo del período; el flujo del grupo va de contexto. Si el
+// server todavía no manda `mine` (client y server se despliegan aparte), se
+// muestra el neto del grupo como antes.
+function Resumen({ summary, titulo }) {
+  const grupo = `Ingresos ${fmtMoney(summary.income)} · Egresos ${fmtMoney(summary.expense)}`
+
+  if (summary.mine === undefined) {
+    return (
+      <>
+        <div className="sum">
+          <span className="sum__l">{titulo}</span>
+          <span className={`sum__v mov-tone-${tone(summary.net)}`}>{fmtSigned(summary.net)}</span>
+        </div>
+        <p className="sum__s">{grupo}</p>
+      </>
+    )
+  }
+
+  const tono = tone(summary.mine)
+  return (
+    <>
+      <div className="sum">
+        <span className="sum__l">{titulo} te toca</span>
+        <span className={`sum__v mov-tone-${tono}`}>{fmtSigned(summary.mine)}</span>
+        <span className="sum__l">{SALDO_TEXTO[tono]}</span>
+      </div>
+      <p className="sum__s">
+        Grupo: {grupo} · Neto {fmtSigned(summary.net)}
+      </p>
+    </>
+  )
+}
+
 function Movimientos() {
   const quien = useMemo(() => ({ assetId: assetIdActual(), userId: userIdActual() }), [])
   const [coowners, setCoowners] = useState(null)
@@ -113,9 +148,7 @@ function Movimientos() {
   }
 
   if (!configurado) {
-    return (
-      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
-    )
+    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   const ready = coowners && periods && data
@@ -123,30 +156,22 @@ function Movimientos() {
   const filterDef = FILTERS.find((f) => f.key === filter)
 
   return (
-    <section className="mov">
-      <h1 className="mov-title">Movimientos</h1>
-
+    <section>
       {error && (
-        <p className="mov-alert" role="alert">
+        <p className="note mov-alert" role="alert">
           {error}
         </p>
       )}
 
       {!ready ? (
         !error && (
-          <p className="mov-loading">
+          <p className="panel empty" role="status">
             Cargando movimientos… Si el backend estuvo inactivo, el primer pedido puede tardar hasta un minuto.
           </p>
         )
       ) : (
         <>
-          <div className="mov-summary">
-            <p className="mov-summary-label">{period === periods.current ? 'Este mes' : periodLabel(period)}</p>
-            <p className={`mov-net mov-tone-${tone(data.summary.net)}`}>{fmtSigned(data.summary.net)}</p>
-            <p className="mov-sub">
-              Ingresos {fmtMoney(data.summary.income)} · Egresos {fmtMoney(data.summary.expense)}
-            </p>
-          </div>
+          <Resumen summary={data.summary} titulo={period === periods.current ? 'Este mes' : periodLabel(period)} />
 
           <div className="mov-toolbar">
             <div className="mov-pills" role="group" aria-label="Filtrar por tipo">
@@ -154,7 +179,7 @@ function Movimientos() {
                 <button
                   key={f.key}
                   type="button"
-                  className="mov-pill"
+                  className={filter === f.key ? 'pill pill--on' : 'pill'}
                   aria-pressed={filter === f.key}
                   onClick={() => setFilter(f.key)}
                 >
@@ -166,19 +191,21 @@ function Movimientos() {
               <div className="mov-period-nav">
                 <button
                   type="button"
-                  className="mov-btn mov-btn-icon"
+                  className="btn btn--icon"
                   aria-label="Mes anterior"
                   disabled={period === periodOptions[periodOptions.length - 1]}
                   onClick={() => setPeriod(addMonths(period, -1))}
                 >
-                  ‹
+                  <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
                 </button>
-                <label className="mov-sr-only" htmlFor="mov-period">
+                <label className="solo-lector" htmlFor="mov-period">
                   Período
                 </label>
                 <select
                   id="mov-period"
-                  className="mov-input mov-input-select"
+                  className="sel"
                   value={period}
                   onChange={(event) => setPeriod(event.target.value)}
                 >
@@ -190,15 +217,17 @@ function Movimientos() {
                 </select>
                 <button
                   type="button"
-                  className="mov-btn mov-btn-icon"
+                  className="btn btn--icon"
                   aria-label="Mes siguiente"
                   disabled={period === periodOptions[0]}
                   onClick={() => setPeriod(addMonths(period, 1))}
                 >
-                  ›
+                  <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
                 </button>
               </div>
-              <button type="button" className="mov-btn mov-btn-primary" onClick={openCreate}>
+              <button type="button" className="btn btn--primary" onClick={openCreate}>
                 + Nuevo movimiento
               </button>
             </div>

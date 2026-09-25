@@ -28,7 +28,7 @@ function MovementDetail({ movement, meId }) {
           <p className="mov-detail-title">Desglose</p>
           <ul className="mov-share-list">
             {movement.items.map((item) => (
-              <li key={item.id} className="mov-item-line">
+              <li key={item.id}>
                 <span>
                   {item.description}
                   <span className="mov-item-shares">
@@ -52,14 +52,14 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
   const [openId, setOpenId] = useState(null)
 
   if (movements.length === 0) {
-    return <p className="mov-empty">{emptyText}</p>
+    return <p className="panel empty">{emptyText}</p>
   }
 
   return (
-    <div className="mov-table-wrap">
+    <div className="card card--flush mov-table-wrap">
       <table className="mov-table">
         <thead>
-          <tr>
+          <tr className="tbl__h">
             <th scope="col">Fecha</th>
             <th scope="col">Descripción</th>
             <th scope="col" className="mov-num">
@@ -70,7 +70,7 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
               Te toca
             </th>
             <th scope="col">
-              <span className="mov-sr-only">Acciones</span>
+              <span className="solo-lector">Acciones</span>
             </th>
           </tr>
         </thead>
@@ -80,25 +80,29 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
             const open = openId === movement.id
             return (
               <Fragment key={movement.id}>
-                <tr className={open ? 'is-open' : undefined}>
+                <tr className={open ? 'tbl__r row-hit is-open' : 'tbl__r row-hit'}>
                   <td className="mov-date">{dayLabel(movement.date)}</td>
                   <td>
                     <div className="mov-desc">
-                      {movement.type === 'INCOME' && <span className="mov-tag mov-tag-income">Ingreso</span>}
-                      {movement.recurring && <span className="mov-tag mov-tag-fixed">Recurrente</span>}
-                      {movement.items.length > 0 && <span className="mov-tag">Desglosado</span>}
+                      {movement.type === 'INCOME' && <span className="tag">Ingreso</span>}
+                      {movement.recurring && <span className="tag tag--dash">Recurrente</span>}
+                      {movement.items.length > 0 && <span className="tag tag--solid">Desglosado</span>}
+                      <span className="mov-desc-t" title={movement.description}>
+                        {movement.description}
+                      </span>
                       <button
                         type="button"
-                        className="mov-desc-btn"
+                        className="idot"
                         aria-expanded={open}
+                        aria-label={`Ver el reparto de ${movement.description}`}
                         title="Ver el reparto"
                         onClick={() => setOpenId(open ? null : movement.id)}
                       >
-                        {movement.description}
+                        i
                       </button>
                     </div>
                   </td>
-                  <td className="mov-num mov-amount">
+                  <td className="mov-num money">
                     <span className={movement.type === 'INCOME' ? 'mov-arrow-in' : 'mov-arrow-out'} aria-hidden="true">
                       {movement.type === 'INCOME' ? '↑' : '↓'}
                     </span>{' '}
@@ -112,7 +116,7 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
                   <td className="mov-row-actions">
                     <button
                       type="button"
-                      className="mov-link-btn"
+                      className="btn btn--link"
                       onClick={() => onEdit(movement)}
                       aria-label={`Editar ${movement.description}`}
                     >
@@ -120,7 +124,7 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
                     </button>
                     <button
                       type="button"
-                      className="mov-link-btn"
+                      className="btn btn--link"
                       onClick={() => onDelete(movement)}
                       aria-label={`Eliminar ${movement.description}`}
                     >

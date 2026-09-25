@@ -3,7 +3,6 @@ import RentalPreparationCard from '../components/RentalPreparationCard'
 import { assetIdActual } from '../lib/currentAsset'
 import { actualizarTarea, agregarTarea, quitarTarea } from '../lib/rentalPreparations'
 import { fetchRentalPreparations } from '../services/rentalPreparation'
-import './RentalPreparations.css'
 
 // Alquileres aprobados con sus tareas y responsables. Se pueden agregar tareas,
 // tildarlas, reasignarlas y eliminarlas.
@@ -55,14 +54,12 @@ function RentalPreparations({ assetId = assetIdActual() }) {
   }
 
   if (!assetId) {
-    return (
-      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
-    )
+    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   if (carga.estado === 'loading') {
     return (
-      <p className="aviso" role="status">
+      <p className="panel empty" role="status">
         Cargando tareas de preparación…
       </p>
     )
@@ -70,12 +67,10 @@ function RentalPreparations({ assetId = assetIdActual() }) {
 
   if (carga.estado === 'error') {
     return (
-      <div className="aviso" role="alert">
+      <div className="panel empty empty--rail" role="alert">
         <p>No se pudieron cargar las tareas de preparación.</p>
-        <p className="aviso-hint">
-          Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.
-        </p>
-        <button type="button" className="aviso-reintentar" onClick={reintentar}>
+        <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
+        <button type="button" className="btn btn--sm" onClick={reintentar}>
           Reintentar
         </button>
       </div>
@@ -83,12 +78,12 @@ function RentalPreparations({ assetId = assetIdActual() }) {
   }
 
   if (carga.alquileres.length === 0) {
-    return <p className="aviso">Todavía no hay alquileres aprobados.</p>
+    return <p className="empty">Todavía no hay alquileres aprobados.</p>
   }
 
   return (
-    <div className="preparaciones">
-      <ul className="preparaciones-lista" role="list">
+    <div className="prep-lista">
+      <ul className="alq-lista" role="list">
         {carga.alquileres.map((alquiler) => (
           <li key={alquiler.id}>
             <RentalPreparationCard

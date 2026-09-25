@@ -1,13 +1,13 @@
 import {
   daysLabel,
   ESTADOS,
-  etiquetaPago,
   formatMoney,
   formatPhone,
   formatRange,
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
+import PagoTag from './PagoTag'
 import VoteChips from './VoteChips'
 
 // La tarjeta entera selecciona con el mouse; con teclado se entra por el nombre.
@@ -31,52 +31,51 @@ function RentalRequestCard({
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
   const monto = formatMoney(solicitud.amount)
-  const pago = etiquetaPago(solicitud)
-  const clases = ['solicitud', seleccionada && 'is-seleccionada', !pendiente && 'is-resuelta']
+  const clases = ['card card--pad pick alq-rq', seleccionada && 'pick--on', !pendiente && 'alq-rq--resuelta']
 
   return (
     <article className={clases.filter(Boolean).join(' ')} onClick={onSelect}>
-      <div className="solicitud-cabecera">
-        <h3 className="solicitud-nombre">
+      <div className="alq-rq__head">
+        <h3 className="alq-rq__name">
           <button
             type="button"
-            className="solicitud-abrir"
+            className="alq-rq__open"
             aria-current={seleccionada || undefined}
             onClick={sinPropagar(onSelect)}
           >
             {renterName ?? 'Sin interesado'}
           </button>
         </h3>
-        <span className="solicitud-badges">
-          <span className="solicitud-estado">{ESTADOS[status] ?? status}</span>
-          {pago && <span className={`solicitud-estado is-pago${solicitud.paid ? ' is-pagado' : ''}`}>{pago}</span>}
+        <span className="alq-badges">
+          <PagoTag solicitud={solicitud} />
+          <span className="badge">{ESTADOS[status] ?? status}</span>
         </span>
       </div>
 
       {pendiente ? (
         <>
-          <p className="solicitud-meta">
+          <p className="meta alq-rq__meta">
             {[formatPhone(renterPhone), fechas, dias, monto].filter(Boolean).join(' · ')}
           </p>
-          {comments && <p className="solicitud-comentario">{comments}</p>}
-          <div className="solicitud-votos">
-            <span className="solicitud-votos-texto">{votosLabel(solicitud)}</span>
+          {comments && <p className="alq-rq__com">{comments}</p>}
+          <div className="alq-rq__votos">
+            <span className="meta">{votosLabel(solicitud)}</span>
             <VoteChips votes={solicitud.votes} />
           </div>
 
           {puedeVotar &&
             (vote ? (
-              <div className="voto-actual">
+              <div className="alq-mivoto">
                 <span>Tu voto: {VOTO_TEXTO[vote]}</span>
-                <button type="button" className="voto-cambiar" onClick={sinPropagar(onChangeVote)}>
+                <button type="button" className="btn btn--link" onClick={sinPropagar(onChangeVote)}>
                   Cambiar voto
                 </button>
               </div>
             ) : (
-              <div className="voto-acciones">
+              <div className="alq-acciones">
                 <button
                   type="button"
-                  className="voto-boton"
+                  className="btn btn--sm"
                   onClick={sinPropagar(onApprove)}
                   disabled={enviando}
                 >
@@ -84,7 +83,7 @@ function RentalRequestCard({
                 </button>
                 <button
                   type="button"
-                  className="voto-boton is-secundario"
+                  className="btn btn--sm"
                   onClick={sinPropagar(onOpenReject)}
                   disabled={enviando}
                 >
@@ -94,7 +93,7 @@ function RentalRequestCard({
             ))}
         </>
       ) : (
-        <p className="solicitud-meta">
+        <p className="meta">
           {[fechas, dias, monto, votosLabel(solicitud)].filter(Boolean).join(' · ')}
         </p>
       )}

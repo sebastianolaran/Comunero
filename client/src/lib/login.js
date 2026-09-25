@@ -29,7 +29,8 @@ const TURNOS_DE_EJEMPLO = [
   { desde: 27, hasta: 28, integrante: 'ejemplo-6' },
 ]
 
-const COLOR_ALQUILER = '#6b4ea8'
+// Mismo teal que Alquilado en el calendario.
+const COLOR_ALQUILER = 'oklch(52% 0.09 195)'
 
 function turnoDelDia(dia) {
   return TURNOS_DE_EJEMPLO.find((t) => dia >= t.desde && dia <= t.hasta)

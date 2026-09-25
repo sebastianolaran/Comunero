@@ -4,6 +4,9 @@ import { createRentalTask, deleteRentalTask, updateRentalTask } from '../service
 import RentalPreparationTask from './RentalPreparationTask'
 import './RentalPreparationCard.css'
 
+// Como en el diseño: punteado mientras falta algo, borde lleno cuando está listo.
+const CLASE_RESUMEN = { 'sin-tareas': 'badge badge--dash', pendientes: 'badge badge--dash', listo: 'badge badge--line' }
+
 // Tarjeta de un alquiler aprobado: inquilino, fechas, resumen, tareas (que se
 // pueden tildar, reasignar y eliminar) y, si el alquiler no terminó, el
 // formulario para agregar una tarea.
@@ -123,20 +126,20 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
   }
 
   return (
-    <article className="preparacion" ref={tarjetaRef} tabIndex={-1} aria-labelledby={tituloId}>
-      <div className="preparacion-cabecera">
-        <div>
-          <h2 id={tituloId} className="preparacion-nombre">{renterName ?? 'Sin interesado'}</h2>
-          <p className="preparacion-fechas">{formatRange(startDate, endDate)}</p>
+    <article className="card card--flush prep" ref={tarjetaRef} tabIndex={-1} aria-labelledby={tituloId}>
+      <div className="prep__head">
+        <div className="prep__quien">
+          <h2 id={tituloId} className="prep__name">{renterName ?? 'Sin interesado'}</h2>
+          <p className="meta">{formatRange(startDate, endDate)}</p>
         </div>
-        <span className={`preparacion-resumen is-${resumenEstado(summary)}`}>
+        <span className={CLASE_RESUMEN[resumenEstado(summary)]}>
           {resumenLabel(summary)}
         </span>
       </div>
 
       {tasks.length > 0 && (
         // list-style: none le quita la semántica de lista en Safari/VoiceOver.
-        <ul className="preparacion-tareas" role="list">
+        <ul className="prep__tareas" role="list">
           {tasks.map((tarea) => (
             <RentalPreparationTask
               key={tarea.id}
@@ -152,30 +155,30 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
       )}
 
       {erroresCambio.length > 0 && (
-        <ul className="preparacion-errores" role="alert">
+        <ul className="alq-err prep__errores" role="alert">
           {erroresCambio.map((mensaje) => (
             <li key={mensaje}>{mensaje}</li>
           ))}
         </ul>
       )}
       {/* Siempre montada, como la del formulario: anuncia "Tarea eliminada". */}
-      <p className="preparacion-oculto" role="status">
+      <p className="solo-lector" role="status">
         {avisoCambio}
       </p>
 
       {/* Un alquiler que terminó ya no recibe tareas. */}
       {puedeAgregar && (
-        <form className="preparacion-alta" onSubmit={enviar} noValidate>
-          <div className="preparacion-alta-campos">
-            <label className="preparacion-oculto" htmlFor={campoNombre}>
+        <form className="prep__alta" onSubmit={enviar} noValidate>
+          <div className="prep__alta-campos">
+            <label className="solo-lector" htmlFor={campoNombre}>
               Nombre de la nueva tarea
             </label>
             <input
               ref={nombreRef}
               id={campoNombre}
-              className="preparacion-alta-nombre"
+              className="in prep__alta-nombre"
               type="text"
-              placeholder="Nueva tarea"
+              placeholder="Nueva tarea de preparación"
               autoComplete="off"
               value={nombre}
               onChange={editar(setNombre)}
@@ -183,12 +186,12 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
               aria-describedby={errores.length > 0 ? listaErrores : undefined}
             />
 
-            <label className="preparacion-oculto" htmlFor={campoResponsable}>
+            <label className="solo-lector" htmlFor={campoResponsable}>
               Responsable de la nueva tarea
             </label>
             <select
               id={campoResponsable}
-              className="preparacion-alta-responsable"
+              className="sel"
               value={responsableId}
               onChange={editar(setResponsableId)}
               aria-invalid={conError('responsable') || undefined}
@@ -202,13 +205,13 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
               ))}
             </select>
 
-            <button type="submit" className="preparacion-alta-boton" disabled={enviando}>
+            <button type="submit" className="btn btn--primary" disabled={enviando}>
               Agregar
             </button>
           </div>
 
           {errores.length > 0 && (
-            <ul id={listaErrores} className="preparacion-alta-errores" role="alert">
+            <ul id={listaErrores} className="alq-err prep__errores" role="alert">
               {errores.map((mensaje) => (
                 <li key={mensaje}>{mensaje}</li>
               ))}
@@ -216,7 +219,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
           )}
           {/* Siempre montada: varios lectores de pantalla no anuncian una región
               live que aparece ya con su texto. */}
-          <p className="preparacion-oculto" role="status">
+          <p className="solo-lector" role="status">
             {confirmacion}
           </p>
         </form>
