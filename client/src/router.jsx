@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { RequiereSesion, SoloSinSesion } from './components/SesionGuard'
 import AppLayout from './layouts/AppLayout'
+import Balance from './pages/Balance'
 import Calendario from './pages/Calendario'
 import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
@@ -14,6 +15,7 @@ import { SECCIONES } from './sections'
 const PANTALLAS = {
   calendario: { element: <Calendario /> },
   movimientos: { element: <Movimientos /> },
+  balance: { element: <Balance /> },
   alquiler: {
     element: <Rental />,
     children: [

@@ -218,11 +218,12 @@ model Movement {
   recurring     Boolean      @default(false)
   generatedNext Boolean      @default(false)
 
-  asset       Asset           @relation(fields: [assetId], references: [id])
-  reservation Reservation?    @relation(fields: [reservationId], references: [id])
-  paidBy      User            @relation("MovementPaidBy", fields: [paidById], references: [id])
+  asset       Asset                @relation(fields: [assetId], references: [id])
+  reservation Reservation?         @relation(fields: [reservationId], references: [id])
+  paidBy      User                 @relation("MovementPaidBy", fields: [paidById], references: [id])
   shares      MovementShare[]
   items       MovementItem[]
+  closings    SettlementMovement[]
 
   @@index([assetId])
   @@index([reservationId])
@@ -266,19 +267,45 @@ model MovementItemShare {
   @@id([itemId, userId])
 }
 
+// Pago de una persona a otra para saldar su balance. closesBalance es true
+// cuando el pago salda toda la deuda (un saldo cerrado): se lleva los
+// movimientos del periodo abierto entre los dos (closedMovements) y los pagos
+// parciales que habia (su closedById apunta al cierre), y guarda en detail la
+// copia del detalle tal como estaba, visto desde quien pago. false es un pago
+// parcial.
 model Settlement {
-  id         String   @id @default(cuid())
-  assetId    String
-  fromUserId String
-  toUserId   String
-  amount     Int
-  date       DateTime
+  id            String   @id @default(cuid())
+  assetId       String
+  fromUserId    String
+  toUserId      String
+  amount        Int
+  date          DateTime
+  closesBalance Boolean  @default(false)
+  detail        Json?
+  closedById    String?
 
-  asset    Asset @relation(fields: [assetId], references: [id])
-  fromUser User  @relation("SettlementFrom", fields: [fromUserId], references: [id])
-  toUser   User  @relation("SettlementTo", fields: [toUserId], references: [id])
+  asset           Asset                @relation(fields: [assetId], references: [id])
+  fromUser        User                 @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUser          User                 @relation("SettlementTo", fields: [toUserId], references: [id])
+  closedBy        Settlement?          @relation("SettlementClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  absorbed        Settlement[]         @relation("SettlementClosedBy")
+  closedMovements SettlementMovement[]
 
   @@index([assetId])
+  @@index([closedById])
+}
+
+// Movimiento que se llevo un saldo cerrado. Es por par de personas: el mismo
+// movimiento sigue abierto entre otros copropietarios que no cerraron.
+model SettlementMovement {
+  settlementId String
+  movementId   String
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  movement   Movement   @relation(fields: [movementId], references: [id], onDelete: Cascade)
+
+  @@id([settlementId, movementId])
+  @@index([movementId])
 }
 
 model Decision {
