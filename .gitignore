@@ -33,3 +33,6 @@ pnpm-debug.log*
 server/test/
 server/testing/
 client/test/
+
+# Críticas de diseño de impeccable (locales)
+.impeccable/
