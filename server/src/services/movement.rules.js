@@ -222,11 +222,16 @@ function computeMyPart({ type, paidById, shares }, meId) {
 function summarizePeriod(movements) {
   let income = 0;
   let expense = 0;
+  // Saldo del que mira en el período: lo que le deben menos lo que debe.
+  let mine = 0;
   for (const movement of movements) {
     if (movement.type === 'INCOME') income += movement.amount;
     else expense += movement.amount;
+    const { kind, amount } = movement.myPart ?? {};
+    if (kind === 'OWED_TO_YOU') mine += amount;
+    else if (kind === 'YOU_OWE') mine -= amount;
   }
-  return { income, expense, net: income - expense };
+  return { income, expense, net: income - expense, mine };
 }
 
 function countByType(movements) {
