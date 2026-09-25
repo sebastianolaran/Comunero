@@ -56,7 +56,7 @@ function BackendStatus() {
         {texto}
       </p>
       {estado === 'error' && (
-        <button type="button" onClick={reintentar}>
+        <button type="button" className="btn btn--sm" onClick={reintentar}>
           Reintentar
         </button>
       )}

@@ -1,28 +1,34 @@
-/* Paleta y tipografía del prototipo: grises en oklch sobre Inter, solo en claro. */
+/* Los tokens viven en styles/system.css. Estos nombres viejos quedan como alias
+   para lo que todavía no compone las clases del sistema. */
 :root {
-  --text: oklch(35% 0 0);
-  --text-h: oklch(22% 0 0);
-  --text-muted: oklch(50% 0 0);
-  --bg: oklch(97% 0 0);
-  --panel: oklch(99% 0 0);
-  --border: oklch(90% 0 0);
-  --code-bg: oklch(94% 0 0);
-  --accent: oklch(22% 0 0);
-  --accent-bg: #fff;
-  --accent-border: oklch(85% 0 0);
+  --text: var(--ink-2);
+  --text-h: var(--ink);
+  --text-muted: var(--muted);
+  --panel: var(--surface);
+  --border: var(--line);
+  --code-bg: var(--inset);
+  --accent: var(--ink);
+  --accent-bg: var(--surface);
+  --accent-border: var(--line-strong);
 
-  --sans: Inter, system-ui, -apple-system, sans-serif;
   --heading: var(--sans);
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 14px/1.5 var(--sans);
+  font: 400 13px/1.5 var(--sans);
+  font-variant-numeric: tabular-nums;
   color-scheme: light;
-  color: var(--text-h);
+  color: var(--ink);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -33,43 +39,85 @@ body {
   min-height: 100svh;
 }
 
-input,
-select,
-textarea,
-button {
-  font-family: var(--sans);
-}
-
-::placeholder {
-  color: oklch(65% 0 0);
-}
-
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 600;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 21px;
-  margin: 0 0 28px;
-}
-
-h2 {
-  font-size: 17px;
-  margin: 0 0 8px;
-}
-
+h2,
+h3,
 p {
   margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 code {
   font-family: var(--mono);
   font-size: 0.9em;
   padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--code-bg);
-  color: var(--text-h);
+  border-radius: var(--r-sm);
+  background: var(--inset);
+  color: var(--ink);
+}
+
+/* ---- extensiones del sistema que usan varias pantallas ---- */
+
+/* <dialog> nativo con la piel de .modal/.scrim del sistema. */
+dialog.modal {
+  width: min(392px, calc(100vw - 32px));
+  border: none;
+  color: var(--ink);
+}
+
+dialog.modal::backdrop {
+  background: oklch(20% 0 0 / 38%);
+  backdrop-filter: blur(2px);
+}
+
+.in[aria-invalid='true'],
+.ta[aria-invalid='true'],
+.sel[aria-invalid='true'] {
+  border-color: var(--neg);
+}
+
+/* Acción que no se deshace (eliminar). */
+.btn--danger,
+.btn--danger:hover {
+  background: var(--neg);
+  border-color: var(--neg);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn--danger:hover {
+  background: oklch(44% 0.16 25);
+}
+
+/* Anclado arriba a la izquierda: sin ancestro posicionado, en su posición
+   estática estiraba el documento (scroll de más en mobile). */
+.solo-lector {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Los links de texto son de 15px de alto: se agranda el área de toque sin mover el layout. */
+.btn--link {
+  padding-block: 6px;
+  margin-block: -6px;
+}
+
+.idot {
+  position: relative;
+}
+
+.idot::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

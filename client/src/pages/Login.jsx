@@ -101,7 +101,7 @@ function Login() {
   return (
     <div className="login">
       <main className="login__side">
-        <div className="login__marca">Compartido</div>
+        <div className="login__marca">Comunero</div>
 
         <form className="login__form" onSubmit={onSubmit} noValidate>
           <h1 className="login__t">Ingresá a tu cuenta</h1>

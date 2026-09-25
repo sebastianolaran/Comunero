@@ -1,24 +1,6 @@
-/* Portado del bloque .login de "Modificaciones de componente HTML".
-   Los tokens se declaran acá y no en index.css porque son los del prototipo
-   (--ink, --line-strong, ...) y todavía conviven con los del resto del
-   client (--text, --border, ...): dejarlos dentro de .login evita que se
-   pisen entre sí mientras las demás pantallas no estén portadas. */
+/* Portado del bloque .login de "Modificaciones de componente HTML". Los tokens
+   vienen de styles/system.css. */
 .login {
-  --ink: oklch(22% 0 0);
-  --ink-2: oklch(32% 0 0);
-  --muted: oklch(46% 0 0);
-  --faint: oklch(56% 0 0);
-  --surface: #fff;
-  --inset: oklch(96% 0 0);
-  --sunken: oklch(98.4% 0 0);
-  --line-strong: oklch(85% 0 0);
-  --line-loud: oklch(74% 0 0);
-  --neg: oklch(50% 0.16 25);
-  --r-sm: 4px;
-  --shadow-raise: 0 1px 2px oklch(20% 0 0 / 6%);
-  --ease: cubic-bezier(0.22, 0.8, 0.25, 1);
-  --t-fast: 120ms;
-
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   min-height: 100svh;

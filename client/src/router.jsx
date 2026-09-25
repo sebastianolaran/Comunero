@@ -44,9 +44,9 @@ export const router = createBrowserRouter([
     children: [
       // Al entrar sin elegir nada, arranca en Calendario.
       { index: true, element: <Navigate to="calendario" replace /> },
-      ...SECCIONES.map(({ path, label }) => ({
+      ...SECCIONES.map(({ path }) => ({
         path,
-        ...(PANTALLAS[path] ?? { element: <ProntoADesarrollar titulo={label} /> }),
+        ...(PANTALLAS[path] ?? { element: <ProntoADesarrollar /> }),
       })),
       { path: '*', element: <Navigate to="/calendario" replace /> },
     ],
