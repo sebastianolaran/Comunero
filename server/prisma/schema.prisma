@@ -239,11 +239,19 @@ model Decision {
   createdAt    DateTime       @default(now())
   closedAt     DateTime?
 
+  // Monto de referencia: aprobar la propuesta no genera ningún Movement.
+  estimatedType      MovementType?
+  estimatedAmount    Int?
+  // Asset.votesNeeded al momento del cierre: si después cambia la
+  // configuración, el historial sigue mostrando este valor.
+  votesNeededAtClose Int?
+
   asset      Asset  @relation(fields: [assetId], references: [id])
   proposedBy User   @relation("DecisionProposedBy", fields: [proposedById], references: [id])
   votes      Vote[]
 
   @@index([assetId])
+  @@index([assetId, status, closedAt])
 }
 
 model Vote {

@@ -11,6 +11,8 @@ async function limpiar() {
   await prisma.rentalTask.deleteMany({ where: reservas });
   await prisma.reservation.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.renter.deleteMany({ where: { assetId: ASSET_ID } });
+  await prisma.vote.deleteMany({ where: { decision: { assetId: ASSET_ID } } });
+  await prisma.decision.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.user.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.asset.deleteMany({ where: { id: ASSET_ID } });
 }
@@ -322,6 +324,58 @@ async function main() {
       tasks: { create: tareas([['Limpieza previa', ana]]) },
     },
   });
+
+  // Historial de decisiones: cerradas con 3 votos necesarios. Aprobarlas no
+  // genera movimientos, el monto es solo de referencia.
+  const votos = (si, no = []) => ({
+    create: [
+      ...si.map((u) => ({ userId: u.id, value: 'YES' })),
+      ...no.map((u) => ({ userId: u.id, value: 'NO' })),
+    ],
+  });
+  const decisiones = [
+    {
+      title: 'Comprar un asador nuevo',
+      description: 'El actual está oxidado y pierde calor.',
+      proposedById: ana.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-09-20T15:00:00.000Z'),
+      estimatedType: 'EXPENSE',
+      estimatedAmount: 60000,
+      votes: votos([ana, bruno, carla]),
+    },
+    {
+      title: 'Instalar cámaras de seguridad',
+      description: 'Dos cámaras en la entrada y el fondo.',
+      proposedById: bruno.id,
+      status: 'REJECTED',
+      closedAt: new Date('2026-09-12T15:00:00.000Z'),
+      estimatedType: 'EXPENSE',
+      estimatedAmount: 80000,
+      votes: votos([bruno], [ana, carla, flor]),
+    },
+    {
+      title: 'Prestarle la quinta a la colonia de vacaciones',
+      description: 'Pagan por usar la pileta los martes de enero.',
+      proposedById: carla.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-09-05T15:00:00.000Z'),
+      estimatedType: 'INCOME',
+      estimatedAmount: 120000,
+      votes: votos([ana, carla, flor], [bruno]),
+    },
+    {
+      title: 'Poner un horario de silencio a la noche',
+      description: 'Desde las 23 h los días de semana.',
+      proposedById: flor.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-08-28T15:00:00.000Z'),
+      votes: votos([ana, bruno, carla]),
+    },
+  ];
+  for (const d of decisiones) {
+    await prisma.decision.create({ data: { ...d, assetId: ASSET_ID, votesNeededAtClose: 3 } });
+  }
 
   console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
 }
