@@ -37,31 +37,31 @@ const LABELS = {
 
 function Field({ label, htmlFor, error, hint, children }) {
   return (
-    <div className={`mov-field${error ? ' is-error' : ''}`}>
-      <label className="mov-field-label" htmlFor={htmlFor}>
+    <div className="mov-campo">
+      <label className="lbl" htmlFor={htmlFor}>
         {label}
       </label>
       {children}
-      {hint && !error && <p className="mov-field-hint">{hint}</p>}
-      {error && <p className="mov-field-error">{error}</p>}
+      {hint && !error && <p className="hint mov-hint">{hint}</p>}
+      {error && <p className="mov-err">{error}</p>}
     </div>
   )
 }
 
 function PeopleField({ legend, coowners, selected, onToggle, error, hint }) {
   return (
-    <fieldset className={`mov-field${error ? ' is-error' : ''}`}>
-      <legend className="mov-field-label">{legend}</legend>
-      <div className="mov-people">
+    <fieldset className="mov-campo mov-personas">
+      <legend className="lbl">{legend}</legend>
+      <div>
         {coowners.map((coowner) => (
-          <label key={coowner.id} className="mov-person">
+          <label key={coowner.id} className="chk">
             <input
               type="checkbox"
               checked={selected.includes(coowner.id)}
               onChange={() => onToggle(coowner.id)}
             />
             <span
-              className="mov-person-dot"
+              className="mov-dot"
               style={{ background: colorDeIntegrante(coowner.id) }}
               aria-hidden="true"
             />
@@ -69,8 +69,8 @@ function PeopleField({ legend, coowners, selected, onToggle, error, hint }) {
           </label>
         ))}
       </div>
-      {hint && !error && <p className="mov-field-hint">{hint}</p>}
-      {error && <p className="mov-field-error">{error}</p>}
+      {hint && !error && <p className="hint mov-hint">{hint}</p>}
+      {error && <p className="mov-err">{error}</p>}
     </fieldset>
   )
 }
@@ -130,38 +130,48 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
   return (
     <dialog
       ref={dialogo}
-      className="mov-modal"
+      className="modal mov-modal"
       aria-labelledby={`${uid}-title`}
       onClose={onCancel}
       onClick={(event) => {
         if (event.target === dialogo.current) onCancel()
       }}
     >
-      <form className="mov-modal-form" onSubmit={handleSubmit} noValidate>
-        <h2 id={`${uid}-title`} className="mov-modal-title">
+      <form onSubmit={handleSubmit} noValidate>
+        <h2 id={`${uid}-title`} className="modal__t">
           {isEdit ? 'Editar movimiento' : 'Nuevo movimiento'}
         </h2>
 
-        <div className="mov-segmented" role="group" aria-label="Tipo de movimiento">
-          <button type="button" aria-pressed={draft.type === 'EXPENSE'} onClick={() => set({ type: 'EXPENSE' })}>
+        <div className="seg seg--grow mov-campo" role="group" aria-label="Tipo de movimiento">
+          <button
+            type="button"
+            className={draft.type === 'EXPENSE' ? 'seg__b seg__b--on' : 'seg__b'}
+            aria-pressed={draft.type === 'EXPENSE'}
+            onClick={() => set({ type: 'EXPENSE' })}
+          >
             Gasto
           </button>
-          <button type="button" aria-pressed={draft.type === 'INCOME'} onClick={() => set({ type: 'INCOME' })}>
+          <button
+            type="button"
+            className={draft.type === 'INCOME' ? 'seg__b seg__b--on' : 'seg__b'}
+            aria-pressed={draft.type === 'INCOME'}
+            onClick={() => set({ type: 'INCOME' })}
+          >
             Ingreso
           </button>
         </div>
 
         <div className="mov-items">
-          <span className="mov-field-label">{labels.item}</span>
+          <span className="lbl">{labels.item}</span>
           {draft.items.map((item, index) => {
             const n = index + 1
             const descriptionError = errors[`${item.key}.description`]
             const amountError = errors[`${item.key}.amount`]
             return (
-              <div className="mov-item-card" key={item.key}>
-                <div className="mov-item-row">
+              <div className="mov-item" key={item.key}>
+                <div className="mov-item__fila">
                   <input
-                    className="mov-input"
+                    className="in"
                     aria-label={`${labels.item} ${n}`}
                     placeholder={labels.placeholder}
                     value={item.description}
@@ -169,10 +179,10 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
                     autoFocus={!isEdit && index === 0}
                     onChange={(event) => setItem(item.key, { description: event.target.value })}
                   />
-                  <div className="mov-money-input mov-item-amount">
+                  <div className="mov-money">
                     <span aria-hidden="true">$</span>
                     <input
-                      className="mov-input"
+                      className="in in--num"
                       aria-label={`Monto ${n}`}
                       inputMode="numeric"
                       placeholder="0"
@@ -183,17 +193,19 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
                   </div>
                   <button
                     type="button"
-                    className="mov-icon-btn"
+                    className="btn btn--icon btn--bare"
                     aria-label={`Quitar ${labels.one} ${n}`}
                     title={`Quitar ${labels.one}`}
                     disabled={draft.items.length <= 1}
                     onClick={() => setDraft((d) => removeItem(d, item.key))}
                   >
-                    ×
+                    <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
-                {descriptionError && <p className="mov-field-error">{descriptionError}</p>}
-                {amountError && <p className="mov-field-error">{amountError}</p>}
+                {descriptionError && <p className="mov-err">{descriptionError}</p>}
+                {amountError && <p className="mov-err">{amountError}</p>}
                 <PeopleField
                   legend={multi ? `Dividir entre (${labels.one} ${n})` : 'Dividir entre'}
                   coowners={coowners}
@@ -205,16 +217,16 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
               </div>
             )
           })}
-          <button type="button" className="mov-add-btn" onClick={() => setDraft(addItem)}>
+          <button type="button" className="btn btn--dash btn--sm mov-campo" onClick={() => setDraft(addItem)}>
             {labels.add}
           </button>
         </div>
 
-        <div className="mov-total-row">
+        <div className="mov-total">
           <span>Monto total</span>
           <strong aria-live="polite">{fmtMoney(itemsTotal(draft.items))}</strong>
         </div>
-        {errors.total && <p className="mov-field-error">{errors.total}</p>}
+        {errors.total && <p className="mov-err mov-campo">{errors.total}</p>}
 
         {multi && (
           <Field
@@ -225,7 +237,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           >
             <input
               id={`${uid}-description`}
-              className="mov-input"
+              className="in"
               placeholder={defaultDescription(draft.items) || labels.placeholder}
               value={draft.description}
               aria-invalid={Boolean(errors.description)}
@@ -234,11 +246,11 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           </Field>
         )}
 
-        <div className="mov-field-row">
+        <div className="mov-fila">
           <Field label="Fecha" htmlFor={`${uid}-date`} error={errors.date}>
             <input
               id={`${uid}-date`}
-              className="mov-input"
+              className="in"
               type="date"
               value={draft.date}
               aria-invalid={Boolean(errors.date)}
@@ -248,7 +260,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           <Field label={labels.payer} htmlFor={`${uid}-paid-by`} error={errors.paidById}>
             <select
               id={`${uid}-paid-by`}
-              className="mov-input"
+              className="sel mov-sel"
               value={draft.paidById ?? ''}
               aria-invalid={Boolean(errors.paidById)}
               onChange={(event) => set({ paidById: event.target.value === '' ? null : event.target.value })}
@@ -263,8 +275,8 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           </Field>
         </div>
 
-        <div className="mov-field">
-          <label className="mov-check">
+        <div className="mov-campo">
+          <label className="chk">
             <input
               type="checkbox"
               checked={draft.recurring}
@@ -272,20 +284,20 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
             />
             {labels.recurring}
           </label>
-          {recurringHint && <p className="mov-field-hint">{recurringHint}</p>}
+          {recurringHint && <p className="hint mov-hint">{recurringHint}</p>}
         </div>
 
         {(serverError || hasErrors) && (
-          <p className="mov-form-error" role="alert">
+          <p className="mov-err mov-campo" role="alert">
             {serverError ?? 'Revisá los campos marcados: son obligatorios.'}
           </p>
         )}
 
-        <div className="mov-modal-actions">
-          <button type="button" className="mov-btn" onClick={onCancel}>
+        <div className="mov-acciones">
+          <button type="button" className="btn btn--grow" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="mov-btn mov-btn-primary" disabled={saving}>
+          <button type="submit" className="btn btn--grow btn--primary" disabled={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
