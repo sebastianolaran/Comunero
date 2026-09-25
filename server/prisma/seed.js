@@ -33,7 +33,7 @@ const tareas = (lista) =>
 async function main() {
   await limpiar();
 
-  await prisma.asset.create({ data: { id: ASSET_ID, name: 'Casa quinta' } });
+  await prisma.asset.create({ data: { id: ASSET_ID, name: 'Casa quinta', votesNeeded: 3 } });
 
   // Ids fijos para poder usarlos como VITE_DEMO_USER_ID en el client.
   const [ana, bruno, carla, flor] = await Promise.all(
