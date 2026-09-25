@@ -41,6 +41,11 @@ enum VoteValue {
   NO
 }
 
+enum RenterRating {
+  RECOMMENDED
+  NOT_RECOMMENDED
+}
+
 // ---------- Modelos ----------
 
 model Asset {
@@ -85,23 +90,25 @@ model User {
 }
 
 model Reservation {
-  id            String            @id @default(cuid())
-  assetId       String
-  userId        String
+  id              String            @id @default(cuid())
+  assetId         String
+  userId          String
   // Solo se completa cuando type = RENTAL.
-  renterId      String?
-  startDate     DateTime
-  endDate       DateTime
-  type          ReservationType
-  status        ReservationStatus @default(PENDING)
-  note          String?
-  // Seña esperada (solo aplica a RENTAL). El pago real queda registrado
-  // como un Movement (type=INCOME) vinculado por reservationId.
-  depositAmount Int?
-  depositPaidAt DateTime?
+  renterId        String?
+  startDate       DateTime
+  endDate         DateTime
+  type            ReservationType
+  status          ReservationStatus @default(PENDING)
+  note            String?
   // Monto total pactado con el inquilino (solo aplica a RENTAL).
-  amount        Int?
-  createdAt     DateTime          @default(now())
+  amount          Int?
+  // Solo RENTAL. null = pago pendiente; una vez cargado no se vuelve atrás.
+  // El cobro queda registrado como un Movement (type=INCOME) con reservationId.
+  paidAt          DateTime?
+  // Motivo que pone el sistema al rechazarla (ej. solapamiento con un alquiler
+  // aprobado). Los rechazos de los copropietarios van en Objection.
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
   user         User                  @relation(fields: [userId], references: [id])
@@ -132,7 +139,8 @@ model Objection {
   id            String   @id @default(cuid())
   reservationId String
   userId        String
-  reason        String
+  // Opcional: se puede rechazar sin dar motivo.
+  reason        String?
   createdAt     DateTime @default(now())
 
   reservation Reservation @relation(fields: [reservationId], references: [id])
@@ -142,10 +150,12 @@ model Objection {
 }
 
 model Renter {
-  id      String @id @default(cuid())
+  id      String        @id @default(cuid())
   assetId String
   name    String
   phone   String
+  // null = sin definir: todavia nadie lo clasifico.
+  rating  RenterRating?
 
   asset        Asset               @relation(fields: [assetId], references: [id])
   reservations Reservation[]
@@ -157,14 +167,15 @@ model Renter {
 model RenterObservation {
   id            String   @id @default(cuid())
   renterId      String
-  reservationId String
+  // Opcional: una observacion es sobre el inquilino, no sobre un alquiler puntual.
+  reservationId String?
   authorId      String
   text          String
   createdAt     DateTime @default(now())
 
-  renter      Renter      @relation(fields: [renterId], references: [id])
-  reservation Reservation @relation(fields: [reservationId], references: [id])
-  author      User        @relation(fields: [authorId], references: [id])
+  renter      Renter       @relation(fields: [renterId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  author      User         @relation(fields: [authorId], references: [id])
 
   @@index([renterId])
   @@index([reservationId])

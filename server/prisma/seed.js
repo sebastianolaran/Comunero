@@ -13,6 +13,7 @@ async function limpiar() {
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });
   await prisma.rentalTask.deleteMany({ where: reservas });
+  await prisma.renterObservation.deleteMany({ where: { renter: { assetId: ASSET_ID } } });
   await prisma.reservation.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.renter.deleteMany({ where: { assetId: ASSET_ID } });
   await prisma.user.deleteMany({ where: { assetId: ASSET_ID } });
@@ -111,7 +112,7 @@ async function main() {
   );
 
   const martin = await prisma.renter.create({
-    data: { assetId: ASSET_ID, name: 'Martín Suárez', phone: '1111223344' },
+    data: { assetId: ASSET_ID, name: 'Martín Suárez', phone: '1154327788', rating: 'RECOMMENDED' },
   });
   const lucia = await prisma.renter.create({
     data: { assetId: ASSET_ID, name: 'Lucía Gómez', phone: '5491155556789' },
@@ -376,6 +377,49 @@ async function main() {
   });
 
   await cargarMovimientos({ ana, bruno, carla, flor });
+  // Historial de inquilinos: solo cuentan los alquileres aprobados cuyo último
+  // día ya pasó. Lucía Gómez (solo uno aprobado a futuro) no tiene que aparecer.
+  const aprobado = (renter, desde, hasta) =>
+    prisma.reservation.create({
+      data: {
+        assetId: ASSET_ID,
+        userId: ana.id,
+        renterId: renter.id,
+        type: 'RENTAL',
+        status: 'ACTIVE',
+        startDate: new Date(`${desde}T00:00:00.000Z`),
+        endDate: new Date(`${hasta}T00:00:00.000Z`),
+        createdAt: new Date(`${desde}T00:00:00.000Z`),
+        approvals: aprobadaPor(todos),
+      },
+    });
+
+  const [lucas, luciaF, lucrecia, lucio] = await Promise.all(
+    [
+      { name: 'Lucas Benítez', phone: '1123669503', rating: 'RECOMMENDED' },
+      { name: 'Lucía Fernández', phone: '1140000002' },
+      { name: 'Lucrecia Paz', phone: '1140000003', rating: 'RECOMMENDED' },
+      { name: 'Lucio Ramírez', phone: '1140000004', rating: 'NOT_RECOMMENDED' },
+    ].map((r) => prisma.renter.create({ data: { ...r, assetId: ASSET_ID } })),
+  );
+  await prisma.renter.update({ where: { id: alvarez.id }, data: { rating: 'NOT_RECOMMENDED' } });
+
+  await aprobado(martin, '2026-01-10', '2026-01-12');
+  await prisma.renterObservation.create({
+    data: {
+      renterId: martin.id,
+      authorId: ana.id,
+      text: 'Devolvió la llave a tiempo',
+      createdAt: new Date('2026-01-13T15:00:00.000Z'),
+    },
+  });
+  // Lucas: dos terminados y uno aprobado para noviembre, que no cuenta.
+  await aprobado(lucas, '2026-03-06', '2026-03-08');
+  await aprobado(lucas, '2026-06-19', '2026-06-21');
+  await aprobado(lucas, '2026-11-21', '2026-11-23');
+  await aprobado(luciaF, '2026-02-14', '2026-02-16');
+  await aprobado(lucrecia, '2026-04-02', '2026-04-05');
+  await aprobado(lucio, '2026-05-23', '2026-05-25');
 
   console.log(`seed ok. VITE_DEMO_ASSET_ID=${ASSET_ID} VITE_DEMO_USER_ID=${flor.id}`);
 }

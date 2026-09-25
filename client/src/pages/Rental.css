@@ -190,6 +190,25 @@
   white-space: nowrap;
 }
 
+.solicitud-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.solicitud-estado.is-pago {
+  background: transparent;
+  border: 1px solid oklch(80% 0 0);
+  color: oklch(40% 0 0);
+}
+
+.solicitud-estado.is-pagado {
+  border-color: transparent;
+  background: oklch(22% 0 0);
+  color: #fff;
+}
+
 .solicitud-meta {
   font-size: 12.5px;
   color: var(--alq-apagado);

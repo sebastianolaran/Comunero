@@ -8,7 +8,9 @@ const MAX_REASON_LENGTH = 500;
 const VOTE_ERRORS = {
   NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
   NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden votar'],
-  RESOLVED: [409, 'La solicitud ya fue resuelta: no se puede votar de nuevo'],
+  RESOLVED: [409, 'La solicitud ya fue aprobada: no se puede votar de nuevo'],
+  OVERLAP: [409, 'Las fechas se pisan con una reserva aprobada: no se puede votar mientras siga'],
+  CANCELLED: [409, 'El alquiler fue cancelado: para volver a alquilar esas fechas cargá otra solicitud'],
 };
 
 function isFilled(value) {
@@ -44,7 +46,11 @@ function parseVote(body = {}) {
   if (!VOTE_VALUES.includes(value)) return { error: 'El voto tiene que ser APPROVE o REJECT' };
   if (value === 'APPROVE') return { vote: { userId, value, reason: null } };
 
-  if (!isFilled(reason)) return { error: 'Para votar que no tenes que cargar el motivo' };
+  // El motivo es opcional al rechazar.
+  if (reason !== undefined && reason !== null && typeof reason !== 'string') {
+    return { error: 'El motivo tiene que ser texto' };
+  }
+  if (!isFilled(reason)) return { vote: { userId, value, reason: null } };
   const trimmed = reason.trim();
   if (trimmed.length > MAX_REASON_LENGTH) {
     return { error: `El motivo no puede superar los ${MAX_REASON_LENGTH} caracteres` };
@@ -91,4 +97,54 @@ async function create(req, res) {
   }
 }
 
-module.exports = { list, vote, create };
+const PAYMENT_ERRORS = {
+  NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden marcar el pago'],
+  NOT_APPROVED: [409, 'Solo se puede marcar el pago de un alquiler aprobado'],
+  ALREADY_PAID: [409, 'El alquiler ya estaba marcado como pago'],
+  NO_AMOUNT: [409, 'El alquiler no tiene monto cargado: no se puede registrar el ingreso'],
+};
+
+const CANCEL_ERRORS = {
+  NOT_FOUND: [404, 'No existe el alquiler'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden cancelar el alquiler'],
+  NOT_APPROVED: [409, 'Solo se puede cancelar un alquiler aprobado'],
+  PAID: [409, 'El alquiler ya está pago: no se puede cancelar'],
+};
+
+// Acciones de un copropietario sobre una solicitud que no llevan mas datos que el userId.
+function userAction({ run, errors, missingUser, failure }) {
+  return async (req, res) => {
+    // TODO: el userId tiene que salir de la sesion cuando exista el login.
+    const { userId } = req.body ?? {};
+    if (!isFilled(userId)) return res.status(400).json({ error: missingUser });
+
+    try {
+      const result = await run({ reservationId: req.params.id, userId });
+      if (result.error) {
+        const [status, message] = errors[result.error];
+        return res.status(status).json({ error: message });
+      }
+      res.json(result.request);
+    } catch (err) {
+      console.error(`rental-requests: ${failure}`, err);
+      res.status(500).json({ error: `No se pudo ${failure}` });
+    }
+  };
+}
+
+const markPaid = userAction({
+  run: (args) => rentalRequestService.markPaid(args),
+  errors: PAYMENT_ERRORS,
+  missingUser: 'Falta el copropietario que marca el pago',
+  failure: 'marcar el pago',
+});
+
+const cancel = userAction({
+  run: (args) => rentalRequestService.cancel(args),
+  errors: CANCEL_ERRORS,
+  missingUser: 'Falta el copropietario que cancela el alquiler',
+  failure: 'cancelar el alquiler',
+});
+
+module.exports = { list, vote, create, markPaid, cancel };

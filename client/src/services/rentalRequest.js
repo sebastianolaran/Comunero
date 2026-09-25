@@ -20,6 +20,30 @@ export async function voteRentalRequest(id, voto) {
   return body
 }
 
+// Tira un Error con el mensaje del server (ej. 409 si ya estaba pago).
+export async function markRentalPaid(id, { userId }) {
+  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? 'No se pudo marcar el pago.')
+  return body
+}
+
+// Tira un Error con el mensaje del server (ej. 409 si ya estaba pago).
+export async function cancelRental(id, { userId }) {
+  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/cancellation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? 'No se pudo cancelar el alquiler.')
+  return body
+}
+
 // Tira un Error con el mensaje del server y, si es de un campo, su nombre en .field.
 export async function createRentalRequest(solicitud) {
   const res = await fetch(`${API_URL}/api/rental-requests`, {

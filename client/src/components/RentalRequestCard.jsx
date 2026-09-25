@@ -1,4 +1,13 @@
-import { daysLabel, ESTADOS, formatMoney, formatPhone, formatRange, VOTO_TEXTO, votosLabel } from '../lib/rentalRequests'
+import {
+  daysLabel,
+  ESTADOS,
+  etiquetaPago,
+  formatMoney,
+  formatPhone,
+  formatRange,
+  VOTO_TEXTO,
+  votosLabel,
+} from '../lib/rentalRequests'
 import VoteChips from './VoteChips'
 
 // La tarjeta entera selecciona con el mouse; con teclado se entra por el nombre.
@@ -22,6 +31,7 @@ function RentalRequestCard({
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
   const monto = formatMoney(solicitud.amount)
+  const pago = etiquetaPago(solicitud)
   const clases = ['solicitud', seleccionada && 'is-seleccionada', !pendiente && 'is-resuelta']
 
   return (
@@ -37,7 +47,10 @@ function RentalRequestCard({
             {renterName ?? 'Sin interesado'}
           </button>
         </h3>
-        <span className="solicitud-estado">{ESTADOS[status] ?? status}</span>
+        <span className="solicitud-badges">
+          <span className="solicitud-estado">{ESTADOS[status] ?? status}</span>
+          {pago && <span className={`solicitud-estado is-pago${solicitud.paid ? ' is-pagado' : ''}`}>{pago}</span>}
+        </span>
       </div>
 
       {pendiente ? (
