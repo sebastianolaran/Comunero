@@ -11,7 +11,7 @@ import {
 import { commentTenant, fetchTenant, rateTenant } from '../services/tenant'
 
 // Se monta con key={tenantId}: cada inquilino arranca con estado limpio.
-function TenantDetail({ tenantId, assetId, userId, onRated }) {
+function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
   const [carga, setCarga] = useState({ estado: 'loading', detalle: null })
   const [clasificando, setClasificando] = useState({ guardando: false, error: null })
   const [borrador, setBorrador] = useState('')
@@ -64,8 +64,8 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
 
   if (carga.estado === 'loading') {
     return (
-      <aside className="detalle" aria-label="Detalle del inquilino">
-        <p className="detalle-vacio" role="status">
+      <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label="Detalle del inquilino">
+        <p className="empty" role="status">
           Cargando inquilino…
         </p>
       </aside>
@@ -74,8 +74,8 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
 
   if (carga.estado === 'error') {
     return (
-      <aside className="detalle" aria-label="Detalle del inquilino">
-        <p className="detalle-vacio" role="alert">
+      <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label="Detalle del inquilino">
+        <p className="empty" role="alert">
           No se pudo cargar el inquilino.
         </p>
       </aside>
@@ -86,28 +86,16 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
   const puedeEvaluar = Boolean(userId)
 
   return (
-    <aside className="detalle" aria-label={`Detalle de ${name}`}>
-      <h2 className="detalle-nombre">{name}</h2>
-      <p className="detalle-contacto">{formatPhone(phone)}</p>
-      {puedeEvaluar && (
-        <button
-          type="button"
-          className="nueva-abrir inquilino-nueva-solicitud"
-          onClick={() =>
-            navigate('/alquiler/solicitudes', { state: { nuevaSolicitud: solicitudPrecargada({ name, phone }) } })
-          }
-        >
-          + Nueva solicitud para este inquilino
-        </button>
-      )}
-
-      <h3 className="detalle-seccion">Clasificación</h3>
-      <div className="clasificacion-opciones" role="group" aria-label="Clasificación">
+    <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label={`Detalle de ${name}`}>
+      <h2 className="alq-det__name">{name}</h2>
+      <p className="meta alq-det__contact">{formatPhone(phone)}</p>
+      <h3 className="sect alq-det__sect">Clasificación</h3>
+      <div className="seg seg--stack alq-det__bloque" role="group" aria-label="Clasificación">
         {OPCIONES_CLASIFICACION.map((opcion) => (
           <button
             key={opcion.label}
             type="button"
-            className="clasificacion-opcion"
+            className={rating === opcion.value ? 'seg__b seg__b--on' : 'seg__b'}
             aria-pressed={rating === opcion.value}
             disabled={!puedeEvaluar || clasificando.guardando}
             onClick={() => rating !== opcion.value && clasificar(opcion.value)}
@@ -117,15 +105,15 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
         ))}
       </div>
       {clasificando.error && (
-        <p className="detalle-error" role="alert">
+        <p className="alq-err alq-det__bloque" role="alert">
           {clasificando.error}
         </p>
       )}
 
       {stays.length > 0 && (
         <>
-          <h3 className="detalle-seccion">Alquileres anteriores</h3>
-          <ul className="inquilino-estadias">
+          <h3 className="sect alq-det__sect">Alquileres anteriores</h3>
+          <ul className="alq-det__estadias">
             {stays.map((s) => (
               <li key={s.startDate}>{formatRange(s.startDate, s.endDate)}</li>
             ))}
@@ -133,15 +121,15 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
         </>
       )}
 
-      <h3 className="detalle-seccion">Observaciones</h3>
+      <h3 className="sect alq-det__sect">Observaciones</h3>
       {comments.length === 0 ? (
-        <p className="observaciones-vacio">{MENSAJE_SIN_OBSERVACIONES}</p>
+        <p className="empty alq-det__bloque">{MENSAJE_SIN_OBSERVACIONES}</p>
       ) : (
-        <ul className="observaciones">
+        <ul className="alq-det__objeciones">
           {comments.map((c) => (
-            <li key={c.id} className="observacion">
+            <li key={c.id} className="note note--body alq-obs">
               {c.text}
-              <span className="observacion-meta">{observacionMeta(c)}</span>
+              <span className="alq-obs__meta">{observacionMeta(c)}</span>
             </li>
           ))}
         </ul>
@@ -150,7 +138,7 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
       {puedeEvaluar && (
         <form onSubmit={agregarObservacion} noValidate>
           <textarea
-            className="detalle-motivo"
+            className="ta alq-det__motivo"
             placeholder="Agregar una observación"
             aria-label="Nueva observación"
             aria-invalid={Boolean(envio.error) || undefined}
@@ -160,14 +148,26 @@ function TenantDetail({ tenantId, assetId, userId, onRated }) {
             onChange={(e) => setBorrador(e.target.value)}
           />
           {envio.error && (
-            <p id={idError} className="detalle-error" role="alert">
+            <p id={idError} className="alq-err alq-det__bloque" role="alert">
               {envio.error}
             </p>
           )}
-          <button type="submit" className="detalle-boton is-primario observacion-agregar" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--block btn--primary" disabled={envio.enviando}>
             Agregar observación
           </button>
         </form>
+      )}
+
+      {puedeEvaluar && (
+        <button
+          type="button"
+          className="btn btn--block alq-det__pie"
+          onClick={() =>
+            navigate('/alquiler/solicitudes', { state: { nuevaSolicitud: solicitudPrecargada({ name, phone }) } })
+          }
+        >
+          + Nueva solicitud para este inquilino
+        </button>
       )}
     </aside>
   )

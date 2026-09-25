@@ -6,13 +6,13 @@ const vacio = (hoy) => ({ nombre: '', apellido: '', telefono: '', desde: hoy, ha
 
 function Campo({ id, label, error, className = '', children }) {
   return (
-    <div className={`nueva-campo ${className}`}>
-      <label htmlFor={id} className="nueva-label">
+    <div className={`alq-campo ${className}`}>
+      <label htmlFor={id} className="lbl">
         {label}
       </label>
       {children}
       {error && (
-        <p id={`${id}-error`} className="nueva-error">
+        <p id={`${id}-error`} className="alq-err">
           {error}
         </p>
       )}
@@ -77,30 +77,30 @@ function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
   return (
     <dialog
       ref={dialogo}
-      className="nueva-dialogo"
+      className="modal"
       aria-labelledby={idTitulo}
       onClose={onClose}
       onClick={(e) => {
         if (e.target === dialogo.current) onClose()
       }}
     >
-      <form className="nueva-form" onSubmit={enviar} noValidate>
-        <h2 id={idTitulo} className="nueva-titulo">
+      <form onSubmit={enviar} noValidate>
+        <h2 id={idTitulo} className="modal__t">
           Nueva solicitud de alquiler
         </h2>
 
-        <div className="nueva-fila">
+        <div className="alq-fila">
           <Campo id={`${id}-nombre`} label="Nombre" error={errores.nombre}>
-            <input className="nueva-input" placeholder="Ej: Javier" autoComplete="off" {...input('nombre')} />
+            <input className="in" placeholder="Ej: Javier" autoComplete="off" {...input('nombre')} />
           </Campo>
           <Campo id={`${id}-apellido`} label="Apellido" error={errores.apellido}>
-            <input className="nueva-input" placeholder="Ej: Peralta" autoComplete="off" {...input('apellido')} />
+            <input className="in" placeholder="Ej: Peralta" autoComplete="off" {...input('apellido')} />
           </Campo>
         </div>
 
         <Campo id={`${id}-telefono`} label="Teléfono (clave de identificación)" error={errores.telefono}>
           <input
-            className="nueva-input"
+            className="in"
             type="tel"
             inputMode="tel"
             placeholder="Ej: 11 5512-8890"
@@ -109,38 +109,38 @@ function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
           />
         </Campo>
 
-        <div className="nueva-fila">
-          <Campo id={`${id}-desde`} label="Desde" error={errores.desde} className="is-fecha">
-            <input className="nueva-input" type="date" min={hoyLocal()} {...input('desde')} />
+        <div className="alq-fila">
+          <Campo id={`${id}-desde`} label="Desde" error={errores.desde}>
+            <input className="in" type="date" min={hoyLocal()} {...input('desde')} />
           </Campo>
-          <Campo id={`${id}-hasta`} label="Hasta" error={errores.hasta} className="is-fecha">
-            <input className="nueva-input" type="date" min={borrador.desde || hoyLocal()} {...input('hasta')} />
+          <Campo id={`${id}-hasta`} label="Hasta" error={errores.hasta}>
+            <input className="in" type="date" min={borrador.desde || hoyLocal()} {...input('hasta')} />
           </Campo>
         </div>
 
         <Campo id={`${id}-monto`} label="Monto" error={errores.monto}>
-          <input className="nueva-input" inputMode="numeric" placeholder="0" {...input('monto')} />
+          <input className="in" inputMode="numeric" placeholder="0" {...input('monto')} />
         </Campo>
 
         <Campo id={`${id}-comentarios`} label="Comentarios" error={errores.comentarios}>
           <textarea
-            className="nueva-input nueva-comentarios"
+            className="ta"
             placeholder="Ej: 4 personas, ya alquilaron antes"
             {...input('comentarios')}
           />
         </Campo>
 
         {envio.error && (
-          <p className="nueva-error is-general" role="alert">
+          <p className="alq-err alq-err--general" role="alert">
             {envio.error}
           </p>
         )}
 
-        <div className="detalle-acciones">
-          <button type="button" className="detalle-boton nueva-cancelar" onClick={onClose}>
+        <div className="alq-det__acciones">
+          <button type="button" className="btn btn--grow" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="detalle-boton is-primario" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--grow btn--primary" disabled={envio.enviando}>
             {envio.enviando ? 'Creando…' : 'Crear solicitud'}
           </button>
         </div>

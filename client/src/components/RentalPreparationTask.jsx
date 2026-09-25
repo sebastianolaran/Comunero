@@ -13,23 +13,22 @@ function RentalPreparationTask({ tarea, coowners, ocupada, onTildar, onReasignar
 
   return (
     <li
-      className={['preparacion-tarea', completed && 'is-hecha'].filter(Boolean).join(' ')}
+      className="prep__tarea"
       aria-busy={ocupada || undefined}
     >
       {/* El checkbox es nativo: el lector de pantalla anuncia solo si está hecha. */}
-      <label className="preparacion-tarea-nombre">
+      <label className="prep__tarea-nombre">
         <input
           type="checkbox"
-          className="preparacion-casilla"
           checked={completed}
           onChange={(evento) => onTildar(tarea, evento.target.checked)}
         />
-        <span>{name}</span>
+        <span className={completed ? 'task__t task__t--done' : 'task__t'}>{name}</span>
       </label>
 
       {Array.isArray(coowners) ? (
         <select
-          className="preparacion-responsable"
+          className="sel"
           aria-label={`Responsable de ${name}`}
           value={assignedTo.id}
           onChange={(evento) => onReasignar(tarea, evento.target.value)}
@@ -41,12 +40,12 @@ function RentalPreparationTask({ tarea, coowners, ocupada, onTildar, onReasignar
           ))}
         </select>
       ) : (
-        <span className="preparacion-responsable-texto">Responsable: {assignedTo.name}</span>
+        <span className="meta">Responsable: {assignedTo.name}</span>
       )}
 
       <button
         type="button"
-        className="preparacion-eliminar"
+        className="btn btn--sm btn--bare prep__eliminar"
         aria-label={`Eliminar tarea ${name}`}
         onClick={() => onEliminar(tarea)}
       >

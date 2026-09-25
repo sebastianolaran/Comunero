@@ -2,7 +2,6 @@ import { useId, useState } from 'react'
 import {
   daysLabel,
   ESTADOS,
-  etiquetaPago,
   formatMoney,
   formatPhone,
   formatRange,
@@ -13,6 +12,7 @@ import {
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
+import PagoTag from './PagoTag'
 import VoteChips from './VoteChips'
 
 // Acciones sobre un alquiler aprobado: las dos piden confirmar porque no se pueden deshacer.
@@ -33,6 +33,7 @@ const ACCIONES = {
 // modo: 'ver' | 'rechazar' | 'cambiar' | 'pagar' | 'cancelar' (Cambiar voto vuelve a mostrar
 // Aprobar/Rechazar; pagar y cancelar muestran su confirmación).
 function RentalRequestDetail({
+  ref,
   solicitud,
   modo,
   envio,
@@ -51,10 +52,14 @@ function RentalRequestDetail({
 
   if (!solicitud) {
     return (
-      <aside className="detalle" aria-label="Detalle de la solicitud">
-        <p className="detalle-vacio">
+      <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label="Detalle de la solicitud">
+        <div className="empty empty--rail">
+          <svg className="empty__i" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v11H8l-4 4z" />
+            <path d="M8 9h8M8 12.5h5" />
+          </svg>
           Elegí una solicitud para ver el detalle completo, la votación y las objeciones.
-        </p>
+        </div>
       </aside>
     )
   }
@@ -66,7 +71,6 @@ function RentalRequestDetail({
   const rechazando = abierta && modo === 'rechazar'
   const mostrarVotar = abierta && !rechazando && (!vote || modo === 'cambiar')
   const mostrarMiVoto = abierta && !rechazando && vote && modo !== 'cambiar'
-  const pago = etiquetaPago(solicitud)
   const disponibles = {
     pagar: puedeMarcarPago(solicitud),
     cancelar: puedeCancelar(solicitud),
@@ -75,14 +79,14 @@ function RentalRequestDetail({
   const botones = Object.keys(ACCIONES).filter((accion) => disponibles[accion])
 
   return (
-    <aside className="detalle" aria-label={`Detalle de la solicitud de ${nombre}`}>
-      <h2 className="detalle-nombre">{nombre}</h2>
-      {renterPhone && <p className="detalle-contacto">{formatPhone(renterPhone)}</p>}
-      <div className="detalle-badges">
-        <span className="solicitud-estado">{ESTADOS[status] ?? status}</span>
-        {pago && <span className={`solicitud-estado is-pago${solicitud.paid ? ' is-pagado' : ''}`}>{pago}</span>}
+    <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label={`Detalle de la solicitud de ${nombre}`}>
+      <h2 className="alq-det__name">{nombre}</h2>
+      {renterPhone && <p className="meta alq-det__contact">{formatPhone(renterPhone)}</p>}
+      <div className="alq-badges alq-det__badges">
+        <PagoTag solicitud={solicitud} />
+        <span className="badge">{ESTADOS[status] ?? status}</span>
       </div>
-      <p className="detalle-fechas">
+      <p className="alq-det__fechas">
         {`${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`}
         {solicitud.amount != null && (
           <>
@@ -91,16 +95,16 @@ function RentalRequestDetail({
           </>
         )}
       </p>
-      {comments && <p className="detalle-comentario">{comments}</p>}
+      {comments && <p className="note alq-det__bloque">{comments}</p>}
 
-      <h3 className="detalle-seccion">Votación · {votosLabel(solicitud)}</h3>
+      <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>
       <VoteChips votes={solicitud.votes} />
 
       {(rejections.length > 0 || rejectionReason) && (
-        <ul className="detalle-objeciones">
-          {rejectionReason && <li>{rejectionReason}</li>}
+        <ul className="alq-det__objeciones">
+          {rejectionReason && <li className="note">{rejectionReason}</li>}
           {rejections.map((r, i) => (
-            <li key={r.name ?? i}>
+            <li key={r.name ?? i} className="note">
               Objeción de {r.name}: {motivoRechazo(r.reason)}
             </li>
           ))}
@@ -108,22 +112,22 @@ function RentalRequestDetail({
       )}
 
       {solicitud.blockedByOverlap && (
-        <p className="detalle-nota">
+        <p className="hint alq-det__bloque">
           Se pisa con una reserva aprobada: no se puede votar mientras esa reserva siga en pie.
         </p>
       )}
 
       {status === 'APPROVED' && (
-        <p className="detalle-nota">Aprobada por unanimidad: ya quedó reservada en el calendario.</p>
+        <p className="hint alq-det__bloque">Aprobada por unanimidad: ya quedó reservada en el calendario.</p>
       )}
 
       {puedeVotar && !confirmando && botones.length > 0 && (
-        <div className="detalle-acciones">
+        <div className="alq-det__acciones">
           {botones.map((accion, i) => (
             <button
               key={accion}
               type="button"
-              className={i === 0 ? 'detalle-boton is-primario' : 'detalle-boton'}
+              className={i === 0 ? 'btn btn--grow btn--primary' : 'btn btn--grow'}
               onClick={() => onOpenAction(accion)}
               disabled={envio.enviando}
             >
@@ -134,15 +138,15 @@ function RentalRequestDetail({
       )}
 
       {puedeVotar && confirmando && (
-        <div className="detalle-rechazo">
-          <p className="detalle-nota">{ACCIONES[confirmando].aviso(solicitud)}</p>
-          <div className="detalle-acciones">
-            <button type="button" className="detalle-boton" onClick={onCancelAction} disabled={envio.enviando}>
+        <div className="alq-det__confirma">
+          <p className="hint alq-det__bloque">{ACCIONES[confirmando].aviso(solicitud)}</p>
+          <div className="alq-det__acciones">
+            <button type="button" className="btn btn--grow" onClick={onCancelAction} disabled={envio.enviando}>
               Volver
             </button>
             <button
               type="button"
-              className="detalle-boton is-confirmar"
+              className="btn btn--grow btn--primary"
               onClick={() => onConfirmAction(confirmando)}
               disabled={envio.enviando}
             >
@@ -153,38 +157,38 @@ function RentalRequestDetail({
       )}
 
       {!puedeVotar && pendiente && (
-        <p className="detalle-nota">No encontramos tu sesión. Volvé a entrar para poder votar.</p>
+        <p className="hint alq-det__bloque">No encontramos tu sesión. Volvé a entrar para poder votar.</p>
       )}
 
       {puedeVotar && mostrarVotar && (
-        <div className="detalle-acciones">
+        <div className="alq-det__acciones">
           <button
             type="button"
-            className="detalle-boton is-primario"
+            className="btn btn--grow btn--primary"
             onClick={onApprove}
             disabled={envio.enviando}
           >
             Aprobar
           </button>
-          <button type="button" className="detalle-boton" onClick={onOpenReject} disabled={envio.enviando}>
+          <button type="button" className="btn btn--grow" onClick={onOpenReject} disabled={envio.enviando}>
             Rechazar
           </button>
         </div>
       )}
 
       {puedeVotar && mostrarMiVoto && (
-        <div className="voto-actual is-detalle">
+        <div className="alq-mivoto alq-mivoto--det">
           <span>Tu voto: {VOTO_TEXTO[vote]}</span>
-          <button type="button" className="voto-cambiar" onClick={onChangeVote}>
+          <button type="button" className="btn btn--link" onClick={onChangeVote}>
             Cambiar voto
           </button>
         </div>
       )}
 
       {puedeVotar && rechazando && (
-        <div className="detalle-rechazo">
+        <div className="alq-det__confirma">
           <textarea
-            className="detalle-motivo"
+            className="ta alq-det__motivo"
             placeholder="Motivo del rechazo (opcional)"
             aria-label="Motivo del rechazo (opcional)"
             maxLength={500}
@@ -193,13 +197,13 @@ function RentalRequestDetail({
             aria-invalid={envio.error ? true : undefined}
             aria-describedby={envio.error ? idError : undefined}
           />
-          <div className="detalle-acciones">
-            <button type="button" className="detalle-boton" onClick={onCancelReject} disabled={envio.enviando}>
+          <div className="alq-det__acciones">
+            <button type="button" className="btn btn--grow" onClick={onCancelReject} disabled={envio.enviando}>
               Volver
             </button>
             <button
               type="button"
-              className="detalle-boton is-confirmar"
+              className="btn btn--grow btn--primary"
               onClick={() => onSubmitReject(motivo)}
               disabled={envio.enviando}
             >
@@ -210,7 +214,7 @@ function RentalRequestDetail({
       )}
 
       {envio.error && (
-        <p id={idError} className="voto-error" role="alert">
+        <p id={idError} className="alq-err" role="alert">
           {envio.error}
         </p>
       )}

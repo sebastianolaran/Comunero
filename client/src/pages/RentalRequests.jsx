@@ -6,6 +6,7 @@ import RentalRequestDetail from '../components/RentalRequestDetail'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
+import { useDetalleEnMobile } from '../lib/useDetalleEnMobile'
 import {
   cancelRental,
   createRentalRequest,
@@ -24,16 +25,27 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const location = useLocation()
   const navigate = useNavigate()
-  // Viene del historial de inquilinos con el nombre y el teléfono para precargar el alta.
-  const [precarga, setPrecarga] = useState(() => location.state?.nuevaSolicitud ?? null)
-  const [nuevaAbierta, setNuevaAbierta] = useState(() => Boolean(location.state?.nuevaSolicitud))
+  // El alta se abre con este state: lo mandan "+ Nueva solicitud" de la barra de
+  // Alquiler y el historial de inquilinos (con nombre y teléfono para precargar).
+  // Si la página ya estaba montada, el state llega en una navegación nueva
+  // (otro location.key) y se atiende durante el render.
+  const pedida = location.state?.nuevaSolicitud
+  const [precarga, setPrecarga] = useState(() => pedida ?? null)
+  const [nuevaAbierta, setNuevaAbierta] = useState(() => Boolean(pedida))
+  const [pedidoAtendido, setPedidoAtendido] = useState(() => (pedida ? location.key : null))
+  if (pedida && pedidoAtendido !== location.key) {
+    setPedidoAtendido(location.key)
+    setPrecarga(pedida)
+    setNuevaAbierta(true)
+  }
+  const [detalleRef, mostrarDetalle] = useDetalleEnMobile()
   const idPendientes = useId()
   const idResueltas = useId()
 
-  // Se limpia el state del historial para que recargar la página no vuelva a abrir el alta.
+  // Se limpia el state para que recargar la página no vuelva a abrir el alta.
   useEffect(() => {
-    if (location.state?.nuevaSolicitud) navigate(location.pathname, { replace: true, state: null })
-  }, [location, navigate])
+    if (pedida) navigate(location.pathname, { replace: true, state: null })
+  }, [pedida, location.pathname, navigate])
 
   const cerrarNueva = () => {
     setNuevaAbierta(false)
@@ -113,14 +125,12 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   }
 
   if (!assetId) {
-    return (
-      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
-    )
+    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
 
   if (carga.estado === 'loading') {
     return (
-      <p className="aviso" role="status">
+      <p className="panel empty" role="status">
         Cargando solicitudes…
       </p>
     )
@@ -128,12 +138,10 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
 
   if (carga.estado === 'error') {
     return (
-      <div className="aviso" role="alert">
+      <div className="panel empty empty--rail" role="alert">
         <p>No se pudieron cargar las solicitudes.</p>
-        <p className="aviso-hint">
-          Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.
-        </p>
-        <button type="button" className="aviso-reintentar" onClick={reintentar}>
+        <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
+        <button type="button" className="btn btn--sm" onClick={reintentar}>
           Reintentar
         </button>
       </div>
@@ -141,17 +149,12 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   }
 
   const cabecera = (
-    <div className="solicitudes-cabecera">
+    <>
       {carga.solicitudes.length > 0 && (
-        <p className="solicitudes-regla">
+        <p className="hint alq-regla">
           Cada alquiler requiere la aprobación de los {carga.solicitudes[0].coownerCount}{' '}
-          copropietarios
+          copropietarios.
         </p>
-      )}
-      {userId && (
-        <button type="button" className="nueva-abrir" onClick={() => setNuevaAbierta(true)}>
-          + Nueva solicitud
-        </button>
       )}
       <NewRentalRequestModal
         abierto={nuevaAbierta}
@@ -159,15 +162,15 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
         onClose={cerrarNueva}
         onCreate={crear}
       />
-    </div>
+    </>
   )
 
   if (carga.solicitudes.length === 0) {
     return (
-      <div className="solicitudes">
+      <>
         {cabecera}
-        <p className="aviso">Todavía no hay solicitudes de alquiler para este bien.</p>
-      </div>
+        <p className="panel empty">Todavía no hay solicitudes de alquiler para este bien.</p>
+      </>
     )
   }
 
@@ -182,7 +185,10 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       seleccionada={s.id === seleccion}
       puedeVotar={puedeVotar}
       enviando={envio.enviando}
-      onSelect={() => seleccionar(s.id)}
+      onSelect={() => {
+        seleccionar(s.id)
+        mostrarDetalle()
+      }}
       onApprove={() => {
         seleccionar(s.id)
         votar(s.id, { value: 'APPROVE' })
@@ -193,33 +199,34 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   )
 
   return (
-    <div className="solicitudes">
+    <>
       {cabecera}
 
-      <div className="solicitudes-layout">
-        <div className="solicitudes-lista">
-          <section aria-labelledby={idPendientes}>
-            <h2 id={idPendientes} className="solicitudes-grupo">
+      <div className="split alq-split">
+        <div className="split__main">
+          <section aria-labelledby={idPendientes} className="alq-grupo">
+            <h2 id={idPendientes} className="sect alq-grupo__t">
               Pendientes de aprobación
             </h2>
             {pendientes.length === 0 ? (
-              <p className="solicitudes-vacio">No hay solicitudes esperando votación.</p>
+              <p className="empty">No hay solicitudes esperando votación.</p>
             ) : (
-              pendientes.map(tarjeta)
+              <div className="alq-lista">{pendientes.map(tarjeta)}</div>
             )}
           </section>
 
           {resueltas.length > 0 && (
-            <section aria-labelledby={idResueltas} className="solicitudes-resueltas">
-              <h2 id={idResueltas} className="solicitudes-grupo">
+            <section aria-labelledby={idResueltas} className="alq-grupo">
+              <h2 id={idResueltas} className="sect alq-grupo__t">
                 Resueltas
               </h2>
-              {resueltas.map(tarjeta)}
+              <div className="alq-lista alq-lista--resueltas">{resueltas.map(tarjeta)}</div>
             </section>
           )}
         </div>
 
         <RentalRequestDetail
+          ref={detalleRef}
           key={seleccion ?? 'ninguna'}
           solicitud={seleccionada}
           modo={modo}
@@ -247,7 +254,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
           onConfirmAction={(accion) => accionar(seleccion, accion)}
         />
       </div>
-    </div>
+    </>
   )
 }
 
