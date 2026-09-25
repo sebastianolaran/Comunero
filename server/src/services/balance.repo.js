@@ -83,6 +83,15 @@ async function createClosing({ assetId, fromUserId, toUserId, amount, detail, mo
   return settlement;
 }
 
+// Guarda un pago parcial con fecha de ahora. No cierra nada: queda en el
+// periodo abierto hasta que un saldo cerrado lo absorba (closedById).
+async function createPartialPayment({ assetId, fromUserId, toUserId, amount }, db) {
+  return db.settlement.create({
+    data: { assetId, fromUserId, toUserId, amount, date: new Date(), closesBalance: false },
+    include: { fromUser: userName, toUser: userName },
+  });
+}
+
 module.exports = {
   assetExists,
   listCoowners,
@@ -91,4 +100,5 @@ module.exports = {
   inTransaction,
   isSerializationFailure,
   createClosing,
+  createPartialPayment,
 };

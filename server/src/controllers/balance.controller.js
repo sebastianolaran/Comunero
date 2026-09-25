@@ -49,4 +49,24 @@ async function close(req, res) {
   }
 }
 
-module.exports = { get, close };
+// POST /api/balances/partial { assetId, fromUserId, toUserId, amount } -> 201
+// con { payment, remaining }. Pago parcial de fromUserId a toUserId: amount
+// tiene que ser menor que la deuda vigente (si no, 409 con currentAmount).
+// TODO: cuando exista el login, fromUserId (quien pide) tiene que salir de la
+// sesion: hoy cualquiera puede mandarlo en nombre de otro.
+async function partial(req, res) {
+  const { assetId, fromUserId, toUserId, amount } = req.body ?? {};
+  if (!isFilled(assetId)) return res.status(400).json({ error: 'Falta el campo assetId' });
+  if (!isFilled(fromUserId)) return res.status(400).json({ error: 'Falta el campo fromUserId' });
+  if (!isFilled(toUserId)) return res.status(400).json({ error: 'Falta el campo toUserId' });
+  if (!Number.isInteger(amount)) return res.status(400).json({ error: 'El monto tiene que ser un número entero' });
+  if (amount <= 0) return res.status(400).json({ error: 'El monto tiene que ser mayor a $0' });
+
+  try {
+    res.status(201).json(await balanceService.payPartial({ assetId, fromUserId, toUserId, amount }));
+  } catch (err) {
+    sendError(res, err);
+  }
+}
+
+module.exports = { get, close, partial };
