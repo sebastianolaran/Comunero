@@ -66,3 +66,19 @@ const FECHA = new Intl.DateTimeFormat('es-AR', {
 export function textoFecha(createdAt) {
   return `Propuesta el ${FECHA.format(new Date(createdAt))}`
 }
+
+const VOTOS = { YES: 'Sí', NO: 'No' }
+
+export const OPCIONES_VOTO = [
+  { value: 'YES', label: VOTOS.YES },
+  { value: 'NO', label: VOTOS.NO },
+]
+
+// Sí/No para quien no votó o tocó el lápiz; si no, "Tu voto".
+export function mostrarBotones({ myVote }, editando) {
+  return !myVote || editando
+}
+
+export function textoTuVoto(myVote) {
+  return `Tu voto: ${VOTOS[myVote]}`
+}

@@ -315,3 +315,98 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.decision-botones {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.decision-voto {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  min-width: 52px;
+  padding: 6px 14px;
+  border: 1px solid var(--dec-borde-fuerte);
+  border-radius: 3px;
+  background: var(--dec-tarjeta);
+  color: var(--dec-texto-2);
+  cursor: pointer;
+}
+
+.decision-voto:hover {
+  background: var(--dec-hover);
+  color: var(--dec-texto);
+}
+
+.decision-voto[aria-pressed='true'],
+.decision-voto[aria-pressed='true']:hover {
+  border-color: transparent;
+  background: var(--dec-activo);
+  color: var(--dec-activo-texto);
+}
+
+.decision-voto:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.decision-tu-voto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--dec-apagado);
+}
+
+.decision-editar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dec-apagado);
+  cursor: pointer;
+}
+
+.decision-editar:hover {
+  background: var(--dec-hover);
+  color: var(--dec-texto);
+}
+
+.decision-editar svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.decision-voto:focus-visible,
+.decision-editar:focus-visible {
+  outline: 2px solid var(--dec-activo);
+  outline-offset: 2px;
+}
+
+.decision-error {
+  font-size: 12px;
+  color: oklch(45% 0.18 25);
+  margin: 6px 0 0;
+}
+
+.decisiones-cerrada {
+  font-size: 13px;
+  color: var(--dec-texto-2);
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--dec-borde-fuerte);
+  border-radius: 4px;
+  background: var(--dec-tarjeta);
+}
