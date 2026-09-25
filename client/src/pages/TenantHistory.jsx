@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import TenantDetail from '../components/TenantDetail'
-import { ASSET_ID } from '../lib/currentAsset'
-import { USER_ID } from '../lib/currentUser'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import { formatPhone } from '../lib/rentalRequests'
 import { alquileresLabel, clasificacion, conClasificacion, mensajeVacio } from '../lib/tenants'
 import { fetchTenants } from '../services/tenant'
@@ -9,7 +9,7 @@ import './TenantHistory.css'
 
 const DEBOUNCE_MS = 250
 
-function TenantHistory({ assetId = ASSET_ID, userId = USER_ID }) {
+function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
   const [busqueda, setBusqueda] = useState('')
   const [carga, setCarga] = useState({ estado: 'loading', inquilinos: [], busqueda: '' })
   const [intento, setIntento] = useState(0)
@@ -48,9 +48,7 @@ function TenantHistory({ assetId = ASSET_ID, userId = USER_ID }) {
 
   if (!assetId) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 

@@ -1,3 +1,12 @@
-// TODO: sacar el assetId del usuario logueado (GET /api/me) cuando exista
-// auth. Mismo placeholder que usan RentalRequests y RentalPreparations.
-export const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
+import { leerSesion } from './session'
+
+// El bien del usuario que entró. Se lee en cada llamada y no una vez al
+// importar el módulo: en una SPA, loguearse no recarga la página, así que un
+// valor capturado al arranque se quedaría en null para siempre.
+export function assetIdActual() {
+  return leerSesion()?.assetId ?? null
+}
+
+export function assetNameActual() {
+  return leerSesion()?.assetName ?? null
+}

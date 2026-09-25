@@ -65,9 +65,13 @@ model User {
   id           String @id @default(cuid())
   assetId      String
   name         String
+  // Con el que se entra a la app. Se guarda normalizado (minúsculas, sin
+  // espacios alrededor) para que el login no dependa de cómo se escriba.
+  email        String @unique
   // Solo dígitos, con código de país incluido (ej: 5491122334455). Sin
   // guiones, espacios ni el signo "+". Se normaliza antes de guardar.
   phone        String @unique
+  // scrypt$<salt hex>$<derivada hex>, generado por src/lib/password.js.
   passwordHash String
 
   asset Asset @relation(fields: [assetId], references: [id])

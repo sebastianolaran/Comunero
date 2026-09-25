@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router'
 import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
 import {
   cancelRental,
@@ -14,11 +16,7 @@ import {
 
 const ACCIONES = { pagar: markRentalPaid, cancelar: cancelRental }
 
-// TODO: usar el bien del usuario logueado cuando exista el login.
-const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
-const USER_ID = import.meta.env.VITE_DEMO_USER_ID
-
-function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
+function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) {
   const [carga, setCarga] = useState({ estado: 'loading', solicitudes: [] })
   const [intento, setIntento] = useState(0)
   const [seleccion, setSeleccion] = useState(null)
@@ -116,9 +114,7 @@ function RentalRequests({ assetId = ASSET_ID, userId = USER_ID }) {
 
   if (!assetId) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 

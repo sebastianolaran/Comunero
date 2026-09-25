@@ -1,7 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { RequiereSesion, SoloSinSesion } from './components/SesionGuard'
 import AppLayout from './layouts/AppLayout'
 import Calendario from './pages/Calendario'
 import Movimientos from './pages/Movimientos'
+import Login from './pages/Login'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
 import Rental from './pages/Rental'
 import RentalPreparations from './pages/RentalPreparations'
@@ -25,8 +27,20 @@ const PANTALLAS = {
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: (
+      <SoloSinSesion>
+        <Login />
+      </SoloSinSesion>
+    ),
+  },
+  {
     path: '/',
-    element: <AppLayout />,
+    element: (
+      <RequiereSesion>
+        <AppLayout />
+      </RequiereSesion>
+    ),
     children: [
       // Al entrar sin elegir nada, arranca en Calendario.
       { index: true, element: <Navigate to="calendario" replace /> },

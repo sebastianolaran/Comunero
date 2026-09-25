@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import MovementModal from '../components/MovementModal'
 import MovementsTable from '../components/MovementsTable'
-import { ASSET_ID } from '../lib/currentAsset'
-import { USER_ID } from '../lib/currentUser'
+import { assetIdActual } from '../lib/currentAsset'
+import { userIdActual } from '../lib/currentUser'
 import { draftFromMovement, emptyDraft } from '../lib/movementDraft'
 import {
   addMonths,
@@ -26,7 +26,7 @@ const FILTERS = [
 const tone = (amount) => (amount > 0 ? 'pos' : amount < 0 ? 'neg' : 'muted')
 
 function Movimientos() {
-  const quien = useMemo(() => ({ assetId: ASSET_ID, userId: USER_ID }), [])
+  const quien = useMemo(() => ({ assetId: assetIdActual(), userId: userIdActual() }), [])
   const [coowners, setCoowners] = useState(null)
   const [periods, setPeriods] = useState(null) // { current, periods }
   const [period, setPeriod] = useState(null)
@@ -36,7 +36,7 @@ function Movimientos() {
   const [modal, setModal] = useState(null) // { movementId, draft }
   const [toDelete, setToDelete] = useState(null) // { movement, busy, error }
   const [version, setVersion] = useState(0)
-  const configurado = Boolean(ASSET_ID && USER_ID)
+  const configurado = Boolean(quien.assetId && quien.userId)
 
   useEffect(() => {
     if (!configurado) return undefined
@@ -86,7 +86,7 @@ function Movimientos() {
   const coownerIds = coowners ? coowners.map((coowner) => coowner.id) : []
 
   const openCreate = () =>
-    setModal({ movementId: null, draft: emptyDraft({ meId: USER_ID, coownerIds, today: todayISO() }) })
+    setModal({ movementId: null, draft: emptyDraft({ meId: quien.userId, coownerIds, today: todayISO() }) })
   const openEdit = (movement) => setModal({ movementId: movement.id, draft: draftFromMovement(movement) })
 
   // Un alta se muestra en su mes, por si se cargo en otro periodo. Una edicion
@@ -114,10 +114,7 @@ function Movimientos() {
 
   if (!configurado) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> y <code>VITE_DEMO_USER_ID</code> en{' '}
-        <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 
@@ -209,7 +206,7 @@ function Movimientos() {
 
           <MovementsTable
             movements={data.movements}
-            meId={USER_ID}
+            meId={quien.userId}
             emptyText={`No hay ${filterDef.empty} en ${periodLabel(period)}.`}
             onEdit={openEdit}
             onDelete={(movement) => setToDelete({ movement, busy: false, error: null })}

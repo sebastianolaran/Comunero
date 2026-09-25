@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
 import RentalPreparationCard from '../components/RentalPreparationCard'
+import { assetIdActual } from '../lib/currentAsset'
 import { actualizarTarea, agregarTarea, quitarTarea } from '../lib/rentalPreparations'
 import { fetchRentalPreparations } from '../services/rentalPreparation'
 import './RentalPreparations.css'
 
-// TODO: usar el bien del usuario logueado cuando exista el login.
-const ASSET_ID = import.meta.env.VITE_DEMO_ASSET_ID
-
 // Alquileres aprobados con sus tareas y responsables. Se pueden agregar tareas,
 // tildarlas, reasignarlas y eliminarlas.
-function RentalPreparations({ assetId = ASSET_ID }) {
+function RentalPreparations({ assetId = assetIdActual() }) {
   const [carga, setCarga] = useState({ estado: 'loading', alquileres: [] })
   const [intento, setIntento] = useState(0)
 
@@ -58,9 +56,7 @@ function RentalPreparations({ assetId = ASSET_ID }) {
 
   if (!assetId) {
     return (
-      <p className="aviso">
-        Falta configurar <code>VITE_DEMO_ASSET_ID</code> en <code>client/.env</code>.
-      </p>
+      <p className="aviso">No encontramos tu sesión. Volvé a entrar.</p>
     )
   }
 
