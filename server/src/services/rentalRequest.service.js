@@ -121,7 +121,7 @@ async function listByAsset(assetId, userId) {
   );
 }
 
-// Unanimidad literal: cuenta todos los copropietarios, no Asset.votesNeeded.
+// Unanimidad literal: cuenta todos los copropietarios.
 function nextStatus(value, approvals, coownerCount) {
   if (value === 'REJECT') return 'REJECTED';
   if (coownerCount > 0 && approvals >= coownerCount) return 'APPROVED';
