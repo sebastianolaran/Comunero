@@ -56,25 +56,23 @@ function useDecisiones(fetcher, assetId, version = 0) {
 function Aviso({ carga, reintentar, texto, vacio }) {
   if (carga.estado === 'loading') {
     return (
-      <p className="decisiones-aviso" role="status">
+      <p className="empty dec-aviso" role="status">
         Cargando decisiones…
       </p>
     )
   }
   if (carga.estado === 'error') {
     return (
-      <div className="decisiones-aviso" role="alert">
+      <div className="note dec-aviso" role="alert">
         <p>{texto}</p>
-        <p className="decisiones-aviso-hint">
-          Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.
-        </p>
-        <button type="button" className="decisiones-reintentar" onClick={reintentar}>
+        <p>Si el backend estuvo inactivo, el primer pedido puede tardar hasta un minuto.</p>
+        <button type="button" className="btn btn--sm dec-reintentar" onClick={reintentar}>
           Reintentar
         </button>
       </div>
     )
   }
-  return <p className="decisiones-aviso">{vacio}</p>
+  return <p className="empty dec-aviso">{vacio}</p>
 }
 
 function Votacion({ decision, onVotar }) {
@@ -94,16 +92,16 @@ function Votacion({ decision, onVotar }) {
 
   if (!mostrarBotones(decision, editando)) {
     return (
-      <div className="decision-tu-voto">
+      <div className="dec-tu-voto">
         {textoTuVoto(decision.myVote)}
         <button
           type="button"
-          className="decision-editar"
+          className="btn btn--icon btn--bare btn--xs"
           aria-label="Cambiar voto"
           title="Cambiar voto"
           onClick={() => setEditando(true)}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
           </svg>
@@ -114,12 +112,12 @@ function Votacion({ decision, onVotar }) {
 
   return (
     <>
-      <div className="decision-botones" role="group" aria-label={`Votar "${decision.title}"`}>
+      <div className="dec-botones" role="group" aria-label={`Votar "${decision.title}"`}>
         {OPCIONES_VOTO.map(({ value, label }) => (
           <button
             key={value}
             type="button"
-            className="decision-voto"
+            className={decision.myVote === value ? 'btn btn--sm btn--primary' : 'btn btn--sm'}
             aria-pressed={decision.myVote === value}
             disabled={envio.enviando}
             onClick={() => votar(value)}
@@ -129,7 +127,7 @@ function Votacion({ decision, onVotar }) {
         ))}
       </div>
       {envio.error && (
-        <p className="decision-error" role="alert">
+        <p className="dec-err" role="alert">
           {envio.error}
         </p>
       )}
@@ -140,14 +138,14 @@ function Votacion({ decision, onVotar }) {
 function DecisionAbierta({ decision, onVotar }) {
   const monto = textoMonto(decision.estimated)
   return (
-    <article className="decision">
-      <div className="decision-cabecera">
-        <h3 className="decision-titulo">{decision.title}</h3>
-        <span className="decision-estado">{ESTADOS[decision.status] ?? decision.status}</span>
+    <article className="card card--pad dec-card">
+      <div className="dec-card__top">
+        <h3 className="dec-card__t">{decision.title}</h3>
+        <span className="badge">{ESTADOS[decision.status] ?? decision.status}</span>
       </div>
-      <p className="decision-fecha">{textoFecha(decision.createdAt)}</p>
-      {monto && <p className="decision-monto">{monto}</p>}
-      <p className="decision-votos">{textoVotos(decision)}</p>
+      <p className="dec-meta">{textoFecha(decision.createdAt)}</p>
+      {monto && <p className="dec-meta">{monto}</p>}
+      <p className="dec-votos">{textoVotos(decision)}</p>
       <Votacion decision={decision} onVotar={onVotar} />
     </article>
   )
@@ -156,13 +154,13 @@ function DecisionAbierta({ decision, onVotar }) {
 function DecisionCerrada({ decision }) {
   const monto = textoMonto(decision.estimated)
   return (
-    <article className="decision">
-      <div className="decision-cabecera">
-        <h3 className="decision-titulo">{decision.title}</h3>
-        <span className="decision-estado">{ESTADOS[decision.status] ?? decision.status}</span>
+    <article className="card card--pad dec-card dec-card--cerrada">
+      <div className="dec-card__top">
+        <h3 className="dec-card__t">{decision.title}</h3>
+        <span className="badge">{ESTADOS[decision.status] ?? decision.status}</span>
       </div>
-      {monto && <p className="decision-monto">{monto}</p>}
-      <p className="decision-votos">{textoVotos(decision)}</p>
+      {monto && <p className="dec-meta">{monto}</p>}
+      <p className="dec-votos">{textoVotos(decision)}</p>
     </article>
   )
 }
@@ -202,24 +200,24 @@ function EnVotacion({ assetId, onCerrada }) {
   }
 
   return (
-    <section className="decisiones-seccion" aria-labelledby={idTitulo}>
-      <div className="decisiones-seccion-cabecera">
-        <h2 id={idTitulo} className="decisiones-grupo">
+    <section className="dec-seccion" aria-labelledby={idTitulo}>
+      <div className="dec-cabecera">
+        <h2 id={idTitulo} className="sect">
           En votación
         </h2>
-        <button type="button" className="decisiones-nueva" onClick={() => setModalAbierto(true)}>
+        <button type="button" className="btn btn--primary" onClick={() => setModalAbierto(true)}>
           + Nueva decisión
         </button>
       </div>
 
       {aviso && (
-        <p className="decisiones-cerrada" role="alert">
+        <p className="note dec-aviso" role="alert">
           {aviso}
         </p>
       )}
 
       {carga.estado === 'ok' && carga.decisiones.length > 0 ? (
-        <div className="decisiones-lista">
+        <div className="dec-lista">
           {carga.decisiones.map((d) => (
             <DecisionAbierta key={d.id} decision={d} onVotar={votar} />
           ))}
@@ -247,17 +245,17 @@ function Historial({ assetId, version }) {
   const visibles = filtrar(carga.decisiones, filtro)
 
   return (
-    <section className="decisiones-seccion" aria-labelledby={idTitulo}>
-      <div className="decisiones-seccion-cabecera">
-        <h2 id={idTitulo} className="decisiones-grupo">
+    <section className="dec-seccion" aria-labelledby={idTitulo}>
+      <div className="dec-cabecera">
+        <h2 id={idTitulo} className="sect">
           Historial de decisiones
         </h2>
-        <div className="decisiones-filtro" role="group" aria-label="Filtrar historial">
+        <div className="seg" role="group" aria-label="Filtrar historial">
           {FILTROS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
-              className="decisiones-filtro-opcion"
+              className={filtro === id ? 'seg__b seg__b--on' : 'seg__b'}
               aria-pressed={filtro === id}
               onClick={() => setFiltro(id)}
             >
@@ -268,7 +266,7 @@ function Historial({ assetId, version }) {
       </div>
 
       {carga.estado === 'ok' && visibles.length > 0 ? (
-        <div className="decisiones-lista">
+        <div className="dec-lista dec-lista--cerradas">
           {visibles.map((d) => (
             <DecisionCerrada key={d.id} decision={d} />
           ))}
@@ -290,19 +288,16 @@ function Decisiones({ assetId = assetIdActual() }) {
   const [versionHistorial, setVersionHistorial] = useState(0)
 
   return (
-    <section className="decisiones">
-      <h1 className="decisiones-titulo">Decisiones grupales</h1>
+    <div className="dec">
       {assetId ? (
         <>
           <EnVotacion assetId={assetId} onCerrada={() => setVersionHistorial((n) => n + 1)} />
           <Historial assetId={assetId} version={versionHistorial} />
         </>
       ) : (
-        <p className="decisiones-aviso">
-          No encontramos tu sesión. Volvé a entrar.
-        </p>
+        <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
       )}
-    </section>
+    </div>
   )
 }
 

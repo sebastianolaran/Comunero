@@ -50,14 +50,14 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
     const idCampo = `${id}-${nombre}`
     const error = errores[nombre]
     return (
-      <div className="nueva-decision-campo">
-        <label htmlFor={idCampo} className="nueva-decision-label">
+      <div className="dec-campo">
+        <label htmlFor={idCampo} className="lbl">
           {label}
         </label>
         <input
           id={idCampo}
           name={nombre}
-          className="nueva-decision-input"
+          className="in"
           autoComplete="off"
           value={borrador[nombre]}
           onChange={cambiar(nombre)}
@@ -66,7 +66,7 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
           {...props}
         />
         {error && (
-          <p id={`${idCampo}-error`} className="nueva-decision-error">
+          <p id={`${idCampo}-error`} className="dec-err">
             {error}
           </p>
         )}
@@ -77,7 +77,7 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
   return (
     <dialog
       ref={dialogo}
-      className="nueva-decision"
+      className="modal"
       aria-labelledby={idTitulo}
       onClose={onClose}
       onClick={(e) => {
@@ -85,7 +85,7 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
       }}
     >
       <form onSubmit={enviar} noValidate>
-        <h2 id={idTitulo} className="nueva-decision-titulo">
+        <h2 id={idTitulo} className="modal__t">
           Nueva decisión
         </h2>
 
@@ -93,16 +93,16 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
         {campo('monto', 'Monto estimado (opcional)', { inputMode: 'numeric', placeholder: '0', maxLength: 20 })}
 
         {envio.error && (
-          <p className="nueva-decision-error is-general" role="alert">
+          <p className="dec-err dec-campo" role="alert">
             {envio.error}
           </p>
         )}
 
-        <div className="nueva-decision-acciones">
-          <button type="button" className="nueva-decision-boton" onClick={onClose}>
+        <div className="dec-acciones">
+          <button type="button" className="btn btn--grow" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="nueva-decision-boton is-primario" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--grow btn--primary" disabled={envio.enviando}>
             {envio.enviando ? 'Creando…' : 'Crear'}
           </button>
         </div>

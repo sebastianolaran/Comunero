@@ -6,7 +6,7 @@ export const SECCIONES = [
   { path: 'alquiler', label: 'Alquiler', titulo: 'Alquiler a terceros' },
   { path: 'movimientos', label: 'Movimientos' },
   { path: 'balance', label: 'Balance' },
-  { path: 'decisiones', label: 'Decisiones' },
+  { path: 'decisiones', label: 'Decisiones', titulo: 'Decisiones grupales' },
   { path: 'historial', label: 'Historial' },
   { path: 'configuracion', label: 'Configuración' },
 ]
