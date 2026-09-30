@@ -81,6 +81,11 @@ export const ESTADOS = {
   REJECTED: 'Rechazada',
 }
 
+// El server la trata como rechazada, pero se muestra aparte.
+export function textoEstado({ status, cancelled }) {
+  return cancelled ? 'Cancelada' : (ESTADOS[status] ?? status)
+}
+
 export const VOTO_TEXTO = { APPROVE: 'Sí', REJECT: 'No' }
 
 // El pago solo existe para un alquiler aprobado.

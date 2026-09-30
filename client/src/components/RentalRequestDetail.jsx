@@ -1,7 +1,6 @@
 import { useId, useState } from 'react'
 import {
   daysLabel,
-  ESTADOS,
   formatMoney,
   formatPhone,
   formatRange,
@@ -9,6 +8,7 @@ import {
   puedeCancelar,
   puedeMarcarPago,
   puedeVotar as admiteVoto,
+  textoEstado,
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
@@ -84,7 +84,7 @@ function RentalRequestDetail({
       {renterPhone && <p className="meta alq-det__contact">{formatPhone(renterPhone)}</p>}
       <div className="alq-badges alq-det__badges">
         <PagoTag solicitud={solicitud} />
-        <span className="badge">{ESTADOS[status] ?? status}</span>
+        <span className="badge">{textoEstado(solicitud)}</span>
       </div>
       <p className="alq-det__fechas">
         {`${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`}

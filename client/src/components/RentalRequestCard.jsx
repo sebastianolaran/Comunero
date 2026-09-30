@@ -1,9 +1,9 @@
 import {
   daysLabel,
-  ESTADOS,
   formatMoney,
   formatPhone,
   formatRange,
+  textoEstado,
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
@@ -48,7 +48,7 @@ function RentalRequestCard({
         </h3>
         <span className="alq-badges">
           <PagoTag solicitud={solicitud} />
-          <span className="badge">{ESTADOS[status] ?? status}</span>
+          <span className="badge">{textoEstado(solicitud)}</span>
         </span>
       </div>
 
