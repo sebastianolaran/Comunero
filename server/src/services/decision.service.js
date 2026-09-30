@@ -28,13 +28,14 @@ function toClosedDecision(decision) {
     closedAt: decision.closedAt?.toISOString() ?? null,
     estimated: toEstimated(decision),
     yesVotes: decision._count.votes,
-    // El del cierre, nunca Asset.votesNeeded: cambiar la configuración no
-    // reescribe el historial.
+    // Los copropietarios que había al cerrarla: si después se suma alguien, el
+    // historial no cambia.
     votesNeeded: decision.votesNeededAtClose,
   };
 }
 
-// Mientras está abierta, el denominador es la configuración vigente del bien.
+// Se aprueba con el Sí de todos: mientras está abierta, el denominador son los
+// copropietarios actuales.
 function toOpenDecision(decision, votesNeeded, myVote = null) {
   return {
     id: decision.id,
@@ -84,7 +85,7 @@ async function listOpen(assetId, userId, db = prisma) {
   const asset = await db.asset.findUnique({
     where: { id: assetId },
     select: {
-      votesNeeded: true,
+      _count: { select: { users: true } },
       decisions: {
         where: { status: 'OPEN' },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -94,14 +95,14 @@ async function listOpen(assetId, userId, db = prisma) {
   });
   if (!asset) return null;
 
-  return asset.decisions.map((d) => toOpenDecision(d, asset.votesNeeded, d.votes?.[0]?.value ?? null));
+  return asset.decisions.map((d) => toOpenDecision(d, asset._count.users, d.votes?.[0]?.value ?? null));
 }
 
 // Arranca sin votos, tampoco el de quien la propone.
 async function create({ assetId, userId, title, estimatedAmount }, db = prisma) {
   const asset = await db.asset.findUnique({
     where: { id: assetId },
-    select: { votesNeeded: true, users: { where: { id: userId }, select: { id: true } } },
+    select: { _count: { select: { users: true } }, users: { where: { id: userId }, select: { id: true } } },
   });
   if (!asset) return { error: 'ASSET_NOT_FOUND' };
   if (asset.users.length === 0) return { error: 'NOT_COOWNER' };
@@ -118,17 +119,16 @@ async function create({ assetId, userId, title, estimatedAmount }, db = prisma) 
     },
     select: OPEN_SELECT,
   });
-  return { decision: toOpenDecision(created, asset.votesNeeded) };
+  return { decision: toOpenDecision(created, asset._count.users) };
 }
 
 const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
 
-// Se cierra sola apenas el resultado está definido. Sin votos necesarios
-// configurados no hay umbral contra el cual cerrarla.
-function nextStatus({ yes, no, coowners, votesNeeded }) {
-  if (votesNeeded == null) return 'OPEN';
-  if (yes >= votesNeeded) return 'APPROVED';
-  if (coowners - no < votesNeeded) return 'REJECTED';
+// Se cierra sola apenas el resultado está definido: hace falta el Sí de todos,
+// así que un solo No ya la rechaza.
+function nextStatus({ yes, no, coowners }) {
+  if (no > 0) return 'REJECTED';
+  if (yes >= coowners) return 'APPROVED';
   return 'OPEN';
 }
 
@@ -148,10 +148,11 @@ async function vote({ decisionId, userId, value }, db = prisma) {
 
     const decision = await tx.decision.findUnique({
       where: { id: decisionId },
-      select: { status: true, asset: { select: { votesNeeded: true, users: { select: { id: true } } } } },
+      select: { status: true, asset: { select: { users: { select: { id: true } } } } },
     });
     if (!decision) return { error: 'NOT_FOUND' };
-    const { votesNeeded, users } = decision.asset;
+    const { users } = decision.asset;
+    const votesNeeded = users.length;
     if (!users.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
     if (decision.status !== 'OPEN') return { error: 'CLOSED' };
 
@@ -161,7 +162,7 @@ async function vote({ decisionId, userId, value }, db = prisma) {
       update: { value },
     });
     const votes = await tx.vote.findMany({ where: { decisionId }, select: { value: true } });
-    const status = nextStatus({ ...countVotes(votes), coowners: users.length, votesNeeded });
+    const status = nextStatus({ ...countVotes(votes), coowners: users.length });
 
     const updated = await tx.decision.update({
       where: { id: decisionId },
