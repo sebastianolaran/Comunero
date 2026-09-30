@@ -5,6 +5,7 @@ import Balance from './pages/Balance'
 import Calendario from './pages/Calendario'
 import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
+import Decisiones from './pages/Decisiones'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
 import Rental from './pages/Rental'
 import RentalPreparations from './pages/RentalPreparations'
@@ -16,6 +17,7 @@ const PANTALLAS = {
   calendario: { element: <Calendario /> },
   movimientos: { element: <Movimientos /> },
   balance: { element: <Balance /> },
+  decisiones: { element: <Decisiones /> },
   alquiler: {
     element: <Rental />,
     children: [

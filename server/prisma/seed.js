@@ -143,6 +143,60 @@ async function cargarPagos({ ana, bruno, carla, flor }) {
   await cerrarEntre(carla, flor, '2026-09-20T15:00:00.000Z');
 }
 
+// Historial de decisiones: cerradas con 3 votos necesarios. Aprobarlas no
+// genera movimientos, el monto es solo de referencia.
+async function cargarDecisiones({ ana, bruno, carla, flor }) {
+  const votos = (si, no = []) => ({
+    create: [
+      ...si.map((u) => ({ userId: u.id, value: 'YES' })),
+      ...no.map((u) => ({ userId: u.id, value: 'NO' })),
+    ],
+  });
+  const decisiones = [
+    {
+      title: 'Comprar un asador nuevo',
+      description: 'El actual está oxidado y pierde calor.',
+      proposedById: ana.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-09-20T15:00:00.000Z'),
+      estimatedType: 'EXPENSE',
+      estimatedAmount: 60000,
+      votes: votos([ana, bruno, carla]),
+    },
+    {
+      title: 'Instalar cámaras de seguridad',
+      description: 'Dos cámaras en la entrada y el fondo.',
+      proposedById: bruno.id,
+      status: 'REJECTED',
+      closedAt: new Date('2026-09-12T15:00:00.000Z'),
+      estimatedType: 'EXPENSE',
+      estimatedAmount: 80000,
+      votes: votos([bruno], [ana, carla, flor]),
+    },
+    {
+      title: 'Prestarle la quinta a la colonia de vacaciones',
+      description: 'Pagan por usar la pileta los martes de enero.',
+      proposedById: carla.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-09-05T15:00:00.000Z'),
+      estimatedType: 'INCOME',
+      estimatedAmount: 120000,
+      votes: votos([ana, carla, flor], [bruno]),
+    },
+    {
+      title: 'Poner un horario de silencio a la noche',
+      description: 'Desde las 23 h los días de semana.',
+      proposedById: flor.id,
+      status: 'APPROVED',
+      closedAt: new Date('2026-08-28T15:00:00.000Z'),
+      votes: votos([ana, bruno, carla]),
+    },
+  ];
+  for (const d of decisiones) {
+    await prisma.decision.create({ data: { ...d, assetId: CASA_ID, votesNeededAtClose: 3 } });
+  }
+}
+
 const aprobadaPor = (usuarios) => ({ create: usuarios.map((u) => ({ userId: u.id })) });
 
 const soloFecha = (d) => d.toISOString().slice(0, 10);
@@ -181,7 +235,7 @@ async function crearUsuarios(assetId, lista) {
 }
 
 async function sembrarCasaQuinta() {
-  await prisma.asset.create({ data: { id: CASA_ID, name: 'Casa quinta' } });
+  await prisma.asset.create({ data: { id: CASA_ID, name: 'Casa quinta', votesNeeded: 3 } });
 
   // Ids fijos: quedaron referenciados en notas y capturas del TP.
   const [ana, bruno, carla, flor] = await crearUsuarios(CASA_ID, [
@@ -612,6 +666,8 @@ async function sembrarCasaQuinta() {
     },
   });
 
+  await cargarDecisiones({ ana, bruno, carla, flor });
+
   // Al final: los cierres tambien se llevan los cobros de alquiler.
   await cargarPagos({ ana, bruno, carla, flor });
   return [ana, bruno, carla, flor];
@@ -622,7 +678,7 @@ async function sembrarCasaQuinta() {
 // votacion se ve distinta a la de la casa quinta (dos de tres, no tres de
 // cuatro).
 async function sembrarDeptoCosta() {
-  await prisma.asset.create({ data: { id: COSTA_ID, name: 'Depto en la costa' } });
+  await prisma.asset.create({ data: { id: COSTA_ID, name: 'Depto en la costa', votesNeeded: 2 } });
 
   const [diego, eva, nico] = await crearUsuarios(COSTA_ID, [
     { id: 'seed-diego', name: 'Diego', email: 'diego@comunero.test', phone: '5492230000001' },

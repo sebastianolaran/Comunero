@@ -49,8 +49,10 @@ enum RenterRating {
 // ---------- Modelos ----------
 
 model Asset {
-  id   String @id @default(cuid())
-  name String
+  id          String @id @default(cuid())
+  name        String
+  // Votos a favor para aprobar una decisión. Null mientras no se configure.
+  votesNeeded Int?
 
   users        User[]
   reservations Reservation[]
@@ -312,17 +314,25 @@ model Decision {
   id           String         @id @default(cuid())
   assetId      String
   title        String
-  description  String
+  description  String?
   proposedById String
   status       DecisionStatus @default(OPEN)
   createdAt    DateTime       @default(now())
   closedAt     DateTime?
+
+  // Monto de referencia: aprobar la propuesta no genera ningún Movement.
+  estimatedType      MovementType?
+  estimatedAmount    Int?
+  // Asset.votesNeeded al momento del cierre: si después cambia la
+  // configuración, el historial sigue mostrando este valor.
+  votesNeededAtClose Int?
 
   asset      Asset  @relation(fields: [assetId], references: [id])
   proposedBy User   @relation("DecisionProposedBy", fields: [proposedById], references: [id])
   votes      Vote[]
 
   @@index([assetId])
+  @@index([assetId, status, closedAt])
 }
 
 model Vote {
