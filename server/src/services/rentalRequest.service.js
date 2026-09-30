@@ -80,8 +80,15 @@ function coownersOf(db, assetId) {
 const OVERLAP_REASON = 'Rechazada por solapamiento con un alquiler aprobado en esas fechas';
 
 // Otras reservas del bien que comparten al menos un dia con esta (inclusive en ambas puntas).
+// Al darla de alta todavia no tiene id, y Prisma rechaza `not: null`.
 function overlapping({ id, assetId, startDate, endDate }, status) {
-  return { assetId, id: { not: id }, status, startDate: { lte: endDate }, endDate: { gte: startDate } };
+  return {
+    assetId,
+    ...(id && { id: { not: id } }),
+    status,
+    startDate: { lte: endDate },
+    endDate: { gte: startDate },
+  };
 }
 
 function sharesDays(a, b) {
