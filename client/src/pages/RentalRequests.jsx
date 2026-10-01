@@ -100,10 +100,10 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     }
   }
 
-  async function accionar(id, accion) {
+  async function accionar(id, accion, extra = {}) {
     setEnvio({ enviando: true, error: null })
     try {
-      reemplazar(await ACCIONES[accion](id, { userId }))
+      reemplazar(await ACCIONES[accion](id, { userId, ...extra }))
       setModo('ver')
       setEnvio({ enviando: false, error: null })
     } catch (err) {
@@ -229,6 +229,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
           ref={detalleRef}
           key={seleccion ?? 'ninguna'}
           solicitud={seleccionada}
+          userId={userId}
           modo={modo}
           envio={envio}
           puedeVotar={puedeVotar}
@@ -251,7 +252,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
             setModo('ver')
             setEnvio({ enviando: false, error: null })
           }}
-          onConfirmAction={(accion) => accionar(seleccion, accion)}
+          onConfirmAction={(accion, extra) => accionar(seleccion, accion, extra)}
         />
       </div>
     </>

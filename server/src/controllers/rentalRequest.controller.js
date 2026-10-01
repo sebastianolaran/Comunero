@@ -100,6 +100,7 @@ async function create(req, res) {
 const PAYMENT_ERRORS = {
   NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
   NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden marcar el pago'],
+  COLLECTOR_NOT_COOWNER: [400, 'Quien cobró el alquiler tiene que ser copropietario del bien'],
   NOT_APPROVED: [409, 'Solo se puede marcar el pago de un alquiler aprobado'],
   ALREADY_PAID: [409, 'El alquiler ya estaba marcado como pago'],
   NO_AMOUNT: [409, 'El alquiler no tiene monto cargado: no se puede registrar el ingreso'],
@@ -112,15 +113,18 @@ const CANCEL_ERRORS = {
   PAID: [409, 'El alquiler ya está pago: no se puede cancelar'],
 };
 
-// Acciones de un copropietario sobre una solicitud que no llevan mas datos que el userId.
-function userAction({ run, errors, missingUser, failure }) {
+// Acciones de un copropietario sobre una solicitud. Ademas del userId, parseExtra
+// puede sacar otros datos del body: devuelve { error } o los args extra para run.
+function userAction({ run, errors, missingUser, failure, parseExtra = () => ({}) }) {
   return async (req, res) => {
     // TODO: el userId tiene que salir de la sesion cuando exista el login.
     const { userId } = req.body ?? {};
     if (!isFilled(userId)) return res.status(400).json({ error: missingUser });
+    const extra = parseExtra(req.body);
+    if (extra.error) return res.status(400).json({ error: extra.error });
 
     try {
-      const result = await run({ reservationId: req.params.id, userId });
+      const result = await run({ reservationId: req.params.id, userId, ...extra });
       if (result.error) {
         const [status, message] = errors[result.error];
         return res.status(status).json({ error: message });
@@ -138,6 +142,12 @@ const markPaid = userAction({
   errors: PAYMENT_ERRORS,
   missingUser: 'Falta el copropietario que marca el pago',
   failure: 'marcar el pago',
+  // Quien cobro es opcional: si no viene, el service usa a quien marca el pago.
+  parseExtra: ({ collectedById }) => {
+    if (collectedById === undefined || collectedById === null) return {};
+    if (!isFilled(collectedById)) return { error: 'Quien cobró el alquiler tiene que ser un copropietario' };
+    return { collectedById };
+  },
 });
 
 const cancel = userAction({
