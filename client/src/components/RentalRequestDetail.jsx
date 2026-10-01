@@ -21,7 +21,7 @@ const ACCIONES = {
     boton: 'Marcar como pago',
     confirmar: 'Confirmar pago',
     aviso: (s) =>
-      `Se registra un ingreso de ${formatMoney(s.amount)} repartido entre todos. Después no se puede volver a Pendiente.`,
+      `Se registra un ingreso de ${formatMoney(s.amount)} a nombre de quien cobró, repartido entre todos. Después no se puede volver a Pendiente.`,
   },
   cancelar: {
     boton: 'Cancelar alquiler',
@@ -35,6 +35,7 @@ const ACCIONES = {
 function RentalRequestDetail({
   ref,
   solicitud,
+  userId,
   modo,
   envio,
   puedeVotar,
@@ -48,7 +49,10 @@ function RentalRequestDetail({
   onConfirmAction,
 }) {
   const [motivo, setMotivo] = useState('')
+  // Quien recibió la plata del alquiler: por defecto, quien marca el pago.
+  const [cobradorId, setCobradorId] = useState(userId ?? '')
   const idError = useId()
+  const idCobrador = useId()
 
   if (!solicitud) {
     return (
@@ -139,6 +143,26 @@ function RentalRequestDetail({
 
       {puedeVotar && confirmando && (
         <div className="alq-det__confirma">
+          {confirmando === 'pagar' && (
+            <div className="alq-det__bloque">
+              <label className="lbl" htmlFor={idCobrador}>
+                ¿Quién cobró?
+              </label>
+              <select
+                id={idCobrador}
+                className="sel"
+                value={cobradorId}
+                onChange={(e) => setCobradorId(e.target.value)}
+                disabled={envio.enviando}
+              >
+                {solicitud.votes.map((c) => (
+                  <option key={c.userId} value={c.userId}>
+                    {c.userId === userId ? `${c.name} (vos)` : c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <p className="hint alq-det__bloque">{ACCIONES[confirmando].aviso(solicitud)}</p>
           <div className="alq-det__acciones">
             <button type="button" className="btn btn--grow" onClick={onCancelAction} disabled={envio.enviando}>
@@ -147,7 +171,9 @@ function RentalRequestDetail({
             <button
               type="button"
               className="btn btn--grow btn--primary"
-              onClick={() => onConfirmAction(confirmando)}
+              onClick={() =>
+                onConfirmAction(confirmando, confirmando === 'pagar' ? { collectedById: cobradorId || undefined } : {})
+              }
               disabled={envio.enviando}
             >
               {ACCIONES[confirmando].confirmar}

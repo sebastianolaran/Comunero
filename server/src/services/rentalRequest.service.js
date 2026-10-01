@@ -209,7 +209,7 @@ async function vote({ reservationId, userId, value, reason }) {
   }, TX_OPTIONS);
 }
 
-function incomeFor(reservation, coowners, now) {
+function incomeFor(reservation, coowners, collectedById, now) {
   const { renter, startDate, endDate } = reservation;
   return {
     assetId: reservation.assetId,
@@ -218,20 +218,22 @@ function incomeFor(reservation, coowners, now) {
     amount: reservation.amount,
     description: `Alquiler a ${renter?.name ?? 'inquilino'} del ${toDateOnly(startDate)} al ${toDateOnly(endDate)}`,
     date: now,
-    // Cobra quien gestiona el alquiler (quien lo cargo); el ingreso es de todos.
-    paidById: reservation.userId,
+    // Lo cobra quien recibio la plata (elegido al marcar el pago); el ingreso es de todos.
+    paidById: collectedById,
     shares: {
       create: buildShares({
         amount: reservation.amount,
         shareIds: coowners.map((u) => u.id),
-        paidById: reservation.userId,
+        paidById: collectedById,
       }).shares,
     },
   };
 }
 
-// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'NOT_APPROVED' | 'ALREADY_PAID' | 'NO_AMOUNT' }.
-async function markPaid({ reservationId, userId, now = new Date() }) {
+// collectedById: quien cobro la plata; por defecto, quien marca el pago.
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'COLLECTOR_NOT_COOWNER' | 'NOT_APPROVED'
+// | 'ALREADY_PAID' | 'NO_AMOUNT' }.
+async function markPaid({ reservationId, userId, collectedById = userId, now = new Date() }) {
   return prisma.$transaction(async (tx) => {
     // Lockea la reserva: dos clicks simultaneos no pueden generar dos ingresos.
     await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
@@ -248,9 +250,10 @@ async function markPaid({ reservationId, userId, now = new Date() }) {
     if (item.status !== 'APPROVED') return { error: 'NOT_APPROVED' };
     if (item.paid) return { error: 'ALREADY_PAID' };
     if (reservation.amount == null) return { error: 'NO_AMOUNT' };
+    if (!coowners.some((u) => u.id === collectedById)) return { error: 'COLLECTOR_NOT_COOWNER' };
 
     const updated = await tx.reservation.update({ where: { id: reservationId }, data: { paidAt: now }, select });
-    await tx.movement.create({ data: incomeFor(reservation, coowners, now) });
+    await tx.movement.create({ data: incomeFor(reservation, coowners, collectedById, now) });
     return { request: toListItem(updated, coowners, userId) };
   }, TX_OPTIONS);
 }
