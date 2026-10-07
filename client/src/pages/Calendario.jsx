@@ -33,6 +33,17 @@ const FORM_INICIAL = {
   fin: '',
 }
 
+const formateadorDetalle = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+})
+
+function fechaDetalle(dia) {
+  return formateadorDetalle.format(dia)
+}
+
 function Calendario() {
   // Quién entró y a qué bien: el router ya garantiza que hay sesión, pero se
   // resuelve acá y no al importar el módulo para que valga la de ahora.
@@ -43,6 +54,7 @@ function Calendario() {
   const [month, setMonth] = useState(HOY.getUTCMonth() + 1)
   const [reservas, setReservas] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -109,6 +121,7 @@ function Calendario() {
   const irMesAnterior = () => {
     const { year: y, month: m } = mesAnterior(year, month)
     setEstadoCarga('loading')
+    setDiaSeleccionado(null)
     setYear(y)
     setMonth(m)
   }
@@ -116,6 +129,7 @@ function Calendario() {
   const irMesSiguiente = () => {
     const { year: y, month: m } = mesSiguiente(year, month)
     setEstadoCarga('loading')
+    setDiaSeleccionado(null)
     setYear(y)
     setMonth(m)
   }
@@ -174,7 +188,13 @@ function Calendario() {
           ))}
 
           {dias.map((dia) => (
-            <Dia key={dia.toISOString()} dia={dia} info={estadoDelDia(dia, reservas)} />
+            <Dia
+              key={dia.toISOString()}
+              dia={dia}
+              info={estadoDelDia(dia, reservas)}
+              seleccionado={diaSeleccionado === dia.toISOString()}
+              onSelect={() => setDiaSeleccionado(dia.toISOString())}
+            />
           ))}
 
           {Array.from({ length: espaciosFinales }).map((_, i) => (
@@ -205,6 +225,7 @@ function Calendario() {
       </section>
 
       <aside className="rail cal-rail">
+        <DetalleDia dia={diaSeleccionado ? new Date(diaSeleccionado) : null} reservas={reservas} userId={userId} />
         <div className="panel">
           {!formAbierto && (
             <button
@@ -269,11 +290,42 @@ function Calendario() {
   )
 }
 
+function DetalleDia({ dia, reservas, userId }) {
+  const info = dia ? estadoDelDia(dia, reservas) : null
+  let descripcion = 'Elegí un día del calendario para ver su detalle.'
+
+  if (dia && info.estado === 'libre') {
+    descripcion = 'Día disponible para ser reservado.'
+  } else if (dia && info.estado === 'reservado') {
+    if (info.pendiente) {
+      descripcion = info.userId === userId
+        ? 'Tu turno está pendiente de confirmación.'
+        : `Turno pendiente de ${info.userName ?? 'un integrante'}.`
+    } else {
+      descripcion = info.userId === userId
+        ? 'Tu turno está confirmado.'
+        : `Turno confirmado de ${info.userName ?? 'un integrante'}.`
+    }
+  } else if (dia && info.estado === 'alquilado') {
+    descripcion = 'Día ocupado por un alquiler.'
+  } else if (dia && info.estado === 'rechazado') {
+    descripcion = 'Turno rechazado.'
+  }
+
+  return (
+    <div className="panel cal-detail" aria-live="polite">
+      {dia && <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>}
+      <p className="cal-detail__d">{descripcion}</p>
+    </div>
+  )
+}
+
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info }) {
+function Dia({ dia, info, seleccionado, onSelect }) {
   const { estado } = info
-  const clases = ['cal__c', 'cal__c--static', `cal__c--${estado}`]
+  const clases = ['cal__c', `cal__c--${estado}`]
+  if (seleccionado) clases.push('cal__c--on')
   let etiqueta = ''
   let estilo
 
@@ -292,10 +344,18 @@ function Dia({ dia, info }) {
     : ETIQUETA_ESTADO[estado]
 
   return (
-    <div className={clases.join(' ')} style={estilo} title={titulo}>
+    <button
+      type="button"
+      className={clases.join(' ')}
+      style={estilo}
+      title={titulo}
+      aria-label={`${fechaDetalle(dia)}. ${titulo}`}
+      aria-pressed={seleccionado}
+      onClick={onSelect}
+    >
       <span className="cal__n">{dia.getUTCDate()}</span>
       {etiqueta && <span className="cal__t">{etiqueta}</span>}
-    </div>
+    </button>
   )
 }
 
