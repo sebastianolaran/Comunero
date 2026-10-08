@@ -382,6 +382,20 @@ async function sembrarCasaQuinta() {
     },
   });
 
+  // Turno confirmado de Ana en diciembre para probar el detalle y la cancelación.
+  await prisma.reservation.create({
+    data: {
+      assetId: CASA_ID,
+      userId: ana.id,
+      type: 'USE',
+      status: 'ACTIVE',
+      note: 'Prueba de turno propio confirmado.',
+      startDate: new Date('2026-12-10T00:00:00.000Z'),
+      endDate: new Date('2026-12-12T00:00:00.000Z'),
+      approvals: aprobadaPor(todos),
+    },
+  });
+
   // Tareas de preparación. Alquileres aprobados (status ACTIVE, sí de los 4):
 
   // Ya pasó y es del mismo inquilino que el de septiembre: dos tarjetas. "Todo listo (2/2)".

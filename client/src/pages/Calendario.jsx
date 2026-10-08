@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
-import { createReservation, fetchReservations } from '../lib/api'
+import {
+  cancelUseReservation,
+  createReservation,
+  fetchPendingUseReservations,
+  fetchReservations,
+  voteUseReservation,
+} from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { daysLabel, formatRange } from '../lib/rentalRequests'
+import { updateRentalTask } from '../services/rentalPreparation'
 import {
   DIAS_SEMANA,
   diasDelMes,
@@ -33,6 +42,49 @@ const FORM_INICIAL = {
   fin: '',
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+const formateadorDetalle = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+})
+
+function fechaDetalle(dia) {
+  return formateadorDetalle.format(dia)
+}
+
+function fechaInput(dia) {
+  return dia.toISOString().slice(0, 10)
+}
+
+function etiquetaReserva(dia) {
+  return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
+}
+
+function fechaSolo(valor) {
+  return typeof valor === 'string' ? valor.slice(0, 10) : valor
+}
+
+function rangoPeticion(peticion) {
+  return {
+    desde: fechaSolo(peticion.startDate),
+    hasta: fechaSolo(peticion.endDate),
+  }
+}
+
+function leerPrevisualizacion(assetId) {
+  try {
+    const guardada = globalThis.localStorage?.getItem(`comunero.calendario.peticion.${assetId}`)
+    if (!guardada) return null
+    const peticion = JSON.parse(guardada)
+    return typeof peticion === 'object' ? peticion : { id: peticion }
+  } catch {
+    return null
+  }
+}
+
 function Calendario() {
   // Quién entró y a qué bien: el router ya garantiza que hay sesión, pero se
   // resuelve acá y no al importar el módulo para que valga la de ahora.
@@ -42,7 +94,17 @@ function Calendario() {
   const [year, setYear] = useState(HOY.getUTCFullYear())
   const [month, setMonth] = useState(HOY.getUTCMonth() + 1)
   const [reservas, setReservas] = useState([])
+  const [peticionesPendientes, setPeticionesPendientes] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null)
+  const [peticionVisible, setPeticionVisible] = useState(() => leerPrevisualizacion(assetId))
+  const [tareasGuardando, setTareasGuardando] = useState([])
+  const [errorTarea, setErrorTarea] = useState(null)
+  const [errorVoto, setErrorVoto] = useState(null)
+  const [errorPendientes, setErrorPendientes] = useState(null)
+  const [cancelacion, setCancelacion] = useState(null)
+  const [errorCancelacion, setErrorCancelacion] = useState(null)
+  const [cancelando, setCancelando] = useState(false)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -63,6 +125,11 @@ function Calendario() {
         if (vivo) {
           setReservas(reservations)
           setEstadoCarga('ok')
+          setPeticionVisible((actual) => {
+            if (!actual) return null
+            const peticion = reservations.find((reserva) => reserva.id === actual.id)
+            return peticion && peticion.status === 'PENDING' ? peticion : peticion ? null : actual
+          })
         }
       })
       .catch((err) => {
@@ -74,6 +141,38 @@ function Calendario() {
       controller.abort()
     }
   }, [assetId, year, month, refreshKey])
+
+  useEffect(() => {
+    if (!assetId) return
+    const controller = new AbortController()
+    let vivo = true
+
+    fetchPendingUseReservations(assetId, { signal: controller.signal })
+      .then((pending) => {
+        if (vivo) {
+          setPeticionesPendientes([...pending].sort((a, b) => a.startDate.localeCompare(b.startDate)))
+          setErrorPendientes(null)
+        }
+      })
+      .catch((err) => {
+        if (vivo && err.name !== 'AbortError') setErrorPendientes('No se pudieron cargar las peticiones pendientes.')
+      })
+
+    return () => {
+      vivo = false
+      controller.abort()
+    }
+  }, [assetId, refreshKey])
+
+  useEffect(() => {
+    try {
+      const clave = `comunero.calendario.peticion.${assetId}`
+      if (peticionVisible) globalThis.localStorage?.setItem(clave, JSON.stringify(peticionVisible))
+      else globalThis.localStorage?.removeItem(clave)
+    } catch {
+      // Sin storage, la previsualizacion dura mientras siga montada la pantalla.
+    }
+  }, [assetId, peticionVisible])
 
   const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
 
@@ -106,9 +205,88 @@ function Calendario() {
     setForm(FORM_INICIAL)
   }
 
+  const seleccionarDia = (dia) => {
+    setErrorTarea(null)
+    setDiaSeleccionado(dia.toISOString())
+    const fecha = fechaInput(dia)
+    setForm({ inicio: fecha, fin: fecha })
+    setFormAbierto(false)
+    setFormError(null)
+  }
+
+  const seleccionarPeticion = (peticion) => {
+    setErrorVoto(null)
+    setPeticionVisible(peticion)
+    setDiaSeleccionado(null)
+    setFormAbierto(false)
+  }
+
+  const quitarPrevisualizacion = () => {
+    setErrorVoto(null)
+    setPeticionVisible(null)
+  }
+
+  const votarPeticion = async (peticion, value) => {
+    setErrorVoto(null)
+    try {
+      await voteUseReservation(peticion.id, { userId, value })
+      setPeticionVisible(null)
+      setRefreshKey((key) => key + 1)
+    } catch (err) {
+      setErrorVoto(err.message)
+    }
+  }
+
+  const pedirCancelacion = (reserva) => {
+    setErrorCancelacion(null)
+    setCancelacion(reserva)
+  }
+
+  const cancelarTurno = async () => {
+    if (!cancelacion || cancelando) return
+
+    setCancelando(true)
+    setErrorCancelacion(null)
+    try {
+      await cancelUseReservation(cancelacion.id, { userId })
+      setCancelacion(null)
+      setPeticionVisible((actual) => (actual?.id === cancelacion.id ? null : actual))
+      setDiaSeleccionado(null)
+      setRefreshKey((key) => key + 1)
+    } catch (err) {
+      setErrorCancelacion(err.message)
+    } finally {
+      setCancelando(false)
+    }
+  }
+
+  const cambiarTarea = async (reservationId, tareaId, completed) => {
+    if (tareasGuardando.includes(tareaId)) return
+
+    setErrorTarea(null)
+    setTareasGuardando((ids) => [...ids, tareaId])
+    try {
+      const tareaActualizada = await updateRentalTask(tareaId, { completed })
+      setReservas((actuales) =>
+        actuales.map((reserva) => {
+          if (reserva.id !== reservationId) return reserva
+          return {
+            ...reserva,
+            tasks: reserva.tasks.map((tarea) => (tarea.id === tareaId ? tareaActualizada : tarea)),
+          }
+        }),
+      )
+    } catch (err) {
+      setErrorTarea(err.mensajes?.join('. ') ?? 'No se pudo actualizar la tarea.')
+    } finally {
+      setTareasGuardando((ids) => ids.filter((id) => id !== tareaId))
+    }
+  }
+
   const irMesAnterior = () => {
     const { year: y, month: m } = mesAnterior(year, month)
     setEstadoCarga('loading')
+    setDiaSeleccionado(null)
     setYear(y)
     setMonth(m)
   }
@@ -116,6 +294,7 @@ function Calendario() {
   const irMesSiguiente = () => {
     const { year: y, month: m } = mesSiguiente(year, month)
     setEstadoCarga('loading')
+    setDiaSeleccionado(null)
     setYear(y)
     setMonth(m)
   }
@@ -127,7 +306,10 @@ function Calendario() {
   const dias = diasDelMes(year, month)
   const espaciosVacios = primerDiaSemana(year, month)
   const espaciosFinales = (7 - ((espaciosVacios + dias.length) % 7)) % 7
-  const integrantes = integrantesEnReservas(reservas)
+  const peticionVisibleId = peticionVisible?.id ?? null
+  const peticionVisibleActual = peticionesPendientes.find((peticion) => peticion.id === peticionVisibleId)
+    ?? (peticionVisible?.startDate ? peticionVisible : null)
+  const integrantes = integrantesEnReservas(reservas, peticionVisibleId)
 
   return (
     <div className="split split--fill">
@@ -156,6 +338,10 @@ function Calendario() {
           </button>
         </header>
 
+        {peticionVisibleActual && (
+          <AvisoPeticionPendiente peticion={peticionVisibleActual} onClear={quitarPrevisualizacion} />
+        )}
+
         {estadoCarga === 'error' && (
           <p className="note cal-error" role="alert">
             No se pudo cargar el calendario.
@@ -174,7 +360,13 @@ function Calendario() {
           ))}
 
           {dias.map((dia) => (
-            <Dia key={dia.toISOString()} dia={dia} info={estadoDelDia(dia, reservas)} />
+            <Dia
+              key={dia.toISOString()}
+              dia={dia}
+              info={estadoDelDia(dia, reservas, peticionVisibleId)}
+              seleccionado={diaSeleccionado === dia.toISOString()}
+              onSelect={() => seleccionarDia(dia)}
+            />
           ))}
 
           {Array.from({ length: espaciosFinales }).map((_, i) => (
@@ -205,6 +397,15 @@ function Calendario() {
       </section>
 
       <aside className="rail cal-rail">
+        <DetalleDia
+          dia={diaSeleccionado ? new Date(diaSeleccionado) : null}
+          reservas={reservas}
+          userId={userId}
+          tareasGuardando={tareasGuardando}
+          errorTarea={errorTarea}
+          onCancel={pedirCancelacion}
+          onTareaChange={cambiarTarea}
+        />
         <div className="panel">
           {!formAbierto && (
             <button
@@ -213,7 +414,7 @@ function Calendario() {
               title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
               onClick={() => setFormAbierto(true)}
             >
-              Reservar
+              {diaSeleccionado ? etiquetaReserva(new Date(diaSeleccionado)) : 'Reservar'}
             </button>
           )}
 
@@ -264,16 +465,207 @@ function Calendario() {
             </form>
           )}
         </div>
+
+        {peticionesPendientes.length > 0 && (
+          <PeticionesPendientes
+            peticiones={peticionesPendientes}
+            peticionVisibleId={peticionVisibleId}
+            userId={userId}
+            error={errorVoto ?? errorPendientes}
+            onSelect={seleccionarPeticion}
+            onCancel={pedirCancelacion}
+            onVote={votarPeticion}
+          />
+        )}
       </aside>
+
+      {cancelacion && (
+        <ConfirmDialog
+          title="Cancelar turno"
+          lines={[
+            'Se va a cancelar el turno completo y todos sus días quedarán libres.',
+            `Rango: ${formatRange(fechaSolo(cancelacion.startDate), fechaSolo(cancelacion.endDate))}.`,
+          ]}
+          confirmLabel="Cancelar turno"
+          busyLabel="Cancelando…"
+          busy={cancelando}
+          error={errorCancelacion}
+          onConfirm={cancelarTurno}
+          onCancel={() => {
+            if (!cancelando) setCancelacion(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function AvisoPeticionPendiente({ peticion, onClear }) {
+  const { desde, hasta } = rangoPeticion(peticion)
+  const nombre = peticion.user?.name ?? 'Integrante'
+
+  return (
+    <div className="cal-preview" aria-live="polite">
+      <p className="cal-preview__text">
+        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado, por eso no queda fijo en el calendario.
+      </p>
+      <button type="button" className="btn btn--link cal-preview__action" onClick={onClear}>
+        Quitar
+      </button>
+    </div>
+  )
+}
+
+function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onCancel, onVote }) {
+  return (
+    <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
+      <header className="cal-pending__head">
+        <h2 className="cal-pending__t">Por votar ({peticiones.length})</h2>
+        <button type="button" className="btn btn--link" disabled title="Disponible cuando exista la pestaña Reservas">
+          Ver en reservas
+        </button>
+      </header>
+      <p className="hint cal-pending__hint">Pendiente de los demás. Tocá una para verla en el calendario.</p>
+      {error && <p className="cal-form__err" role="alert">{error}</p>}
+      <ul className="cal-pending__list" role="list">
+        {peticiones.map((peticion) => {
+          const propia = peticion.userId === userId
+          const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
+          const total = Math.max(0, (peticion.coownerCount ?? 0) - 1)
+          const { desde, hasta } = rangoPeticion(peticion)
+          const nombre = peticion.user?.name ?? 'Integrante'
+
+          return (
+            <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
+              <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
+                <span className="cal-pending__title">
+                  <strong>{nombre}{propia && ' (Tú)'}</strong>
+                  <span>{votos}/{total} votos</span>
+                </span>
+                <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
+                <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
+              </button>
+              {!propia && (
+                <div className="cal-pending__actions">
+                  <button type="button" className="btn btn--sm btn--primary" onClick={() => onVote(peticion, 'APPROVE')}>
+                    Aceptar
+                  </button>
+                  <button type="button" className="btn btn--sm" onClick={() => onVote(peticion, 'REJECT')}>
+                    Rechazar
+                  </button>
+                </div>
+              )}
+              {propia && (
+                <div className="cal-pending__actions">
+                  <button type="button" className="btn btn--sm" onClick={() => onCancel(peticion)}>
+                    Cancelar petición
+                  </button>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onTareaChange }) {
+  const info = dia ? estadoDelDia(dia, reservas) : null
+  let descripcion = 'Elegí un día del calendario para ver su detalle.'
+
+  if (dia && info.estado === 'libre') {
+    descripcion = 'Día disponible para ser reservado.'
+  } else if (dia && info.estado === 'reservado') {
+    if (info.pendiente) {
+      descripcion = info.userId === userId
+        ? 'Tu turno está pendiente de confirmación.'
+        : `Turno pendiente de ${info.userName ?? 'un integrante'}.`
+    } else {
+      descripcion = info.userId === userId
+        ? 'Tu turno está confirmado.'
+        : `Turno confirmado de ${info.userName ?? 'un integrante'}.`
+    }
+  } else if (dia && info.estado === 'alquilado') {
+    return (
+      <DetalleAlquiler
+        dia={dia}
+        alquiler={info.alquiler}
+        tareasGuardando={tareasGuardando}
+        errorTarea={errorTarea}
+        onTareaChange={onTareaChange}
+      />
+    )
+  } else if (dia && info.estado === 'rechazado') {
+    descripcion = 'Turno rechazado.'
+  }
+
+  return (
+    <div className="panel cal-detail" aria-live="polite">
+      {dia && <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>}
+      <p className="cal-detail__d">{descripcion}</p>
+      {dia && info?.estado === 'reservado' && info.userId === userId && (
+        <div className="cal-detail__actions">
+          <button type="button" className="btn btn--sm" onClick={() => onCancel(info.reserva)}>
+            Cancelar turno
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaChange }) {
+  const tareas = alquiler.tasks ?? []
+  const pendientes = tareas.filter((tarea) => !tarea.completed).length
+  const monto = alquiler.amount == null ? null : `$${alquiler.amount.toLocaleString('es-AR')}`
+
+  return (
+    <div className="panel cal-detail" aria-live="polite">
+      <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>
+      <p className="cal-detail__d">
+        Alquilado a {alquiler.renter?.name ?? 'un huésped'}
+        {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
+        {monto && ` · Monto total: ${monto}`}
+      </p>
+      <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
+
+      <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
+      {errorTarea && (
+        <p className="cal-detail__error" role="alert">
+          {errorTarea}
+        </p>
+      )}
+      {tareas.length === 0 ? (
+        <p className="cal-detail__empty">No hay tareas de preparación.</p>
+      ) : (
+        <ul className="cal-detail__tasks" role="list">
+          {tareas.map((tarea) => (
+            <li key={tarea.id} className="cal-detail__task">
+              <label className="cal-detail__task-name">
+                <input
+                  type="checkbox"
+                  checked={tarea.completed}
+                  disabled={tareasGuardando.includes(tarea.id)}
+                  onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
+                />
+                <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
+              </label>
+              <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info }) {
+function Dia({ dia, info, seleccionado, onSelect }) {
   const { estado } = info
-  const clases = ['cal__c', 'cal__c--static', `cal__c--${estado}`]
+  const clases = ['cal__c', `cal__c--${estado}`]
+  if (seleccionado) clases.push('cal__c--on')
   let etiqueta = ''
   let estilo
 
@@ -292,10 +684,18 @@ function Dia({ dia, info }) {
     : ETIQUETA_ESTADO[estado]
 
   return (
-    <div className={clases.join(' ')} style={estilo} title={titulo}>
+    <button
+      type="button"
+      className={clases.join(' ')}
+      style={estilo}
+      title={titulo}
+      aria-label={`${fechaDetalle(dia)}. ${titulo}`}
+      aria-pressed={seleccionado}
+      onClick={onSelect}
+    >
       <span className="cal__n">{dia.getUTCDate()}</span>
       {etiqueta && <span className="cal__t">{etiqueta}</span>}
-    </div>
+    </button>
   )
 }
 

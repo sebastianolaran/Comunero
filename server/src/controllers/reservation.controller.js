@@ -33,11 +33,22 @@ async function listForCalendar(req, res) {
   res.json({ reservations });
 }
 
+// GET /api/reservations/pending?assetId=...
+// Devuelve todas las peticiones de uso propio pendientes, sin limitarse al mes visible.
+async function listPending(req, res) {
+  const { assetId } = req.query;
+  if (!assetId) return res.status(400).json({ error: 'falta el parametro assetId' });
+
+  const reservations = await reservationService.listPendingUse(assetId);
+  res.json({ reservations });
+}
+
 // POST /api/reservations
 // body: { assetId, userId, startDate, endDate, note? }  (fechas 'YYYY-MM-DD')
 //
 // Historia "Solicitar turno de uso propio". type queda fijo en USE: alquilar
-// a un tercero es otra historia, no se mezcla aca.
+// a un tercero es otra historia, no se mezcla aca. El creador vota afirmativamente
+// y los demas copropietarios deciden.
 //
 // TODO: cuando exista auth, el userId tiene que salir de la sesion (no
 // confiar en el body) para que la regla "la solicitud corresponde a quien
@@ -75,7 +86,39 @@ async function create(req, res) {
     note,
   });
 
+  if (!reservation) return res.status(403).json({ error: 'no perteneces a este bien' });
+
   res.status(201).json({ reservation });
 }
 
-module.exports = { listForCalendar, create };
+async function voteUse(req, res) {
+  const { userId, value } = req.body ?? {};
+  if (!userId || !['APPROVE', 'REJECT'].includes(value)) {
+    return res.status(400).json({ error: 'faltan userId y/o un voto valido' });
+  }
+
+  const result = await reservationService.voteUse({
+    reservationId: req.params.id,
+    userId,
+    value,
+  });
+  if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe la solicitud de uso propio' });
+  if (result.error === 'CANCELLED') return res.status(409).json({ error: 'la solicitud fue cancelada' });
+  if (result.error === 'NOT_COOWNER') return res.status(403).json({ error: 'solo los copropietarios pueden votar' });
+
+  res.json({ reservation: result.reservation });
+}
+
+async function cancelUse(req, res) {
+  const { userId } = req.body ?? {};
+  if (!userId) return res.status(400).json({ error: 'falta userId' });
+
+  const result = await reservationService.cancelUse({ reservationId: req.params.id, userId });
+  if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe el turno de uso propio' });
+  if (result.error === 'CANCELLED') return res.status(409).json({ error: 'el turno ya estaba cancelado' });
+  if (result.error === 'NOT_OWNER') return res.status(403).json({ error: 'solo quien pidio el turno puede cancelarlo' });
+
+  res.json({ reservation: result.reservation });
+}
+
+module.exports = { listForCalendar, listPending, create, voteUse, cancelUse };
