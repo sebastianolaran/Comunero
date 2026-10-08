@@ -67,7 +67,7 @@ export function estadoDelDia(dia, reservas) {
   const vigente = delDia.find((r) => r.status === 'ACTIVE' || r.status === 'PENDING');
   if (vigente) {
     return vigente.type === 'RENTAL'
-      ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId }
+      ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId, alquiler: vigente }
       : {
           estado: 'reservado',
           pendiente: vigente.status === 'PENDING',

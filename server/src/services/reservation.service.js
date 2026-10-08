@@ -24,7 +24,18 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
       endDate: true,
       type: true,
       status: true,
+      amount: true,
       user: { select: { name: true } },
+      renter: { select: { name: true, phone: true } },
+      tasks: {
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          completed: true,
+          assignedTo: { select: { id: true, name: true } },
+        },
+      },
     },
     orderBy: { startDate: 'asc' },
   });

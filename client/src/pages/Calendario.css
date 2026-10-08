@@ -29,6 +29,65 @@
   line-height: 1.5;
 }
 
+.cal-detail__managed {
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.cal-detail__sect {
+  margin-top: 18px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.cal-detail__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-detail__task {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.cal-detail__task-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+
+.cal-detail__task-name .task__t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-detail__error,
+.cal-detail__empty {
+  font-size: 12px;
+}
+
+.cal-detail__error {
+  margin-bottom: 8px;
+  color: var(--neg);
+}
+
+.cal-detail__empty {
+  color: var(--muted);
+}
+
 .cal-rail > .panel {
   width: 100%;
 }

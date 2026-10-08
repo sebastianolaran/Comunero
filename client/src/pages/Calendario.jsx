@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createReservation, fetchReservations } from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
+import { updateRentalTask } from '../services/rentalPreparation'
 import {
   DIAS_SEMANA,
   diasDelMes,
@@ -55,6 +56,8 @@ function Calendario() {
   const [reservas, setReservas] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
   const [diaSeleccionado, setDiaSeleccionado] = useState(null)
+  const [tareasGuardando, setTareasGuardando] = useState([])
+  const [errorTarea, setErrorTarea] = useState(null)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -116,6 +119,34 @@ function Calendario() {
     setFormAbierto(false)
     setFormError(null)
     setForm(FORM_INICIAL)
+  }
+
+  const seleccionarDia = (dia) => {
+    setErrorTarea(null)
+    setDiaSeleccionado(dia.toISOString())
+  }
+
+  const cambiarTarea = async (reservationId, tareaId, completed) => {
+    if (tareasGuardando.includes(tareaId)) return
+
+    setErrorTarea(null)
+    setTareasGuardando((ids) => [...ids, tareaId])
+    try {
+      const tareaActualizada = await updateRentalTask(tareaId, { completed })
+      setReservas((actuales) =>
+        actuales.map((reserva) => {
+          if (reserva.id !== reservationId) return reserva
+          return {
+            ...reserva,
+            tasks: reserva.tasks.map((tarea) => (tarea.id === tareaId ? tareaActualizada : tarea)),
+          }
+        }),
+      )
+    } catch (err) {
+      setErrorTarea(err.mensajes?.join('. ') ?? 'No se pudo actualizar la tarea.')
+    } finally {
+      setTareasGuardando((ids) => ids.filter((id) => id !== tareaId))
+    }
   }
 
   const irMesAnterior = () => {
@@ -193,7 +224,7 @@ function Calendario() {
               dia={dia}
               info={estadoDelDia(dia, reservas)}
               seleccionado={diaSeleccionado === dia.toISOString()}
-              onSelect={() => setDiaSeleccionado(dia.toISOString())}
+              onSelect={() => seleccionarDia(dia)}
             />
           ))}
 
@@ -225,7 +256,14 @@ function Calendario() {
       </section>
 
       <aside className="rail cal-rail">
-        <DetalleDia dia={diaSeleccionado ? new Date(diaSeleccionado) : null} reservas={reservas} userId={userId} />
+        <DetalleDia
+          dia={diaSeleccionado ? new Date(diaSeleccionado) : null}
+          reservas={reservas}
+          userId={userId}
+          tareasGuardando={tareasGuardando}
+          errorTarea={errorTarea}
+          onTareaChange={cambiarTarea}
+        />
         <div className="panel">
           {!formAbierto && (
             <button
@@ -290,7 +328,7 @@ function Calendario() {
   )
 }
 
-function DetalleDia({ dia, reservas, userId }) {
+function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onTareaChange }) {
   const info = dia ? estadoDelDia(dia, reservas) : null
   let descripcion = 'Elegí un día del calendario para ver su detalle.'
 
@@ -307,7 +345,15 @@ function DetalleDia({ dia, reservas, userId }) {
         : `Turno confirmado de ${info.userName ?? 'un integrante'}.`
     }
   } else if (dia && info.estado === 'alquilado') {
-    descripcion = 'Día ocupado por un alquiler.'
+    return (
+      <DetalleAlquiler
+        dia={dia}
+        alquiler={info.alquiler}
+        tareasGuardando={tareasGuardando}
+        errorTarea={errorTarea}
+        onTareaChange={onTareaChange}
+      />
+    )
   } else if (dia && info.estado === 'rechazado') {
     descripcion = 'Turno rechazado.'
   }
@@ -316,6 +362,51 @@ function DetalleDia({ dia, reservas, userId }) {
     <div className="panel cal-detail" aria-live="polite">
       {dia && <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>}
       <p className="cal-detail__d">{descripcion}</p>
+    </div>
+  )
+}
+
+function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaChange }) {
+  const tareas = alquiler.tasks ?? []
+  const pendientes = tareas.filter((tarea) => !tarea.completed).length
+  const monto = alquiler.amount == null ? null : `$${alquiler.amount.toLocaleString('es-AR')}`
+
+  return (
+    <div className="panel cal-detail" aria-live="polite">
+      <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>
+      <p className="cal-detail__d">
+        Alquilado a {alquiler.renter?.name ?? 'un huésped'}
+        {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
+        {monto && ` · Monto total: ${monto}`}
+      </p>
+      <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
+
+      <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
+      {errorTarea && (
+        <p className="cal-detail__error" role="alert">
+          {errorTarea}
+        </p>
+      )}
+      {tareas.length === 0 ? (
+        <p className="cal-detail__empty">No hay tareas de preparación.</p>
+      ) : (
+        <ul className="cal-detail__tasks" role="list">
+          {tareas.map((tarea) => (
+            <li key={tarea.id} className="cal-detail__task">
+              <label className="cal-detail__task-name">
+                <input
+                  type="checkbox"
+                  checked={tarea.completed}
+                  disabled={tareasGuardando.includes(tarea.id)}
+                  onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
+                />
+                <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
+              </label>
+              <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
