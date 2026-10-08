@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { createReservation, fetchReservations } from '../lib/api'
+import { createReservation, fetchPendingUseReservations, fetchReservations, voteUseReservation } from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
+import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import {
   DIAS_SEMANA,
@@ -55,6 +56,28 @@ function etiquetaReserva(dia) {
   return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
 }
 
+function fechaSolo(valor) {
+  return typeof valor === 'string' ? valor.slice(0, 10) : valor
+}
+
+function rangoPeticion(peticion) {
+  return {
+    desde: fechaSolo(peticion.startDate),
+    hasta: fechaSolo(peticion.endDate),
+  }
+}
+
+function leerPrevisualizacion(assetId) {
+  try {
+    const guardada = globalThis.localStorage?.getItem(`comunero.calendario.peticion.${assetId}`)
+    if (!guardada) return null
+    const peticion = JSON.parse(guardada)
+    return typeof peticion === 'object' ? peticion : { id: peticion }
+  } catch {
+    return null
+  }
+}
+
 function Calendario() {
   // Quién entró y a qué bien: el router ya garantiza que hay sesión, pero se
   // resuelve acá y no al importar el módulo para que valga la de ahora.
@@ -64,10 +87,14 @@ function Calendario() {
   const [year, setYear] = useState(HOY.getUTCFullYear())
   const [month, setMonth] = useState(HOY.getUTCMonth() + 1)
   const [reservas, setReservas] = useState([])
+  const [peticionesPendientes, setPeticionesPendientes] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
   const [diaSeleccionado, setDiaSeleccionado] = useState(null)
+  const [peticionVisible, setPeticionVisible] = useState(() => leerPrevisualizacion(assetId))
   const [tareasGuardando, setTareasGuardando] = useState([])
   const [errorTarea, setErrorTarea] = useState(null)
+  const [errorVoto, setErrorVoto] = useState(null)
+  const [errorPendientes, setErrorPendientes] = useState(null)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -88,6 +115,11 @@ function Calendario() {
         if (vivo) {
           setReservas(reservations)
           setEstadoCarga('ok')
+          setPeticionVisible((actual) => {
+            if (!actual) return null
+            const peticion = reservations.find((reserva) => reserva.id === actual.id)
+            return peticion && peticion.status === 'PENDING' ? peticion : peticion ? null : actual
+          })
         }
       })
       .catch((err) => {
@@ -99,6 +131,38 @@ function Calendario() {
       controller.abort()
     }
   }, [assetId, year, month, refreshKey])
+
+  useEffect(() => {
+    if (!assetId) return
+    const controller = new AbortController()
+    let vivo = true
+
+    fetchPendingUseReservations(assetId, { signal: controller.signal })
+      .then((pending) => {
+        if (vivo) {
+          setPeticionesPendientes([...pending].sort((a, b) => a.startDate.localeCompare(b.startDate)))
+          setErrorPendientes(null)
+        }
+      })
+      .catch((err) => {
+        if (vivo && err.name !== 'AbortError') setErrorPendientes('No se pudieron cargar las peticiones pendientes.')
+      })
+
+    return () => {
+      vivo = false
+      controller.abort()
+    }
+  }, [assetId, refreshKey])
+
+  useEffect(() => {
+    try {
+      const clave = `comunero.calendario.peticion.${assetId}`
+      if (peticionVisible) globalThis.localStorage?.setItem(clave, JSON.stringify(peticionVisible))
+      else globalThis.localStorage?.removeItem(clave)
+    } catch {
+      // Sin storage, la previsualizacion dura mientras siga montada la pantalla.
+    }
+  }, [assetId, peticionVisible])
 
   const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
 
@@ -138,6 +202,29 @@ function Calendario() {
     setForm({ inicio: fecha, fin: fecha })
     setFormAbierto(false)
     setFormError(null)
+  }
+
+  const seleccionarPeticion = (peticion) => {
+    setErrorVoto(null)
+    setPeticionVisible(peticion)
+    setDiaSeleccionado(null)
+    setFormAbierto(false)
+  }
+
+  const quitarPrevisualizacion = () => {
+    setErrorVoto(null)
+    setPeticionVisible(null)
+  }
+
+  const votarPeticion = async (peticion, value) => {
+    setErrorVoto(null)
+    try {
+      await voteUseReservation(peticion.id, { userId, value })
+      setPeticionVisible(null)
+      setRefreshKey((key) => key + 1)
+    } catch (err) {
+      setErrorVoto(err.message)
+    }
   }
 
   const cambiarTarea = async (reservationId, tareaId, completed) => {
@@ -186,7 +273,10 @@ function Calendario() {
   const dias = diasDelMes(year, month)
   const espaciosVacios = primerDiaSemana(year, month)
   const espaciosFinales = (7 - ((espaciosVacios + dias.length) % 7)) % 7
-  const integrantes = integrantesEnReservas(reservas)
+  const peticionVisibleId = peticionVisible?.id ?? null
+  const peticionVisibleActual = peticionesPendientes.find((peticion) => peticion.id === peticionVisibleId)
+    ?? (peticionVisible?.startDate ? peticionVisible : null)
+  const integrantes = integrantesEnReservas(reservas, peticionVisibleId)
 
   return (
     <div className="split split--fill">
@@ -215,6 +305,10 @@ function Calendario() {
           </button>
         </header>
 
+        {peticionVisibleActual && (
+          <AvisoPeticionPendiente peticion={peticionVisibleActual} onClear={quitarPrevisualizacion} />
+        )}
+
         {estadoCarga === 'error' && (
           <p className="note cal-error" role="alert">
             No se pudo cargar el calendario.
@@ -236,7 +330,7 @@ function Calendario() {
             <Dia
               key={dia.toISOString()}
               dia={dia}
-              info={estadoDelDia(dia, reservas)}
+              info={estadoDelDia(dia, reservas, peticionVisibleId)}
               seleccionado={diaSeleccionado === dia.toISOString()}
               onSelect={() => seleccionarDia(dia)}
             />
@@ -337,8 +431,82 @@ function Calendario() {
             </form>
           )}
         </div>
+
+        {peticionesPendientes.length > 0 && (
+          <PeticionesPendientes
+            peticiones={peticionesPendientes}
+            peticionVisibleId={peticionVisibleId}
+            userId={userId}
+            error={errorVoto ?? errorPendientes}
+            onSelect={seleccionarPeticion}
+            onVote={votarPeticion}
+          />
+        )}
       </aside>
     </div>
+  )
+}
+
+function AvisoPeticionPendiente({ peticion, onClear }) {
+  const { desde, hasta } = rangoPeticion(peticion)
+  const nombre = peticion.user?.name ?? 'Integrante'
+
+  return (
+    <div className="cal-preview" aria-live="polite">
+      <p className="cal-preview__text">
+        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado, por eso no queda fijo en el calendario.
+      </p>
+      <button type="button" className="btn btn--link cal-preview__action" onClick={onClear}>
+        Quitar
+      </button>
+    </div>
+  )
+}
+
+function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onVote }) {
+  return (
+    <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
+      <header className="cal-pending__head">
+        <h2 className="cal-pending__t">Por votar ({peticiones.length})</h2>
+        <button type="button" className="btn btn--link" disabled title="Disponible cuando exista la pestaña Reservas">
+          Ver en reservas
+        </button>
+      </header>
+      <p className="hint cal-pending__hint">Pendiente de los demás. Tocá una para verla en el calendario.</p>
+      {error && <p className="cal-form__err" role="alert">{error}</p>}
+      <ul className="cal-pending__list" role="list">
+        {peticiones.map((peticion) => {
+          const propia = peticion.userId === userId
+          const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
+          const total = Math.max(0, (peticion.coownerCount ?? 0) - 1)
+          const { desde, hasta } = rangoPeticion(peticion)
+          const nombre = peticion.user?.name ?? 'Integrante'
+
+          return (
+            <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
+              <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
+                <span className="cal-pending__title">
+                  <strong>{nombre}{propia && ' (Tú)'}</strong>
+                  <span>{votos}/{total} votos</span>
+                </span>
+                <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
+                <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
+              </button>
+              {!propia && (
+                <div className="cal-pending__actions">
+                  <button type="button" className="btn btn--sm btn--primary" onClick={() => onVote(peticion, 'APPROVE')}>
+                    Aceptar
+                  </button>
+                  <button type="button" className="btn btn--sm" onClick={() => onVote(peticion, 'REJECT')}>
+                    Rechazar
+                  </button>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

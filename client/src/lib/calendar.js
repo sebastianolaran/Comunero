@@ -57,14 +57,15 @@ function cubreElDia(reserva, dia) {
 // Si hay mas de una reserva sobre el mismo dia, una vigente (ACTIVE o
 // PENDING) tiene prioridad sobre una rechazada. Las canceladas ya vienen
 // filtradas por el backend, pero se ignoran igual por si acaso.
-export function estadoDelDia(dia, reservas) {
+export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   const delDia = reservas.filter((r) => r.status !== 'CANCELLED' && cubreElDia(r, dia));
 
   if (delDia.length === 0) {
     return { estado: 'libre' };
   }
 
-  const vigente = delDia.find((r) => r.status === 'ACTIVE' || r.status === 'PENDING');
+  const vigente = delDia.find((r) => r.status === 'ACTIVE')
+    ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId);
   if (vigente) {
     return vigente.type === 'RENTAL'
       ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId, alquiler: vigente }
@@ -78,6 +79,7 @@ export function estadoDelDia(dia, reservas) {
   }
 
   const rechazada = delDia.find((r) => r.status === 'REJECTED');
+  if (!rechazada) return { estado: 'libre' };
   return { estado: 'rechazado', reservationId: rechazada.id, userId: rechazada.userId };
 }
 
@@ -106,11 +108,11 @@ export function colorDeIntegrante(userId) {
 // (ACTIVE o PENDING) en el rango cargado. No es la lista completa de
 // integrantes del asset (no hay un endpoint de Users todavia), es "quien
 // aparece pintado este mes".
-export function integrantesEnReservas(reservas) {
+export function integrantesEnReservas(reservas, reservaPendienteId = null) {
   const vistos = new Map();
   for (const r of reservas) {
     if (r.type !== 'USE') continue;
-    if (r.status !== 'ACTIVE' && r.status !== 'PENDING') continue;
+    if (r.status !== 'ACTIVE' && r.id !== reservaPendienteId) continue;
     if (vistos.has(r.userId)) continue;
     vistos.set(r.userId, {
       userId: r.userId,
