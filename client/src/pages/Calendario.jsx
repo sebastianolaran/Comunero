@@ -34,6 +34,8 @@ const FORM_INICIAL = {
   fin: '',
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
 const formateadorDetalle = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
   day: 'numeric',
@@ -43,6 +45,14 @@ const formateadorDetalle = new Intl.DateTimeFormat('es-AR', {
 
 function fechaDetalle(dia) {
   return formateadorDetalle.format(dia)
+}
+
+function fechaInput(dia) {
+  return dia.toISOString().slice(0, 10)
+}
+
+function etiquetaReserva(dia) {
+  return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
 }
 
 function Calendario() {
@@ -124,6 +134,10 @@ function Calendario() {
   const seleccionarDia = (dia) => {
     setErrorTarea(null)
     setDiaSeleccionado(dia.toISOString())
+    const fecha = fechaInput(dia)
+    setForm({ inicio: fecha, fin: fecha })
+    setFormAbierto(false)
+    setFormError(null)
   }
 
   const cambiarTarea = async (reservationId, tareaId, completed) => {
@@ -272,7 +286,7 @@ function Calendario() {
               title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
               onClick={() => setFormAbierto(true)}
             >
-              Reservar
+              {diaSeleccionado ? etiquetaReserva(new Date(diaSeleccionado)) : 'Reservar'}
             </button>
           )}
 
