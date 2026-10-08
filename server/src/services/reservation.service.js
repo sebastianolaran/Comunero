@@ -164,4 +164,20 @@ async function voteUse({ reservationId, userId, value }) {
   });
 }
 
-module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse };
+async function cancelUse({ reservationId, userId }) {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    select: { id: true, type: true, status: true, userId: true },
+  });
+  if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
+  if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
+  if (reservation.userId !== userId) return { error: 'NOT_OWNER' };
+
+  const updated = await prisma.reservation.update({
+    where: { id: reservationId },
+    data: { status: 'CANCELLED' },
+  });
+  return { reservation: updated };
+}
+
+module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse, cancelUse };

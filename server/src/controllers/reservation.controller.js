@@ -109,4 +109,16 @@ async function voteUse(req, res) {
   res.json({ reservation: result.reservation });
 }
 
-module.exports = { listForCalendar, listPending, create, voteUse };
+async function cancelUse(req, res) {
+  const { userId } = req.body ?? {};
+  if (!userId) return res.status(400).json({ error: 'falta userId' });
+
+  const result = await reservationService.cancelUse({ reservationId: req.params.id, userId });
+  if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe el turno de uso propio' });
+  if (result.error === 'CANCELLED') return res.status(409).json({ error: 'el turno ya estaba cancelado' });
+  if (result.error === 'NOT_OWNER') return res.status(403).json({ error: 'solo quien pidio el turno puede cancelarlo' });
+
+  res.json({ reservation: result.reservation });
+}
+
+module.exports = { listForCalendar, listPending, create, voteUse, cancelUse };

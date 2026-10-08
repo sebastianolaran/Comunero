@@ -73,6 +73,7 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
           estado: 'reservado',
           pendiente: vigente.status === 'PENDING',
           reservationId: vigente.id,
+          reserva: vigente,
           userId: vigente.userId,
           userName: vigente.user?.name,
         };

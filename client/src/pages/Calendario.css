@@ -111,6 +111,11 @@
   color: var(--muted);
 }
 
+.cal-detail__actions {
+  display: flex;
+  margin-top: 12px;
+}
+
 .cal-rail > .panel {
   width: 100%;
 }

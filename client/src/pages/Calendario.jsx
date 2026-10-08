@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
-import { createReservation, fetchPendingUseReservations, fetchReservations, voteUseReservation } from '../lib/api'
+import {
+  cancelUseReservation,
+  createReservation,
+  fetchPendingUseReservations,
+  fetchReservations,
+  voteUseReservation,
+} from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import {
@@ -95,6 +102,9 @@ function Calendario() {
   const [errorTarea, setErrorTarea] = useState(null)
   const [errorVoto, setErrorVoto] = useState(null)
   const [errorPendientes, setErrorPendientes] = useState(null)
+  const [cancelacion, setCancelacion] = useState(null)
+  const [errorCancelacion, setErrorCancelacion] = useState(null)
+  const [cancelando, setCancelando] = useState(false)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -224,6 +234,29 @@ function Calendario() {
       setRefreshKey((key) => key + 1)
     } catch (err) {
       setErrorVoto(err.message)
+    }
+  }
+
+  const pedirCancelacion = (reserva) => {
+    setErrorCancelacion(null)
+    setCancelacion(reserva)
+  }
+
+  const cancelarTurno = async () => {
+    if (!cancelacion || cancelando) return
+
+    setCancelando(true)
+    setErrorCancelacion(null)
+    try {
+      await cancelUseReservation(cancelacion.id, { userId })
+      setCancelacion(null)
+      setPeticionVisible((actual) => (actual?.id === cancelacion.id ? null : actual))
+      setDiaSeleccionado(null)
+      setRefreshKey((key) => key + 1)
+    } catch (err) {
+      setErrorCancelacion(err.message)
+    } finally {
+      setCancelando(false)
     }
   }
 
@@ -370,6 +403,7 @@ function Calendario() {
           userId={userId}
           tareasGuardando={tareasGuardando}
           errorTarea={errorTarea}
+          onCancel={pedirCancelacion}
           onTareaChange={cambiarTarea}
         />
         <div className="panel">
@@ -439,10 +473,29 @@ function Calendario() {
             userId={userId}
             error={errorVoto ?? errorPendientes}
             onSelect={seleccionarPeticion}
+            onCancel={pedirCancelacion}
             onVote={votarPeticion}
           />
         )}
       </aside>
+
+      {cancelacion && (
+        <ConfirmDialog
+          title="Cancelar turno"
+          lines={[
+            'Se va a cancelar el turno completo y todos sus días quedarán libres.',
+            `Rango: ${formatRange(fechaSolo(cancelacion.startDate), fechaSolo(cancelacion.endDate))}.`,
+          ]}
+          confirmLabel="Cancelar turno"
+          busyLabel="Cancelando…"
+          busy={cancelando}
+          error={errorCancelacion}
+          onConfirm={cancelarTurno}
+          onCancel={() => {
+            if (!cancelando) setCancelacion(null)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -463,7 +516,7 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
   )
 }
 
-function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onVote }) {
+function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onCancel, onVote }) {
   return (
     <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
       <header className="cal-pending__head">
@@ -502,6 +555,13 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, on
                   </button>
                 </div>
               )}
+              {propia && (
+                <div className="cal-pending__actions">
+                  <button type="button" className="btn btn--sm" onClick={() => onCancel(peticion)}>
+                    Cancelar petición
+                  </button>
+                </div>
+              )}
             </li>
           )
         })}
@@ -510,7 +570,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, on
   )
 }
 
-function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onTareaChange }) {
+function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onTareaChange }) {
   const info = dia ? estadoDelDia(dia, reservas) : null
   let descripcion = 'Elegí un día del calendario para ver su detalle.'
 
@@ -544,6 +604,13 @@ function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onTare
     <div className="panel cal-detail" aria-live="polite">
       {dia && <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>}
       <p className="cal-detail__d">{descripcion}</p>
+      {dia && info?.estado === 'reservado' && info.userId === userId && (
+        <div className="cal-detail__actions">
+          <button type="button" className="btn btn--sm" onClick={() => onCancel(info.reserva)}>
+            Cancelar turno
+          </button>
+        </div>
+      )}
     </div>
   )
 }

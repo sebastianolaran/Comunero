@@ -15,4 +15,7 @@ router.post('/', controller.create);
 // POST /api/reservations/:id/votes  (votar una solicitud de uso propio)
 router.post('/:id/votes', controller.voteUse);
 
+// POST /api/reservations/:id/cancellation  (cancelar un turno de uso propio)
+router.post('/:id/cancellation', controller.cancelUse);
+
 module.exports = router;

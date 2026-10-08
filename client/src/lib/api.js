@@ -84,3 +84,15 @@ export async function voteUseReservation(id, { userId, value }) {
   if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
   return body.reservation
 }
+
+export async function cancelUseReservation(id, { userId }) {
+  const res = await fetch(`${API_URL}/api/reservations/${encodeURIComponent(id)}/cancellation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  })
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+  return body.reservation
+}
