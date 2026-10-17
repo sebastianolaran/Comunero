@@ -1,11 +1,9 @@
 const prisma = require('../prisma');
+const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
 
-function estadoDeVotacion(afirmativos, negativos, total) {
-  if (afirmativos > total / 2) return 'ACTIVE';
-
-  const pendientes = total - afirmativos - negativos;
-  if (afirmativos + pendientes <= total / 2) return 'REJECTED';
-  return 'PENDING';
+function useVotingStatus(approvals, objections, coownerCount) {
+  const required = requiredApprovals('USE', coownerCount);
+  return votingStatus({ approvals, objections, coownerCount, required });
 }
 
 // Historia "Consultar calendario": trae solo las reservas que se solapan
@@ -99,8 +97,9 @@ async function hasOverlap(assetId, startDate, endDate) {
 }
 
 // Crea la solicitud de uso propio. El creador suma su voto afirmativo y la
-// reserva queda ACTIVE solo si ese voto ya alcanza la mayoria; si no, queda
-// PENDING hasta que voten los demas copropietarios.
+// reserva queda ACTIVE solo si ese voto ya alcanza el minimo (hoy, unanimidad:
+// pasa solo si es el unico copropietario); si no, queda PENDING hasta que
+// voten los demas copropietarios.
 async function requestUse({ assetId, userId, startDate, endDate, note }) {
   return prisma.$transaction(async (tx) => {
     const asset = await tx.asset.findUnique({
@@ -109,7 +108,7 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
     });
     if (!asset || !asset.users.some((user) => user.id === userId)) return null;
 
-    const status = estadoDeVotacion(1, 0, asset.users.length);
+    const status = useVotingStatus(1, 0, asset.users.length);
     return tx.reservation.create({
       data: {
         assetId,
@@ -158,7 +157,7 @@ async function voteUse({ reservationId, userId, value }) {
 
     const approvals = await tx.reservationApproval.count({ where: { reservationId } });
     const objections = await tx.objection.count({ where: { reservationId } });
-    const status = estadoDeVotacion(approvals, objections, coowners.length);
+    const status = useVotingStatus(approvals, objections, coowners.length);
     const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status } });
     return { reservation: updated };
   });
