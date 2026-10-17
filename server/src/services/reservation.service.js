@@ -75,8 +75,10 @@ async function listPendingUse(assetId) {
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   });
 
+  // approvedBy: para que el client marque "ya aceptaste"; volver a aceptar no cambia nada.
   return reservations.map(({ approvals, asset, ...reservation }) => ({
     ...reservation,
+    approvedBy: approvals.map((approval) => approval.userId),
     approvalCount: approvals.length,
     coownerCount: asset.users.length,
   }));
