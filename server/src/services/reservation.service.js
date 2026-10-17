@@ -1,5 +1,6 @@
 const prisma = require('../prisma');
 const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
+const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
 
 function useVotingStatus(approvals, objections, coownerCount) {
   const required = requiredApprovals('USE', coownerCount);
@@ -126,6 +127,10 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
 
 async function voteUse({ reservationId, userId, value }) {
   return prisma.$transaction(async (tx) => {
+    // Mismo lock que el voto de alquiler: sin el, dos votos a la vez (ej. doble
+    // click) leen el mismo estado y pueden dejar dos objeciones de la misma persona.
+    await lockForVote(tx, reservationId);
+
     const reservation = await tx.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -163,23 +168,28 @@ async function voteUse({ reservationId, userId, value }) {
     const status = useVotingStatus(approvals, objections, coowners.length);
     const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status } });
     return { reservation: updated };
-  });
+  }, TX_OPTIONS);
 }
 
 async function cancelUse({ reservationId, userId }) {
-  const reservation = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    select: { id: true, type: true, status: true, userId: true },
-  });
-  if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
-  if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
-  if (reservation.userId !== userId) return { error: 'NOT_OWNER' };
+  return prisma.$transaction(async (tx) => {
+    // Mismo lock que voteUse: si no, un voto en curso podria pisar el CANCELLED.
+    await lockForVote(tx, reservationId);
 
-  const updated = await prisma.reservation.update({
-    where: { id: reservationId },
-    data: { status: 'CANCELLED' },
-  });
-  return { reservation: updated };
+    const reservation = await tx.reservation.findUnique({
+      where: { id: reservationId },
+      select: { id: true, type: true, status: true, userId: true },
+    });
+    if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
+    if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
+    if (reservation.userId !== userId) return { error: 'NOT_OWNER' };
+
+    const updated = await tx.reservation.update({
+      where: { id: reservationId },
+      data: { status: 'CANCELLED' },
+    });
+    return { reservation: updated };
+  }, TX_OPTIONS);
 }
 
 module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse, cancelUse };

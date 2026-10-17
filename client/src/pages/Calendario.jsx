@@ -105,6 +105,7 @@ function Calendario() {
   const [cancelacion, setCancelacion] = useState(null)
   const [errorCancelacion, setErrorCancelacion] = useState(null)
   const [cancelando, setCancelando] = useState(false)
+  const [votando, setVotando] = useState(null) // id de la peticion cuyo voto se esta enviando
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -227,6 +228,9 @@ function Calendario() {
   }
 
   const votarPeticion = async (peticion, value) => {
+    if (votando) return
+
+    setVotando(peticion.id)
     setErrorVoto(null)
     try {
       await voteUseReservation(peticion.id, { userId, value })
@@ -236,6 +240,8 @@ function Calendario() {
       setErrorVoto(err.message)
       // Si la votacion ya se cerro mientras tanto, se recarga para que deje de figurar como pendiente.
       setRefreshKey((key) => key + 1)
+    } finally {
+      setVotando(null)
     }
   }
 
@@ -477,6 +483,7 @@ function Calendario() {
             onSelect={seleccionarPeticion}
             onCancel={pedirCancelacion}
             onVote={votarPeticion}
+            votando={votando}
           />
         )}
       </aside>
@@ -518,7 +525,7 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
   )
 }
 
-function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onCancel, onVote }) {
+function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, votando, onSelect, onCancel, onVote }) {
   return (
     <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
       <header className="cal-pending__head">
@@ -549,10 +556,20 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, on
               </button>
               {!propia && (
                 <div className="cal-pending__actions">
-                  <button type="button" className="btn btn--sm btn--primary" onClick={() => onVote(peticion, 'APPROVE')}>
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--primary"
+                    disabled={votando !== null}
+                    onClick={() => onVote(peticion, 'APPROVE')}
+                  >
                     Aceptar
                   </button>
-                  <button type="button" className="btn btn--sm" onClick={() => onVote(peticion, 'REJECT')}>
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={votando !== null}
+                    onClick={() => onVote(peticion, 'REJECT')}
+                  >
                     Rechazar
                   </button>
                 </div>
