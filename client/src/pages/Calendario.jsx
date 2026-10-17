@@ -15,6 +15,7 @@ import {
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
+  faltaMiVoto,
   integrantesEnReservas,
   mesAnterior,
   mesSiguiente,
@@ -527,18 +528,26 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
 }
 
 function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, votando, onSelect, onCancel, onVote }) {
+  const [soloMiVoto, setSoloMiVoto] = useState(false)
+  const visibles = soloMiVoto ? peticiones.filter((peticion) => faltaMiVoto(peticion, userId)) : peticiones
+
   return (
     <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
       <header className="cal-pending__head">
-        <h2 className="cal-pending__t">Por votar ({peticiones.length})</h2>
+        <h2 className="cal-pending__t">Por votar ({visibles.length})</h2>
         <button type="button" className="btn btn--link" disabled title="Disponible cuando exista la pestaña Reservas">
           Ver en reservas
         </button>
       </header>
       <p className="hint cal-pending__hint">Pendiente de los demás. Tocá una para verla en el calendario.</p>
+      <label className="chk cal-pending__filtro">
+        <input type="checkbox" checked={soloMiVoto} onChange={(event) => setSoloMiVoto(event.target.checked)} />
+        Solo las que me faltan votar
+      </label>
       {error && <p className="cal-form__err" role="alert">{error}</p>}
+      {visibles.length === 0 && <p className="hint cal-pending__hint">No te falta votar ninguna.</p>}
       <ul className="cal-pending__list" role="list">
-        {peticiones.map((peticion) => {
+        {visibles.map((peticion) => {
           const propia = peticion.userId === userId
           const aceptada = yaAprobo(peticion, userId)
           const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)

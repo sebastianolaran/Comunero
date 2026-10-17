@@ -100,6 +100,12 @@ export function yaAprobo(peticion, userId) {
   return peticion.approvedBy?.includes(userId) ?? false;
 }
 
+// Filtro "Solo las que me faltan votar": las propias no, porque pedirla ya
+// cuenta como un "si" de quien la pidio.
+export function faltaMiVoto(peticion, userId) {
+  return peticion.userId !== userId && !yaAprobo(peticion, userId);
+}
+
 // Color deterministico por integrante (mismo userId -> mismo color
 // siempre), mientras no exista un campo "color" persistido en User.
 // TODO: reemplazar por el color real cuando el schema lo tenga.
