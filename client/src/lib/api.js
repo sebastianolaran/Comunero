@@ -19,6 +19,16 @@ export async function fetchReservations(assetId, month, { signal } = {}) {
   return body.reservations
 }
 
+export async function fetchPendingUseReservations(assetId, { signal } = {}) {
+  const params = new URLSearchParams({ assetId })
+  const res = await fetch(`${API_URL}/api/reservations/pending?${params}`, { signal })
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+  const body = await res.json()
+  return body.reservations
+}
+
 // Entrar con mail y contraseña. Si no coinciden, el server responde 401 con
 // un { error } que ya viene escrito para mostrarle a quien está entrando.
 export async function login({ email, password }) {
@@ -60,5 +70,29 @@ export async function createReservation({ assetId, userId, startDate, endDate, n
     throw new Error(body.error ?? `HTTP ${res.status}`)
   }
 
+  return body.reservation
+}
+
+export async function voteUseReservation(id, { userId, value }) {
+  const res = await fetch(`${API_URL}/api/reservations/${encodeURIComponent(id)}/votes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, value }),
+  })
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+  return body.reservation
+}
+
+export async function cancelUseReservation(id, { userId }) {
+  const res = await fetch(`${API_URL}/api/reservations/${encodeURIComponent(id)}/cancellation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  })
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
   return body.reservation
 }

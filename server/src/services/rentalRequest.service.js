@@ -341,4 +341,16 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
   }, TX_OPTIONS);
 }
 
-module.exports = { deriveStatus, toListItem, listByAsset, nextStatus, vote, create, markPaid, cancel };
+module.exports = {
+  deriveStatus,
+  toListItem,
+  listByAsset,
+  nextStatus,
+  vote,
+  create,
+  markPaid,
+  cancel,
+  // Los usa tambien el voto de uso propio (reservation.service).
+  lockForVote,
+  TX_OPTIONS,
+};
