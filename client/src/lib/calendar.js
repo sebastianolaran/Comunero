@@ -94,6 +94,12 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   return { estado: 'rechazado', reservationId: rechazada.id, userId: rechazada.userId };
 }
 
+// Si el usuario ya acepto una peticion de "Por votar". Con unanimidad, su "si"
+// puede no alcanzar para aprobarla y la peticion sigue en la lista.
+export function yaAprobo(peticion, userId) {
+  return peticion.approvedBy?.includes(userId) ?? false;
+}
+
 // Color deterministico por integrante (mismo userId -> mismo color
 // siempre), mientras no exista un campo "color" persistido en User.
 // TODO: reemplazar por el color real cuando el schema lo tenga.

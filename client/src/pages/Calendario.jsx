@@ -21,6 +21,7 @@ import {
   nombreMes,
   primerDiaSemana,
   tonoDeIntegrante,
+  yaAprobo,
 } from '../lib/calendar'
 import './Calendario.css'
 
@@ -539,6 +540,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
       <ul className="cal-pending__list" role="list">
         {peticiones.map((peticion) => {
           const propia = peticion.userId === userId
+          const aceptada = yaAprobo(peticion, userId)
           const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
           const total = Math.max(0, (peticion.coownerCount ?? 0) - 1)
           const { desde, hasta } = rangoPeticion(peticion)
@@ -559,10 +561,10 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
                   <button
                     type="button"
                     className="btn btn--sm btn--primary"
-                    disabled={votando !== null}
+                    disabled={votando !== null || aceptada}
                     onClick={() => onVote(peticion, 'APPROVE')}
                   >
-                    Aceptar
+                    {aceptada ? 'Ya aceptaste' : 'Aceptar'}
                   </button>
                   <button
                     type="button"
