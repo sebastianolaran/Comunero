@@ -55,8 +55,11 @@ function cubreElDia(reserva, dia) {
 // estilo distintivo".
 //
 // Si hay mas de una reserva sobre el mismo dia, una vigente (ACTIVE o
-// PENDING) tiene prioridad sobre una rechazada. Las canceladas ya vienen
-// filtradas por el backend, pero se ignoran igual por si acaso.
+// PENDING) tiene prioridad sobre una rechazada: una pendiente tambien ocupa
+// el dia (el server no deja reservar encima), asi que nunca se ve libre.
+// Entre vigentes gana la aprobada y, si no hay, la pendiente seleccionada
+// en "Por votar". Las canceladas ya vienen filtradas por el backend, pero se
+// ignoran igual por si acaso.
 export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   const delDia = reservas.filter((r) => r.status !== 'CANCELLED' && cubreElDia(r, dia));
 
@@ -65,10 +68,17 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   }
 
   const vigente = delDia.find((r) => r.status === 'ACTIVE')
-    ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId);
+    ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId)
+    ?? delDia.find((r) => r.status === 'PENDING');
   if (vigente) {
     return vigente.type === 'RENTAL'
-      ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId, alquiler: vigente }
+      ? {
+          estado: 'alquilado',
+          pendiente: vigente.status === 'PENDING',
+          reservationId: vigente.id,
+          renterId: vigente.renterId,
+          alquiler: vigente,
+        }
       : {
           estado: 'reservado',
           pendiente: vigente.status === 'PENDING',
@@ -109,11 +119,11 @@ export function colorDeIntegrante(userId) {
 // (ACTIVE o PENDING) en el rango cargado. No es la lista completa de
 // integrantes del asset (no hay un endpoint de Users todavia), es "quien
 // aparece pintado este mes".
-export function integrantesEnReservas(reservas, reservaPendienteId = null) {
+export function integrantesEnReservas(reservas) {
   const vistos = new Map();
   for (const r of reservas) {
     if (r.type !== 'USE') continue;
-    if (r.status !== 'ACTIVE' && r.id !== reservaPendienteId) continue;
+    if (r.status !== 'ACTIVE' && r.status !== 'PENDING') continue;
     if (vistos.has(r.userId)) continue;
     vistos.set(r.userId, {
       userId: r.userId,

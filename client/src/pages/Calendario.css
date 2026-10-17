@@ -228,6 +228,13 @@
   color: oklch(38% 0.09 195);
 }
 
+/* Alquiler pendiente: va después de --alquilado para que no vuelva el borde sólido. */
+.cal__c--alquilado.cal__c--pendiente {
+  box-shadow: none;
+  outline: 1px dashed oklch(65% 0.1 195);
+  outline-offset: -1px;
+}
+
 .cal__c--rechazado {
   background: oklch(96% 0 0);
   box-shadow: inset 0 0 0 1px oklch(90% 0 0);

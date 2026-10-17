@@ -317,7 +317,7 @@ function Calendario() {
   const peticionVisibleId = peticionVisible?.id ?? null
   const peticionVisibleActual = peticionesPendientes.find((peticion) => peticion.id === peticionVisibleId)
     ?? (peticionVisible?.startDate ? peticionVisible : null)
-  const integrantes = integrantesEnReservas(reservas, peticionVisibleId)
+  const integrantes = integrantesEnReservas(reservas)
 
   return (
     <div className="split split--fill">
@@ -516,7 +516,7 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
   return (
     <div className="cal-preview" aria-live="polite">
       <p className="cal-preview__text">
-        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado, por eso no queda fijo en el calendario.
+        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado: en el calendario se ve con borde punteado.
       </p>
       <button type="button" className="btn btn--link cal-preview__action" onClick={onClear}>
         Quitar
@@ -638,42 +638,49 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
   const tareas = alquiler.tasks ?? []
   const pendientes = tareas.filter((tarea) => !tarea.completed).length
   const monto = alquiler.amount == null ? null : `$${alquiler.amount.toLocaleString('es-AR')}`
+  const pendiente = alquiler.status === 'PENDING'
 
   return (
     <div className="panel cal-detail" aria-live="polite">
       <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>
       <p className="cal-detail__d">
-        Alquilado a {alquiler.renter?.name ?? 'un huésped'}
+        {pendiente ? 'Alquiler pendiente de aprobación para' : 'Alquilado a'}{' '}
+        {alquiler.renter?.name ?? 'un huésped'}
         {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
         {monto && ` · Monto total: ${monto}`}
       </p>
       <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
 
-      <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
-      {errorTarea && (
-        <p className="cal-detail__error" role="alert">
-          {errorTarea}
-        </p>
-      )}
-      {tareas.length === 0 ? (
-        <p className="cal-detail__empty">No hay tareas de preparación.</p>
-      ) : (
-        <ul className="cal-detail__tasks" role="list">
-          {tareas.map((tarea) => (
-            <li key={tarea.id} className="cal-detail__task">
-              <label className="cal-detail__task-name">
-                <input
-                  type="checkbox"
-                  checked={tarea.completed}
-                  disabled={tareasGuardando.includes(tarea.id)}
-                  onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
-                />
-                <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
-              </label>
-              <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
-            </li>
-          ))}
-        </ul>
+      {/* Las tareas de preparacion son de alquileres aprobados (el server no deja crearlas antes). */}
+      {!pendiente && (
+        <>
+          <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
+          {errorTarea && (
+            <p className="cal-detail__error" role="alert">
+              {errorTarea}
+            </p>
+          )}
+          {tareas.length === 0 ? (
+            <p className="cal-detail__empty">No hay tareas de preparación.</p>
+          ) : (
+            <ul className="cal-detail__tasks" role="list">
+              {tareas.map((tarea) => (
+                <li key={tarea.id} className="cal-detail__task">
+                  <label className="cal-detail__task-name">
+                    <input
+                      type="checkbox"
+                      checked={tarea.completed}
+                      disabled={tareasGuardando.includes(tarea.id)}
+                      onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
+                    />
+                    <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
+                  </label>
+                  <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )
@@ -693,14 +700,17 @@ function Dia({ dia, info, seleccionado, onSelect }) {
     estilo = { '--h': tonoDeIntegrante(info.userId) }
     etiqueta = (info.userName ?? '').slice(0, 2)
   } else if (estado === 'alquilado') {
+    // Pendiente de aprobacion: borde punteado, como el uso propio.
+    if (info.pendiente) clases.push('cal__c--pendiente')
     etiqueta = 'Alq.'
   } else if (estado === 'rechazado') {
     etiqueta = 'Rech.'
   }
 
+  const sufijo = info.pendiente ? ' (pendiente)' : ''
   const titulo = info.userName
-    ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${info.pendiente ? ' (pendiente)' : ''}`
-    : ETIQUETA_ESTADO[estado]
+    ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${sufijo}`
+    : `${ETIQUETA_ESTADO[estado]}${sufijo}`
 
   return (
     <button
