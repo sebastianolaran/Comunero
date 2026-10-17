@@ -104,6 +104,7 @@ async function voteUse(req, res) {
   });
   if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe la solicitud de uso propio' });
   if (result.error === 'CANCELLED') return res.status(409).json({ error: 'la solicitud fue cancelada' });
+  if (result.error === 'RESOLVED') return res.status(409).json({ error: 'la votacion ya esta cerrada' });
   if (result.error === 'NOT_COOWNER') return res.status(403).json({ error: 'solo los copropietarios pueden votar' });
 
   res.json({ reservation: result.reservation });

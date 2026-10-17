@@ -234,6 +234,8 @@ function Calendario() {
       setRefreshKey((key) => key + 1)
     } catch (err) {
       setErrorVoto(err.message)
+      // Si la votacion ya se cerro mientras tanto, se recarga para que deje de figurar como pendiente.
+      setRefreshKey((key) => key + 1)
     }
   }
 

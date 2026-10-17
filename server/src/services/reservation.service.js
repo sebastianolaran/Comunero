@@ -138,10 +138,13 @@ async function voteUse({ reservationId, userId, value }) {
       },
     });
     if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
-    if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
 
     const coowners = await tx.user.findMany({ where: { assetId: reservation.assetId }, select: { id: true } });
     if (!coowners.some((user) => user.id === userId)) return { error: 'NOT_COOWNER' };
+    if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
+    // Solo se vota mientras esta pendiente. Rechazada es final (libero los dias
+    // y otra reserva puede haberlos tomado); aprobada solo se puede cancelar.
+    if (reservation.status !== 'PENDING') return { error: 'RESOLVED' };
 
     await tx.objection.deleteMany({ where: { reservationId, userId } });
     if (value === 'APPROVE') {
