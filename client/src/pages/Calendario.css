@@ -137,6 +137,10 @@
   margin-top: 5px;
 }
 
+.cal-pending__filtro {
+  margin-top: 10px;
+}
+
 .cal-pending__list {
   display: flex;
   flex-direction: column;
