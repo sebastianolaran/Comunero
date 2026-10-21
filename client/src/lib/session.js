@@ -1,4 +1,4 @@
-// Sesión del usuario que entró: quién es y a qué bien pertenece. Vive en
+// Sesión del usuario que entró: quién es y qué bien está mirando. Vive en
 // localStorage para que recargar la página no obligue a loguearse de nuevo.
 export const CLAVE_SESION = 'comunero.sesion'
 
@@ -38,4 +38,10 @@ export function cerrarSesion() {
   } catch {
     // Nada que hacer: si no se puede escribir, tampoco se pudo guardar.
   }
+}
+
+export function elegirBien(bien) {
+  const sesion = leerSesion()
+  if (!sesion) return
+  guardarSesion({ ...sesion, assetId: bien.id, assetName: bien.name, inviteCode: bien.inviteCode })
 }

@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { memberOf } = require('./membership');
 const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
 const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
 
@@ -146,7 +147,7 @@ async function voteUse({ reservationId, userId, value }) {
     });
     if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
 
-    const coowners = await tx.user.findMany({ where: { assetId: reservation.assetId }, select: { id: true } });
+    const coowners = await tx.user.findMany({ where: memberOf(reservation.assetId), select: { id: true } });
     if (!coowners.some((user) => user.id === userId)) return { error: 'NOT_COOWNER' };
     if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
     // Solo se vota mientras esta pendiente. Rechazada es final (libero los dias

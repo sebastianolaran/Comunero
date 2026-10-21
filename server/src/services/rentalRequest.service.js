@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { memberOf } = require('./membership');
 const { buildShares } = require('./movement.rules');
 
 // Se deriva de los votos (Approval = si, Objection = no) ademas del status,
@@ -74,7 +75,7 @@ const LIST_SELECT = {
 };
 
 function coownersOf(db, assetId) {
-  return db.user.findMany({ where: { assetId }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+  return db.user.findMany({ where: memberOf(assetId), select: { id: true, name: true }, orderBy: { name: 'asc' } });
 }
 
 const OVERLAP_REASON = 'Rechazada por solapamiento con un alquiler aprobado en esas fechas';

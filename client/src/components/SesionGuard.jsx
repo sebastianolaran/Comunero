@@ -8,6 +8,13 @@ export function RequiereSesion({ children }) {
   return leerSesion() ? children : <Navigate to="/login" replace />
 }
 
+// Sin un bien elegido, se manda a "Tus bienes compartidos".
+export function RequiereBien({ children }) {
+  const sesion = leerSesion()
+  if (!sesion) return <Navigate to="/login" replace />
+  return sesion.assetId ? children : <Navigate to="/bienes" replace />
+}
+
 // Al revés: quien ya entró no necesita ver el formulario de nuevo.
 export function SoloSinSesion({ children }) {
   return leerSesion() ? <Navigate to="/" replace /> : children
