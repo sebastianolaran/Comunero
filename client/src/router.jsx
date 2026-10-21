@@ -1,10 +1,11 @@
 import { createBrowserRouter, Navigate } from 'react-router'
-import { RequiereSesion, SoloSinSesion } from './components/SesionGuard'
+import { RequiereBien, RequiereSesion, SoloSinSesion } from './components/SesionGuard'
 import AppLayout from './layouts/AppLayout'
 import Balance from './pages/Balance'
 import Calendario from './pages/Calendario'
 import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
+import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
 import Rental from './pages/Rental'
@@ -39,11 +40,20 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/',
+    // Tus bienes compartidos: elegir, crear o sumarse a un bien.
+    path: '/bienes',
     element: (
       <RequiereSesion>
-        <AppLayout />
+        <MisBienes />
       </RequiereSesion>
+    ),
+  },
+  {
+    path: '/',
+    element: (
+      <RequiereBien>
+        <AppLayout />
+      </RequiereBien>
     ),
     children: [
       // Al entrar sin elegir nada, arranca en Calendario.

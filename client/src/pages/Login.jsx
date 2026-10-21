@@ -86,7 +86,7 @@ function Login() {
     try {
       const usuario = await login({ email: email.trim(), password })
       guardarSesion(usuario)
-      navigate('/', { replace: true })
+      navigate('/bienes', { replace: true })
     } catch (err) {
       // api.login ya se encarga de que el mensaje sea presentable, tanto el
       // del 401 como el de "no se pudo llegar al server".

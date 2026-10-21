@@ -3,6 +3,7 @@
 // cliente de la transaccion); si no, van contra prisma directo.
 
 const prisma = require('../prisma');
+const { memberOf } = require('./membership');
 
 const userName = { select: { id: true, name: true } };
 
@@ -11,7 +12,7 @@ async function assetExists(assetId) {
 }
 
 async function listCoowners(assetId) {
-  return prisma.user.findMany({ where: { assetId }, select: userName.select, orderBy: { name: 'asc' } });
+  return prisma.user.findMany({ where: memberOf(assetId), select: userName.select, orderBy: { name: 'asc' } });
 }
 
 // Movimientos del bien en los que participa el usuario: los que pago o cobro
