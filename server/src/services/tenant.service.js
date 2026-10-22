@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { memberOf } = require('./membership');
 
 const collator = new Intl.Collator('es', { sensitivity: 'base' });
 
@@ -91,7 +92,7 @@ async function getDetail(renterId, assetId, hoy) {
 async function checkCoowner(renterId, userId) {
   const renter = await prisma.renter.findUnique({ where: { id: renterId }, select: { id: true, assetId: true } });
   if (!renter) return 'NOT_FOUND';
-  const coowner = await prisma.user.findFirst({ where: { id: userId, assetId: renter.assetId }, select: { id: true } });
+  const coowner = await prisma.user.findFirst({ where: { id: userId, ...memberOf(renter.assetId) }, select: { id: true } });
   return coowner ? null : 'NOT_COOWNER';
 }
 

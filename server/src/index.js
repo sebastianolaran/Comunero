@@ -3,6 +3,7 @@ require('dotenv').config({ quiet: true });
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
+const assetRoutes = require('./routes/asset');
 const healthRoutes = require('./routes/health');
 const rentalPreparationRoutes = require('./routes/rentalPreparation');
 const healthDbRoutes = require('./routes/healthDb');
@@ -24,6 +25,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/assets', assetRoutes);
 app.use('/api/rental-preparations', rentalPreparationRoutes);
 
 // La ruta mas especifica primero.

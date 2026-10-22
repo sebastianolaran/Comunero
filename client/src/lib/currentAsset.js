@@ -10,3 +10,7 @@ export function assetIdActual() {
 export function assetNameActual() {
   return leerSesion()?.assetName ?? null
 }
+
+export function inviteCodeActual() {
+  return leerSesion()?.inviteCode ?? null
+}

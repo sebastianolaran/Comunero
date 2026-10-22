@@ -11,22 +11,18 @@ function normalizarEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : '';
 }
 
-// Lo que ve el client. El assetId y el nombre del bien viajan aca para que la
-// app muestre el bien del usuario que entro, en vez de uno fijo por config.
+// Lo que ve el client. Sus bienes los pide aparte (GET /api/assets).
 function sesionDe(user) {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    assetId: user.assetId,
-    assetName: user.asset.name,
   };
 }
 
 async function login(email, password) {
   const user = await prisma.user.findUnique({
     where: { email: normalizarEmail(email) },
-    include: { asset: true },
   });
 
   if (!user) {

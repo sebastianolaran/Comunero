@@ -14,6 +14,11 @@ const CASA_ID = 'seed-casa-quinta';
 const COSTA_ID = 'seed-depto-costa';
 const ASSET_IDS = [CASA_ID, COSTA_ID];
 
+// Fijos, para probar "Unirme con código".
+const CODIGOS = { [CASA_ID]: 'QNT-7K4P', [COSTA_ID]: 'CST-48QK' };
+
+const SEED_USER_IDS = ['seed-ana', 'seed-bruno', 'seed-carla', 'seed-flor', 'seed-diego', 'seed-eva', 'seed-nico'];
+
 // Todos los usuarios del seed entran con la misma contrasena; lo que cambia
 // de uno a otro es el mail.
 const PASSWORD_DEMO = 'comunero';
@@ -24,7 +29,14 @@ const PASSWORD_DEMO = 'comunero';
 // si alguien uso la app contra esta base, esas filas existen y apuntan a los
 // usuarios que estamos por borrar.
 async function limpiar() {
-  const deLosBienes = { assetId: { in: ASSET_IDS } };
+  // Tambien los bienes que los usuarios del seed crearon o a los que se sumaron
+  // desde la app: si no, borrar a Ana falla por lo que tiene en ese otro bien.
+  const creadosEnLaApp = await prisma.asset.findMany({
+    where: { users: { some: { id: { in: SEED_USER_IDS } } } },
+    select: { id: true },
+  });
+  const bienes = [...new Set([...ASSET_IDS, ...creadosEnLaApp.map((a) => a.id)])];
+  const deLosBienes = { assetId: { in: bienes } };
   const reservas = { reservation: deLosBienes };
 
   await prisma.movementShare.deleteMany({ where: { movement: deLosBienes } });
@@ -39,8 +51,8 @@ async function limpiar() {
   await prisma.rentalTask.deleteMany({ where: reservas });
   await prisma.reservation.deleteMany({ where: deLosBienes });
   await prisma.renter.deleteMany({ where: deLosBienes });
-  await prisma.user.deleteMany({ where: deLosBienes });
-  await prisma.asset.deleteMany({ where: { id: { in: ASSET_IDS } } });
+  await prisma.asset.deleteMany({ where: { id: { in: bienes } } });
+  await prisma.user.deleteMany({ where: { id: { in: SEED_USER_IDS } } });
 }
 
 // Las tareas se cargan "en orden": createdAt explicito y creciente, asi el orden
@@ -228,14 +240,14 @@ async function crearUsuarios(assetId, lista) {
   return Promise.all(
     lista.map(async (u) =>
       prisma.user.create({
-        data: { ...u, assetId, passwordHash: await hashPassword(PASSWORD_DEMO) },
+        data: { ...u, assets: { connect: { id: assetId } }, passwordHash: await hashPassword(PASSWORD_DEMO) },
       }),
     ),
   );
 }
 
 async function sembrarCasaQuinta() {
-  await prisma.asset.create({ data: { id: CASA_ID, name: 'Casa quinta' } });
+  await prisma.asset.create({ data: { id: CASA_ID, name: 'Casa quinta', inviteCode: CODIGOS[CASA_ID] } });
 
   // Ids fijos: quedaron referenciados en notas y capturas del TP.
   const [ana, bruno, carla, flor] = await crearUsuarios(CASA_ID, [
@@ -692,7 +704,7 @@ async function sembrarCasaQuinta() {
 // votacion se ve distinta a la de la casa quinta (dos de tres, no tres de
 // cuatro).
 async function sembrarDeptoCosta() {
-  await prisma.asset.create({ data: { id: COSTA_ID, name: 'Depto en la costa' } });
+  await prisma.asset.create({ data: { id: COSTA_ID, name: 'Depto en la costa', inviteCode: CODIGOS[COSTA_ID] } });
 
   const [diego, eva, nico] = await crearUsuarios(COSTA_ID, [
     { id: 'seed-diego', name: 'Diego', email: 'diego@comunero.test', phone: '5492230000001' },
@@ -797,8 +809,8 @@ async function main() {
 
   const mails = (usuarios) => usuarios.map((u) => u.email).join(', ');
   console.log(`seed ok. Se entra con estos mails y la contraseña "${PASSWORD_DEMO}":`);
-  console.log(`  Casa quinta       : ${mails(casa)}`);
-  console.log(`  Depto en la costa : ${mails(costa)}`);
+  console.log(`  Casa quinta       (${CODIGOS[CASA_ID]}): ${mails(casa)}`);
+  console.log(`  Depto en la costa (${CODIGOS[COSTA_ID]}): ${mails(costa)}`);
 }
 
 main()

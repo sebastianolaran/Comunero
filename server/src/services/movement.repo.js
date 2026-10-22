@@ -2,6 +2,7 @@
 // la validacion y el reparto vienen resueltos desde movement.service.js.
 
 const prisma = require('../prisma');
+const { memberOf } = require('./membership');
 const { toDateOnly } = require('./movement.rules');
 
 const userName = { select: { id: true, name: true } };
@@ -48,7 +49,7 @@ async function assetExists(assetId) {
 
 // Copropietarios del bien, en el orden en que se muestran.
 async function listCoowners(assetId) {
-  return prisma.user.findMany({ where: { assetId }, select: userName.select, orderBy: { name: 'asc' } });
+  return prisma.user.findMany({ where: memberOf(assetId), select: userName.select, orderBy: { name: 'asc' } });
 }
 
 async function findMovementsInRange(assetId, range) {
