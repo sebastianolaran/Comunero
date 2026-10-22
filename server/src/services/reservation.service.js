@@ -2,6 +2,9 @@ const prisma = require('../prisma');
 const { memberOf } = require('./membership');
 const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
 const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
+// Modulo entero (no destructuring) para poder mockearlo en los tests.
+const settingsService = require('./assetSettings.service');
+const reservationExpiry = require('./reservationExpiry.service');
 
 function useVotingStatus(approvals, objections, coownerCount) {
   const required = requiredApprovals('USE', coownerCount);
@@ -16,7 +19,10 @@ function useVotingStatus(approvals, objections, coownerCount) {
 // - El solapamiento es por fecha (inclusive en ambas puntas): una reserva
 //   "toca" el rango si arranca antes de que termine el rango y termina
 //   despues de que arranca el rango.
+// Cada reserva trae userHue: el color de quien la pidió, el mismo que en Configuración.
 async function listForRange(assetId, rangeStart, rangeEnd) {
+  await reservationExpiry.expireForAsset(assetId);
+  const hues = await settingsService.huesOf(assetId);
   return prisma.reservation.findMany({
     where: {
       assetId,
@@ -52,6 +58,7 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
   }).then((reservations) =>
     reservations.map(({ approvals, objections, asset, ...reservation }) => ({
       ...reservation,
+      userHue: hues[reservation.userId] ?? null,
       approvalCount: approvals.length,
       objectionCount: objections.length,
       coownerCount: asset.users.length,
@@ -60,6 +67,7 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
 }
 
 async function listPendingUse(assetId) {
+  await reservationExpiry.expireForAsset(assetId);
   const reservations = await prisma.reservation.findMany({
     where: { assetId, type: 'USE', status: 'PENDING' },
     select: {
@@ -83,6 +91,13 @@ async function listPendingUse(assetId) {
     approvalCount: approvals.length,
     coownerCount: asset.users.length,
   }));
+}
+
+// Máximo de días consecutivos de un turno de uso propio (Configuración del
+// bien), o null si no hay límite o el bien no existe.
+async function maxConsecutiveDays(assetId) {
+  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { maxConsecutiveDays: true } });
+  return asset?.maxConsecutiveDays ?? null;
 }
 
 // Historia "Solicitar turno de uso propio", regla 3: no se puede solicitar
@@ -195,4 +210,4 @@ async function cancelUse({ reservationId, userId }) {
   }, TX_OPTIONS);
 }
 
-module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse, cancelUse };
+module.exports = { listForRange, listPendingUse, maxConsecutiveDays, hasOverlap, requestUse, voteUse, cancelUse };

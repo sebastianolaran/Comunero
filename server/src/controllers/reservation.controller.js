@@ -1,5 +1,5 @@
 const reservationService = require('../services/reservation.service');
-const { parseFechaISO } = require('../lib/fecha');
+const { parseFechaISO, cantidadDias } = require('../lib/fecha');
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -69,6 +69,15 @@ async function create(req, res) {
   }
   if (inicio.getTime() > fin.getTime()) {
     return res.status(400).json({ error: 'startDate debe ser anterior o igual a endDate' });
+  }
+
+  // Solo el uso propio: los alquileres a terceros no tienen este límite.
+  const maximo = await reservationService.maxConsecutiveDays(assetId);
+  const dias = cantidadDias(inicio, fin);
+  if (maximo != null && dias > maximo) {
+    return res.status(400).json({
+      error: `Un turno de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (pediste ${dias})`,
+    });
   }
 
   const solapa = await reservationService.hasOverlap(assetId, inicio, fin);

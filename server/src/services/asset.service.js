@@ -4,6 +4,9 @@ const prisma = require('../prisma');
 const rules = require('./asset.rules');
 const { memberOf } = require('./membership');
 const { todayInArgentina } = require('../validation/newRentalRequest');
+const { resolveHues } = require('./assetSettings.rules');
+// Modulo entero (no destructuring) para poder mockearlo en los tests.
+const settingsService = require('./assetSettings.service');
 
 const CODE_ATTEMPTS = 5;
 
@@ -13,6 +16,7 @@ function cardSelect(today) {
     name: true,
     inviteCode: true,
     users: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
+    memberSettings: { select: { userId: true, hue: true } },
     reservations: {
       where: {
         OR: [{ status: 'PENDING' }, { status: 'ACTIVE', endDate: { gte: new Date(`${today}T00:00:00.000Z`) } }],
@@ -33,9 +37,12 @@ function cardSelect(today) {
 }
 
 function toCard(asset, userId, today) {
+  const stored = Object.fromEntries(asset.memberSettings.map((s) => [s.userId, s.hue]));
+  const hues = resolveHues(asset.users.map((u) => u.id), stored);
   return rules.toCard(
     {
       ...asset,
+      users: asset.users.map((u) => ({ ...u, hue: hues[u.id] })),
       reservations: asset.reservations.map((r) => ({
         type: r.type,
         status: r.status,
@@ -110,7 +117,20 @@ async function join({ userId, code }, db = prisma) {
 
   const alreadyMember = (await db.user.count({ where: { id: userId, ...memberOf(asset.id) } })) > 0;
   if (!alreadyMember) {
+    // Con alguien nuevo los porcentajes ya no suman 100: el reparto vuelve a
+    // partes iguales solo, y queda en los cambios de Configuración.
+    const percents = await settingsService.percentsOf(asset.id, db);
     await db.asset.update({ where: { id: asset.id }, data: { users: { connect: { id: userId } } } });
+    if (percents) {
+      await db.activityLog.create({
+        data: {
+          assetId: asset.id,
+          userId,
+          type: settingsService.LOG_TYPE,
+          payload: { changes: [{ field: 'percents', from: percents, to: null, reason: 'MEMBER_JOINED' }] },
+        },
+      });
+    }
   }
   return { asset: await cardOf(db, asset.id, userId), alreadyMember };
 }

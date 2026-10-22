@@ -63,6 +63,28 @@ async function load(db, assetId, userId) {
   return { asset };
 }
 
+// Color de cada integrante del bien (userId -> tono), con la misma regla que la
+// pantalla de Configuración: el calendario, las tarjetas y Movimientos lo usan.
+async function huesOf(assetId, db = prisma) {
+  const asset = await db.asset.findUnique({
+    where: { id: assetId },
+    select: { users: { select: { id: true } }, memberSettings: { select: { userId: true, hue: true } } },
+  });
+  if (!asset) return {};
+  return rules.resolveHues(asset.users.map((u) => u.id), storedBy(asset, 'hue'));
+}
+
+// Porcentaje de cada integrante (userId -> %), o null si se reparte en partes
+// iguales: así lo usan el reparto de movimientos y el ingreso de un alquiler.
+async function percentsOf(assetId, db = prisma) {
+  const asset = await db.asset.findUnique({
+    where: { id: assetId },
+    select: { users: { select: { id: true } }, memberSettings: { select: { userId: true, percent: true } } },
+  });
+  if (!asset) return null;
+  return rules.resolvePercents(asset.users.map((u) => u.id), storedBy(asset, 'percent'));
+}
+
 // Devuelve { settings } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' }.
 async function getSettings({ assetId, userId }, db = prisma) {
   const { asset, error } = await load(db, assetId, userId);
@@ -126,4 +148,4 @@ async function updateSettings({ assetId, userId, body }, db = prisma) {
   }, TX_OPTIONS);
 }
 
-module.exports = { getSettings, updateSettings };
+module.exports = { getSettings, updateSettings, huesOf, percentsOf, LOG_TYPE };
