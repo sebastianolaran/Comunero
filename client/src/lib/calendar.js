@@ -55,11 +55,8 @@ function cubreElDia(reserva, dia) {
 // estilo distintivo".
 //
 // Si hay mas de una reserva sobre el mismo dia, una vigente (ACTIVE o
-// PENDING) tiene prioridad sobre una rechazada: una pendiente tambien ocupa
-// el dia (el server no deja reservar encima), asi que nunca se ve libre.
-// Entre vigentes gana la aprobada y, si no hay, la pendiente seleccionada
-// en "Por votar". Las canceladas ya vienen filtradas por el backend, pero se
-// ignoran igual por si acaso.
+// PENDING) tiene prioridad sobre una rechazada. Las canceladas ya vienen
+// filtradas por el backend, pero se ignoran igual por si acaso.
 export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   const delDia = reservas.filter((r) => r.status !== 'CANCELLED' && cubreElDia(r, dia));
 
@@ -68,17 +65,10 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   }
 
   const vigente = delDia.find((r) => r.status === 'ACTIVE')
-    ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId)
-    ?? delDia.find((r) => r.status === 'PENDING');
+    ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId);
   if (vigente) {
     return vigente.type === 'RENTAL'
-      ? {
-          estado: 'alquilado',
-          pendiente: vigente.status === 'PENDING',
-          reservationId: vigente.id,
-          renterId: vigente.renterId,
-          alquiler: vigente,
-        }
+      ? { estado: 'alquilado', reservationId: vigente.id, renterId: vigente.renterId, alquiler: vigente }
       : {
           estado: 'reservado',
           pendiente: vigente.status === 'PENDING',
@@ -92,18 +82,6 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   const rechazada = delDia.find((r) => r.status === 'REJECTED');
   if (!rechazada) return { estado: 'libre' };
   return { estado: 'rechazado', reservationId: rechazada.id, userId: rechazada.userId };
-}
-
-// Si el usuario ya acepto una peticion de "Por votar". Con unanimidad, su "si"
-// puede no alcanzar para aprobarla y la peticion sigue en la lista.
-export function yaAprobo(peticion, userId) {
-  return peticion.approvedBy?.includes(userId) ?? false;
-}
-
-// Filtro "Solo las que me faltan votar": las propias no, porque pedirla ya
-// cuenta como un "si" de quien la pidio.
-export function faltaMiVoto(peticion, userId) {
-  return peticion.userId !== userId && !yaAprobo(peticion, userId);
 }
 
 // Color deterministico por integrante (mismo userId -> mismo color
@@ -131,11 +109,11 @@ export function colorDeIntegrante(userId) {
 // (ACTIVE o PENDING) en el rango cargado. No es la lista completa de
 // integrantes del asset (no hay un endpoint de Users todavia), es "quien
 // aparece pintado este mes".
-export function integrantesEnReservas(reservas) {
+export function integrantesEnReservas(reservas, reservaPendienteId = null) {
   const vistos = new Map();
   for (const r of reservas) {
     if (r.type !== 'USE') continue;
-    if (r.status !== 'ACTIVE' && r.status !== 'PENDING') continue;
+    if (r.status !== 'ACTIVE' && r.id !== reservaPendienteId) continue;
     if (vistos.has(r.userId)) continue;
     vistos.set(r.userId, {
       userId: r.userId,

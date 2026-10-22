@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import NewDecisionModal from '../components/NewDecisionModal'
+import Pagination from '../components/Pagination'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import {
@@ -14,6 +15,7 @@ import {
   textoVotos,
 } from '../lib/decisions'
 import { createDecision, fetchClosedDecisions, fetchOpenDecisions, voteDecision } from '../services/decision'
+import { usePaginacion } from '../lib/pagination'
 import './Decisiones.css'
 
 // Referencia estable: useDecisiones la usa como dependencia del efecto.
@@ -30,7 +32,7 @@ function useDecisiones(fetcher, assetId, version = 0) {
 
     fetcher(assetId, { signal: controller.signal })
       .then((decisiones) => {
-        if (vivo) setCarga({ estado: 'ok', decisiones })
+        if (vivo) setCarga({ estado: 'ok', decisiones: [...decisiones].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) })
       })
       .catch((err) => {
         if (vivo && err.name !== 'AbortError') setCarga({ estado: 'error', decisiones: [] })
@@ -169,6 +171,7 @@ const CONFLICTO = 409
 
 function EnVotacion({ assetId, onCerrada }) {
   const { carga, reintentar, recargar, actualizar } = useDecisiones(fetchAbiertas, assetId)
+  const paginacion = usePaginacion(carga.decisiones)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [aviso, setAviso] = useState(null)
   const idTitulo = useId()
@@ -218,7 +221,7 @@ function EnVotacion({ assetId, onCerrada }) {
 
       {carga.estado === 'ok' && carga.decisiones.length > 0 ? (
         <div className="dec-lista">
-          {carga.decisiones.map((d) => (
+          {paginacion.elementos.map((d) => (
             <DecisionAbierta key={d.id} decision={d} onVotar={votar} />
           ))}
         </div>
@@ -230,6 +233,7 @@ function EnVotacion({ assetId, onCerrada }) {
           vacio="No hay decisiones en votación."
         />
       )}
+      <Pagination {...paginacion} />
 
       <NewDecisionModal abierto={modalAbierto} onClose={() => setModalAbierto(false)} onCreate={crear} />
     </section>
@@ -243,6 +247,7 @@ function Historial({ assetId, version }) {
   const idTitulo = useId()
 
   const visibles = filtrar(carga.decisiones, filtro)
+  const paginacion = usePaginacion(visibles, filtro)
 
   return (
     <section className="dec-seccion" aria-labelledby={idTitulo}>
@@ -267,7 +272,7 @@ function Historial({ assetId, version }) {
 
       {carga.estado === 'ok' && visibles.length > 0 ? (
         <div className="dec-lista dec-lista--cerradas">
-          {visibles.map((d) => (
+          {paginacion.elementos.map((d) => (
             <DecisionCerrada key={d.id} decision={d} />
           ))}
         </div>
@@ -279,6 +284,7 @@ function Historial({ assetId, version }) {
           vacio="No hay decisiones en esta categoría."
         />
       )}
+      <Pagination {...paginacion} />
     </section>
   )
 }

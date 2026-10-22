@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import TenantDetail from '../components/TenantDetail'
+import Pagination from '../components/Pagination'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { formatPhone } from '../lib/rentalRequests'
 import { alquileresLabel, clasificacion, conClasificacion, mensajeVacio } from '../lib/tenants'
 import { fetchTenants } from '../services/tenant'
 import { useDetalleEnMobile } from '../lib/useDetalleEnMobile'
+import { usePaginacion } from '../lib/pagination'
 
 const DEBOUNCE_MS = 250
 
@@ -18,6 +20,8 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
   const escribiendo = useRef(false)
   const [seleccion, setSeleccion] = useState(null)
   const [detalleRef, mostrarDetalle] = useDetalleEnMobile()
+  const inquilinosOrdenados = [...carga.inquilinos].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  const paginacion = usePaginacion(inquilinosOrdenados, busqueda)
 
   const elegir = (id) => {
     setSeleccion(id)
@@ -100,7 +104,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
           <>
             <h2 className="solo-lector">Inquilinos</h2>
             <ul className="alq-lista alq-lista--resueltas">
-              {carga.inquilinos.map((inquilino) => {
+              {paginacion.elementos.map((inquilino) => {
                 const { label, variante } = clasificacion(inquilino.rating)
                 const elegido = inquilino.id === seleccion
                 return (
@@ -133,6 +137,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
                 )
               })}
             </ul>
+            <Pagination {...paginacion} />
           </>
         )}
       </div>

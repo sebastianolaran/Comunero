@@ -1,11 +1,11 @@
 const prisma = require('../prisma');
-const { memberOf } = require('./membership');
-const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
-const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
 
-function useVotingStatus(approvals, objections, coownerCount) {
-  const required = requiredApprovals('USE', coownerCount);
-  return votingStatus({ approvals, objections, coownerCount, required });
+function estadoDeVotacion(afirmativos, negativos, total) {
+  if (afirmativos > total / 2) return 'ACTIVE';
+
+  const pendientes = total - afirmativos - negativos;
+  if (afirmativos + pendientes <= total / 2) return 'REJECTED';
+  return 'PENDING';
 }
 
 // Historia "Consultar calendario": trae solo las reservas que se solapan
@@ -76,10 +76,8 @@ async function listPendingUse(assetId) {
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   });
 
-  // approvedBy: para que el client marque "ya aceptaste"; volver a aceptar no cambia nada.
   return reservations.map(({ approvals, asset, ...reservation }) => ({
     ...reservation,
-    approvedBy: approvals.map((approval) => approval.userId),
     approvalCount: approvals.length,
     coownerCount: asset.users.length,
   }));
@@ -101,9 +99,8 @@ async function hasOverlap(assetId, startDate, endDate) {
 }
 
 // Crea la solicitud de uso propio. El creador suma su voto afirmativo y la
-// reserva queda ACTIVE solo si ese voto ya alcanza el minimo (hoy, unanimidad:
-// pasa solo si es el unico copropietario); si no, queda PENDING hasta que
-// voten los demas copropietarios.
+// reserva queda ACTIVE solo si ese voto ya alcanza la mayoria; si no, queda
+// PENDING hasta que voten los demas copropietarios.
 async function requestUse({ assetId, userId, startDate, endDate, note }) {
   return prisma.$transaction(async (tx) => {
     const asset = await tx.asset.findUnique({
@@ -112,7 +109,7 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
     });
     if (!asset || !asset.users.some((user) => user.id === userId)) return null;
 
-    const status = useVotingStatus(1, 0, asset.users.length);
+    const status = estadoDeVotacion(1, 0, asset.users.length);
     return tx.reservation.create({
       data: {
         assetId,
@@ -130,10 +127,6 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
 
 async function voteUse({ reservationId, userId, value }) {
   return prisma.$transaction(async (tx) => {
-    // Mismo lock que el voto de alquiler: sin el, dos votos a la vez (ej. doble
-    // click) leen el mismo estado y pueden dejar dos objeciones de la misma persona.
-    await lockForVote(tx, reservationId);
-
     const reservation = await tx.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -146,13 +139,10 @@ async function voteUse({ reservationId, userId, value }) {
       },
     });
     if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
-
-    const coowners = await tx.user.findMany({ where: memberOf(reservation.assetId), select: { id: true } });
-    if (!coowners.some((user) => user.id === userId)) return { error: 'NOT_COOWNER' };
     if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
-    // Solo se vota mientras esta pendiente. Rechazada es final (libero los dias
-    // y otra reserva puede haberlos tomado); aprobada solo se puede cancelar.
-    if (reservation.status !== 'PENDING') return { error: 'RESOLVED' };
+
+    const coowners = await tx.user.findMany({ where: { assetId: reservation.assetId }, select: { id: true } });
+    if (!coowners.some((user) => user.id === userId)) return { error: 'NOT_COOWNER' };
 
     await tx.objection.deleteMany({ where: { reservationId, userId } });
     if (value === 'APPROVE') {
@@ -168,31 +158,26 @@ async function voteUse({ reservationId, userId, value }) {
 
     const approvals = await tx.reservationApproval.count({ where: { reservationId } });
     const objections = await tx.objection.count({ where: { reservationId } });
-    const status = useVotingStatus(approvals, objections, coowners.length);
+    const status = estadoDeVotacion(approvals, objections, coowners.length);
     const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status } });
     return { reservation: updated };
-  }, TX_OPTIONS);
+  });
 }
 
 async function cancelUse({ reservationId, userId }) {
-  return prisma.$transaction(async (tx) => {
-    // Mismo lock que voteUse: si no, un voto en curso podria pisar el CANCELLED.
-    await lockForVote(tx, reservationId);
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    select: { id: true, type: true, status: true, userId: true },
+  });
+  if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
+  if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
+  if (reservation.userId !== userId) return { error: 'NOT_OWNER' };
 
-    const reservation = await tx.reservation.findUnique({
-      where: { id: reservationId },
-      select: { id: true, type: true, status: true, userId: true },
-    });
-    if (!reservation || reservation.type !== 'USE') return { error: 'NOT_FOUND' };
-    if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
-    if (reservation.userId !== userId) return { error: 'NOT_OWNER' };
-
-    const updated = await tx.reservation.update({
-      where: { id: reservationId },
-      data: { status: 'CANCELLED' },
-    });
-    return { reservation: updated };
-  }, TX_OPTIONS);
+  const updated = await prisma.reservation.update({
+    where: { id: reservationId },
+    data: { status: 'CANCELLED' },
+  });
+  return { reservation: updated };
 }
 
 module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse, cancelUse };

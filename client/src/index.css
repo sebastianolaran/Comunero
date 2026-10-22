@@ -121,3 +121,28 @@ dialog.modal::backdrop {
   position: absolute;
   inset: -8px;
 }
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.paginacion__numeros {
+  display: flex;
+  gap: 4px;
+}
+
+.paginacion__numero {
+  min-width: 32px;
+  padding-inline: 7px;
+}
+
+.paginacion__numero--on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}

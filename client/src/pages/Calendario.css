@@ -137,19 +137,12 @@
   margin-top: 5px;
 }
 
-.cal-pending__filtro {
-  margin-top: 10px;
-}
-
 .cal-pending__list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin: 14px 0 0;
-  max-height: min(42vh, 420px);
-  overflow-y: auto;
   padding: 0;
-  padding-right: 6px;
   list-style: none;
 }
 
@@ -230,13 +223,6 @@
 
 .cal__c--alquilado .cal__t {
   color: oklch(38% 0.09 195);
-}
-
-/* Alquiler pendiente: va después de --alquilado para que no vuelva el borde sólido. */
-.cal__c--alquilado.cal__c--pendiente {
-  box-shadow: none;
-  outline: 1px dashed oklch(65% 0.1 195);
-  outline-offset: -1px;
 }
 
 .cal__c--rechazado {

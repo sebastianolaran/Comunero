@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import RentalPreparationCard from '../components/RentalPreparationCard'
+import Pagination from '../components/Pagination'
 import { assetIdActual } from '../lib/currentAsset'
 import { actualizarTarea, agregarTarea, quitarTarea } from '../lib/rentalPreparations'
 import { fetchRentalPreparations } from '../services/rentalPreparation'
+import { usePaginacion } from '../lib/pagination'
 
 // Alquileres aprobados con sus tareas y responsables. Se pueden agregar tareas,
 // tildarlas, reasignarlas y eliminarlas.
 function RentalPreparations({ assetId = assetIdActual() }) {
   const [carga, setCarga] = useState({ estado: 'loading', alquileres: [] })
   const [intento, setIntento] = useState(0)
+  const alquileresOrdenados = [...carga.alquileres].sort((a, b) => a.startDate.localeCompare(b.startDate))
+  const paginacion = usePaginacion(alquileresOrdenados)
 
   useEffect(() => {
     if (!assetId) return
@@ -84,7 +88,7 @@ function RentalPreparations({ assetId = assetIdActual() }) {
   return (
     <div className="prep-lista">
       <ul className="alq-lista" role="list">
-        {carga.alquileres.map((alquiler) => (
+        {paginacion.elementos.map((alquiler) => (
           <li key={alquiler.id}>
             <RentalPreparationCard
               alquiler={alquiler}
@@ -95,6 +99,7 @@ function RentalPreparations({ assetId = assetIdActual() }) {
           </li>
         ))}
       </ul>
+      <Pagination {...paginacion} />
     </div>
   )
 }
