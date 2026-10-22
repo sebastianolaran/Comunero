@@ -41,6 +41,12 @@ enum VoteValue {
   NO
 }
 
+// Qué pasa con quien no votó cuando vence Asset.responseHours.
+enum NoResponseAction {
+  APPROVE
+  REJECT
+}
+
 enum RenterRating {
   RECOMMENDED
   NOT_RECOMMENDED
@@ -54,14 +60,23 @@ model Asset {
   // Código para sumarse al bien ("Unirme con código").
   inviteCode String @unique
 
+  // Configuración del bien. null = sin límite (o sin precio cargado).
+  rentalDailyRate    Int?
+  maxConsecutiveDays Int?
+  // Horas para votar una reserva pendiente. Vencido el plazo, quien no votó
+  // cuenta según noResponseAction (un No ya cargado la rechaza igual).
+  responseHours      Int?
+  noResponseAction   NoResponseAction @default(REJECT)
+
   // Un usuario puede estar en varios bienes.
-  users        User[]
-  reservations Reservation[]
-  renters      Renter[]
-  movements    Movement[]
-  settlements  Settlement[]
-  decisions    Decision[]
-  activityLogs ActivityLog[]
+  users          User[]
+  memberSettings AssetMemberSetting[]
+  reservations   Reservation[]
+  renters        Renter[]
+  movements      Movement[]
+  settlements    Settlement[]
+  decisions      Decision[]
+  activityLogs   ActivityLog[]
 }
 
 model User {
@@ -91,6 +106,23 @@ model User {
   renterObservations   RenterObservation[]
   reservationApprovals ReservationApproval[]
   assignedRentalTasks  RentalTask[]
+  assetSettings        AssetMemberSetting[]
+}
+
+// Lo de cada integrante en un bien. Sin fila (o con percent null) se reparte
+// en partes iguales; sin hue se usa el color calculado del id.
+model AssetMemberSetting {
+  assetId String
+  userId  String
+  // Entero de 0 a 100; los de todos los integrantes suman 100.
+  percent Int?
+  // Tono oklch del color del integrante, único dentro del bien.
+  hue     Int?
+
+  asset Asset @relation(fields: [assetId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([assetId, userId])
 }
 
 model Reservation {
