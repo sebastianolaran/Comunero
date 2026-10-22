@@ -16,7 +16,7 @@ function AssetCard({ bien, onElegir }) {
 
       <span className="bien__av" aria-label={bien.members.map((m) => m.name).join(', ')}>
         {bien.members.map((m) => (
-          <span key={m.id} className="bien__a" style={{ background: colorDeIntegrante(m.id) }} title={m.name}>
+          <span key={m.id} className="bien__a" style={{ background: colorDeIntegrante(m.id, m.hue) }} title={m.name}>
             {iniciales(m.name)}
           </span>
         ))}

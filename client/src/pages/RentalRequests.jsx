@@ -7,6 +7,7 @@ import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
 import { useDetalleEnMobile } from '../lib/useDetalleEnMobile'
+import { fetchSettings } from '../services/settings'
 import {
   cancelRental,
   createRentalRequest,
@@ -38,6 +39,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     setPrecarga(pedida)
     setNuevaAbierta(true)
   }
+  const [precioPorDia, setPrecioPorDia] = useState(null)
   const [detalleRef, mostrarDetalle] = useDetalleEnMobile()
   const idPendientes = useId()
   const idResueltas = useId()
@@ -46,6 +48,16 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   useEffect(() => {
     if (pedida) navigate(location.pathname, { replace: true, state: null })
   }, [pedida, location.pathname, navigate])
+
+  // Si no se puede traer, el alta sigue andando: el monto se escribe a mano.
+  useEffect(() => {
+    if (!assetId || !userId) return
+    const controller = new AbortController()
+    fetchSettings(assetId, userId, { signal: controller.signal })
+      .then((settings) => setPrecioPorDia(settings.rentalDailyRate))
+      .catch(() => setPrecioPorDia(null))
+    return () => controller.abort()
+  }, [assetId, userId])
 
   const cerrarNueva = () => {
     setNuevaAbierta(false)
@@ -159,6 +171,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       <NewRentalRequestModal
         abierto={nuevaAbierta}
         inicial={precarga}
+        precioPorDia={precioPorDia}
         onClose={cerrarNueva}
         onCreate={crear}
       />

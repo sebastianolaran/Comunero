@@ -22,6 +22,15 @@ export function mesAnterior(year, month) {
   return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
 }
 
+// Mismo mensaje que el server. Cuenta los dos extremos (20 al 22 = 3 días).
+export function turnoDemasiadoLargo(inicio, fin, maximo) {
+  if (maximo == null || !inicio || !fin) return null;
+  const dias = Math.round((Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86_400_000) + 1;
+  if (dias <= maximo) return null;
+  const limite = maximo === 1 ? '1 día' : `${maximo} días seguidos`;
+  return `Un turno de uso propio no puede durar más de ${limite} (pediste ${dias}).`;
+}
+
 export function nombreMes(year, month) {
   const formatter = new Intl.DateTimeFormat('es-AR', {
     month: 'long',
@@ -85,6 +94,7 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
           reservationId: vigente.id,
           reserva: vigente,
           userId: vigente.userId,
+          hue: vigente.userHue ?? null,
           userName: vigente.user?.name,
         };
   }
@@ -106,14 +116,15 @@ export function faltaMiVoto(peticion, userId) {
   return peticion.userId !== userId && !yaAprobo(peticion, userId);
 }
 
-// Color deterministico por integrante (mismo userId -> mismo color
-// siempre), mientras no exista un campo "color" persistido en User.
-// TODO: reemplazar por el color real cuando el schema lo tenga.
-// Son tonos oklch, como en el diseño: la celda del calendario usa el tono
-// como tinte y el resto de la app como color sólido. El 195 queda para Alquilado.
+// Tono oklch de cada integrante: el que manda el server (elegido en
+// Configuración, o asignado sin repetir dentro del bien). Si no viene, se
+// calcula por id con la misma tabla que usa el server. La celda del
+// calendario usa el tono como tinte y el resto de la app como color sólido.
+// El 195 queda para Alquilado.
 const TONOS_INTEGRANTES = [250, 40, 150, 320, 80, 285];
 
-export function tonoDeIntegrante(userId) {
+export function tonoDeIntegrante(userId, hue = null) {
+  if (hue != null) return hue;
   if (!userId) return TONOS_INTEGRANTES[0];
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
@@ -122,8 +133,8 @@ export function tonoDeIntegrante(userId) {
   return TONOS_INTEGRANTES[hash % TONOS_INTEGRANTES.length];
 }
 
-export function colorDeIntegrante(userId) {
-  return `oklch(56% 0.12 ${tonoDeIntegrante(userId)})`;
+export function colorDeIntegrante(userId, hue = null) {
+  return `oklch(56% 0.12 ${tonoDeIntegrante(userId, hue)})`;
 }
 
 // Arma la leyenda de integrantes a partir de las reservas del mes visible:
@@ -140,7 +151,7 @@ export function integrantesEnReservas(reservas) {
     vistos.set(r.userId, {
       userId: r.userId,
       nombre: r.user?.name ?? 'Integrante',
-      tono: tonoDeIntegrante(r.userId),
+      tono: tonoDeIntegrante(r.userId, r.userHue),
     });
   }
   return [...vistos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { CAMPO_DEL_SERVER, hoyLocal, validarSolicitud } from '../lib/rentalRequests'
+import { CAMPO_DEL_SERVER, hoyLocal, montoSugerido, validarSolicitud } from '../lib/rentalRequests'
 
 // Como en el prototipo, las fechas arrancan en hoy.
 const vacio = (hoy) => ({ nombre: '', apellido: '', telefono: '', desde: hoy, hasta: hoy, monto: '', comentarios: '' })
@@ -22,11 +22,14 @@ function Campo({ id, label, error, className = '', children }) {
 
 // onCreate(solicitud) tiene que tirar un Error (con .field si es de un campo) si el alta falla.
 // inicial: campos precargados (ej. nombre y teléfono desde el historial de inquilinos).
-function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
+// precioPorDia: el de Configuración. Mientras no se escriba el monto a mano, se
+// muestra días × precio; escribirlo corta esa cuenta.
+function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose, onCreate }) {
   const dialogo = useRef(null)
   const [borrador, setBorrador] = useState(() => ({ ...vacio(hoyLocal()), ...inicial }))
   const [errores, setErrores] = useState({})
   const [envio, setEnvio] = useState({ enviando: false, error: null })
+  const [montoTocado, setMontoTocado] = useState(false)
   const id = useId()
   const idTitulo = `${id}-titulo`
 
@@ -34,6 +37,7 @@ function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
     const d = dialogo.current
     if (abierto && !d.open) {
       setBorrador({ ...vacio(hoyLocal()), ...inicial })
+      setMontoTocado(false)
       setErrores({})
       setEnvio({ enviando: false, error: null })
       d.showModal()
@@ -41,15 +45,19 @@ function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
     if (!abierto && d.open) d.close()
   }, [abierto, inicial])
 
+  const sugerido = montoTocado ? null : montoSugerido(borrador.desde, borrador.hasta, precioPorDia)
+  const monto = sugerido ? sugerido.texto : borrador.monto
+
   const cambiar = (campo) => (e) => {
     const valor = e.target.value
+    if (campo === 'monto') setMontoTocado(true)
     setBorrador((prev) => ({ ...prev, [campo]: valor }))
     setErrores((prev) => ({ ...prev, [campo]: undefined }))
   }
 
   async function enviar(e) {
     e.preventDefault()
-    const validacion = validarSolicitud(borrador)
+    const validacion = validarSolicitud({ ...borrador, monto })
     if (validacion.errores) {
       setErrores(validacion.errores)
       return
@@ -119,7 +127,8 @@ function NewRentalRequestModal({ abierto, inicial, onClose, onCreate }) {
         </div>
 
         <Campo id={`${id}-monto`} label="Monto" error={errores.monto}>
-          <input className="in" inputMode="numeric" placeholder="0" {...input('monto')} />
+          <input className="in" inputMode="numeric" placeholder="0" {...input('monto', { value: monto })} />
+          {sugerido && !errores.monto && <p className="hint alq-sugerido">{sugerido.detalle}</p>}
         </Campo>
 
         <Campo id={`${id}-comentarios`} label="Comentarios" error={errores.comentarios}>

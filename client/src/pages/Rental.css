@@ -260,6 +260,11 @@
   margin: 0 0 12px;
 }
 
+/* De dónde sale el monto que se completó solo: días × precio por día. */
+.alq-sugerido {
+  margin: 4px 0 0;
+}
+
 @media (max-width: 900px) {
   .alq-split {
     flex-direction: column;

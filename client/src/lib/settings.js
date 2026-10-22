@@ -46,10 +46,13 @@ function textoPorcentajes(porcentajes, nombres) {
     .join(', ')
 }
 
-export function textoCambio({ field, from, to }, nombres) {
+export function textoCambio({ field, from, to, reason }, nombres) {
   if (field === 'hues') {
     const cambiaron = Object.keys(to).filter((id) => from?.[id] !== to[id])
     return `Cambió el color de ${unir(cambiaron.map((id) => nombres[id] ?? 'alguien'))}`
+  }
+  if (field === 'percents' && reason === 'MEMBER_JOINED') {
+    return `Se sumó un integrante: los porcentajes volvieron a partes iguales (eran ${textoPorcentajes(from, nombres)})`
   }
   if (field === 'percents') {
     return `Porcentajes: de ${textoPorcentajes(from, nombres)} a ${textoPorcentajes(to, nombres)}`

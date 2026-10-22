@@ -11,6 +11,7 @@ import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
+import { fetchSettings } from '../services/settings'
 import {
   DIAS_SEMANA,
   diasDelMes,
@@ -22,6 +23,7 @@ import {
   nombreMes,
   primerDiaSemana,
   tonoDeIntegrante,
+  turnoDemasiadoLargo,
   yaAprobo,
 } from '../lib/calendar'
 import './Calendario.css'
@@ -118,6 +120,16 @@ function Calendario() {
   const [form, setForm] = useState(FORM_INICIAL)
   const [formError, setFormError] = useState(null)
   const [enviando, setEnviando] = useState(false)
+  // Máximo de días seguidos de Configuración. Si no se puede traer, valida el server igual.
+  const [maximoDias, setMaximoDias] = useState(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchSettings(assetId, userId, { signal: controller.signal })
+      .then((settings) => setMaximoDias(settings.maxConsecutiveDays))
+      .catch(() => setMaximoDias(null))
+    return () => controller.abort()
+  }, [assetId, userId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -183,6 +195,8 @@ function Calendario() {
   // hace el backend; aca solo mostramos el error que devuelva.
   const handleSolicitar = async (e) => {
     e.preventDefault()
+    const demasiadoLargo = turnoDemasiadoLargo(form.inicio, form.fin, maximoDias)
+    if (demasiadoLargo) return setFormError(demasiadoLargo)
     setFormError(null)
     setEnviando(true)
     try {
@@ -433,6 +447,7 @@ function Calendario() {
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
                 Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
+                {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
               <div className="cal-form__fechas">
@@ -708,7 +723,7 @@ function Dia({ dia, info, seleccionado, onSelect }) {
 
   if (estado === 'reservado') {
     if (info.pendiente) clases.push('cal__c--pendiente')
-    estilo = { '--h': tonoDeIntegrante(info.userId) }
+    estilo = { '--h': tonoDeIntegrante(info.userId, info.hue) }
     etiqueta = (info.userName ?? '').slice(0, 2)
   } else if (estado === 'alquilado') {
     // Pendiente de aprobacion: borde punteado, como el uso propio.
