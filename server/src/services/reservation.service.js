@@ -94,9 +94,13 @@ async function listPendingUse(assetId) {
 }
 
 // Máximo de días consecutivos de un turno de uso propio (Configuración del
-// bien), o null si no hay límite o el bien no existe.
-async function maxConsecutiveDays(assetId) {
-  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { maxConsecutiveDays: true } });
+// bien), o null si no hay límite. También null si userId no es copropietario:
+// no se le muestra la configuración ajena y el alta igual le responde 403.
+async function maxConsecutiveDays(assetId, userId) {
+  const asset = await prisma.asset.findFirst({
+    where: { id: assetId, users: { some: { id: userId } } },
+    select: { maxConsecutiveDays: true },
+  });
   return asset?.maxConsecutiveDays ?? null;
 }
 

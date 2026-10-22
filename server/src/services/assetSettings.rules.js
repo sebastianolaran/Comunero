@@ -25,8 +25,10 @@ const LABELS = {
 const FIELDS = [...ASSET_FIELDS, 'percents', 'hues'];
 
 // Tonos oklch. Los primeros seis son los que el client ya calculaba por id, así
-// nadie cambia de color hasta que elija uno. El 195 es del alquiler.
-const MEMBER_HUES = [250, 40, 150, 320, 80, 285, 15, 110];
+// nadie cambia de color hasta que elija uno. Los dos últimos van en los huecos
+// más grandes de la rueda (a 35-40° de sus vecinos) para que no se confundan.
+// El 195 es del alquiler.
+const MEMBER_HUES = [250, 40, 150, 320, 80, 285, 0, 115];
 const LEGACY_HUE_COUNT = 6;
 const RENTAL_HUE = 195;
 

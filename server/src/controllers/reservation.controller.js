@@ -72,7 +72,7 @@ async function create(req, res) {
   }
 
   // Solo el uso propio: los alquileres a terceros no tienen este límite.
-  const maximo = await reservationService.maxConsecutiveDays(assetId);
+  const maximo = await reservationService.maxConsecutiveDays(assetId, userId);
   const dias = cantidadDias(inicio, fin);
   if (maximo != null && dias > maximo) {
     return res.status(400).json({
