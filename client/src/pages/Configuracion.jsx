@@ -43,8 +43,8 @@ const AYUDAS = {
 
 // Botón "i" con la explicación: se abre al pasar el mouse, con foco o con un
 // toque (mobile), y se cierra al salir, al tocar afuera o con Escape. El click
-// no alterna: el foco ya la abrió y alternar la cerraría en el mismo toque. El texto queda siempre en el DOM para
-// que aria-describedby lo lea aunque esté cerrado.
+// no alterna: el foco ya la abrió y alternar la cerraría en el mismo toque. El
+// texto queda siempre en el DOM para que aria-describedby lo lea cerrado.
 const MARGEN_PANTALLA = 16
 
 function Ayuda({ texto }) {
@@ -102,7 +102,9 @@ function Panel({ titulo, ayuda, hint, children, pie }) {
   )
 }
 
-function Pie({ estado, onGuardar, children }) {
+// Guardar solo se activa con cambios sin guardar, y "Guardado" se ve mientras
+// lo que está en pantalla es lo guardado: editar de nuevo lo saca.
+function Pie({ estado, onGuardar, sinCambios, children }) {
   return (
     <div className="cfg__pie">
       {estado.error && (
@@ -110,13 +112,18 @@ function Pie({ estado, onGuardar, children }) {
           {estado.error}
         </p>
       )}
-      {!estado.error && estado.guardado && (
+      {!estado.error && estado.guardado && sinCambios && (
         <p className="cfg__estado" role="status">
           Guardado
         </p>
       )}
       {children}
-      <button type="button" className="btn btn--sm btn--primary" disabled={estado.guardando} onClick={onGuardar}>
+      <button
+        type="button"
+        className="btn btn--sm btn--primary"
+        disabled={estado.guardando || sinCambios}
+        onClick={onGuardar}
+      >
         {estado.guardando ? 'Guardando…' : 'Guardar'}
       </button>
     </div>
@@ -173,6 +180,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
   const iguales = members.every((m) => m.percent == null)
   const [borrador, setBorrador] = useState(() => Object.fromEntries(members.map((m) => [m.id, texto(m.percent)])))
   const estado = useGuardar(onGuardado)
+  const sinCambios = members.every((m) => (borrador[m.id] ?? '').trim() === texto(m.percent))
   const vacio = Object.values(borrador).every((v) => v.trim() === '')
   const suma = sumaPorcentajes(borrador)
 
@@ -196,7 +204,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
       ayuda={AYUDAS.percents}
       hint="Cómo se reparten los gastos y los ingresos entre los integrantes. Vacío, en partes iguales."
       pie={
-        <Pie estado={estado} onGuardar={guardar}>
+        <Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios}>
           {!iguales && (
             <button type="button" className="btn btn--sm" disabled={estado.guardando} onClick={volverAIguales}>
               Volver a partes iguales
@@ -240,6 +248,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
 function PanelAlquiler({ settings, onGuardado }) {
   const [precio, setPrecio] = useState(textoMonto(settings.rentalDailyRate))
   const estado = useGuardar(onGuardado)
+  const sinCambios = leerNumero(precio).valor === settings.rentalDailyRate
 
   function guardar() {
     const { cambios, error } = leerCampos({ rentalDailyRate: precio })
@@ -251,7 +260,7 @@ function PanelAlquiler({ settings, onGuardado }) {
     <Panel
       titulo="Alquiler a terceros"
       hint="Usado para pre-completar el monto al crear una solicitud."
-      pie={<Pie estado={estado} onGuardar={guardar} />}
+      pie={<Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios} />}
     >
       <CampoNumero
         label="Costo de alquilar un día"
@@ -274,6 +283,9 @@ function PanelReglas({ settings, onGuardado }) {
   const idNoResponde = useId()
   const estado = useGuardar(onGuardado)
   const cambiar = (campo) => (valor) => setBorrador((prev) => ({ ...prev, [campo]: valor }))
+  const sinCambios =
+    noResponde === settings.noResponseAction &&
+    Object.entries(borrador).every(([campo, valor]) => leerNumero(valor).valor === settings[campo])
 
   function guardar() {
     const { cambios, error } = leerCampos(borrador)
@@ -285,7 +297,7 @@ function PanelReglas({ settings, onGuardado }) {
     <Panel
       titulo="Reglas de reserva"
       hint="A nivel de todos los integrantes. Vacío, sin límite."
-      pie={<Pie estado={estado} onGuardar={guardar} />}
+      pie={<Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios} />}
     >
       <div className="cfg__rows">
         <CampoNumero
@@ -343,8 +355,8 @@ function PanelColores({ settings, onGuardado }) {
                   <button
                     key={hue}
                     type="button"
-                    className={m.hue === hue ? 'cfg__tono cfg__tono--on' : 'cfg__tono'}
-                    style={{ background: color(hue) }}
+                    className={`cfg__tono${m.hue === hue ? ' cfg__tono--on' : ''}${deOtro ? ' cfg__tono--ocupado' : ''}`}
+                    style={{ '--c': color(hue) }}
                     aria-pressed={m.hue === hue}
                     aria-label={deOtro ? `Color de ${deOtro.name}` : 'Elegir este color'}
                     title={deOtro ? `Lo tiene ${deOtro.name}` : undefined}
@@ -358,9 +370,11 @@ function PanelColores({ settings, onGuardado }) {
         ))}
       </div>
       {estado.error && (
-        <p className="cfg__error" role="alert">
-          {estado.error}
-        </p>
+        <div className="cfg__pie">
+          <p className="cfg__error" role="alert">
+            {estado.error}
+          </p>
+        </div>
       )}
     </Panel>
   )
