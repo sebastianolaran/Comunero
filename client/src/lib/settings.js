@@ -15,10 +15,6 @@ const CAMPOS = {
   },
 }
 
-function unir(lista) {
-  return lista.length < 2 ? lista.join('') : `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}`
-}
-
 // Un campo numérico del form: vacío es "sin límite" (null). Acepta "70.000".
 export function leerNumero(texto) {
   const limpio = texto.replace(/[\s$.]/g, '')
@@ -47,10 +43,6 @@ function textoPorcentajes(porcentajes, nombres) {
 }
 
 export function textoCambio({ field, from, to, reason }, nombres) {
-  if (field === 'hues') {
-    const cambiaron = Object.keys(to).filter((id) => from?.[id] !== to[id])
-    return `Cambió el color de ${unir(cambiaron.map((id) => nombres[id] ?? 'alguien'))}`
-  }
   if (field === 'percents' && reason === 'MEMBER_JOINED') {
     return `Se sumó un integrante: los porcentajes volvieron a partes iguales (eran ${textoPorcentajes(from, nombres)})`
   }

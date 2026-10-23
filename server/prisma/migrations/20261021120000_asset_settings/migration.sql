@@ -12,7 +12,6 @@ CREATE TABLE "AssetMemberSetting" (
     "assetId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "percent" INTEGER,
-    "hue" INTEGER,
 
     CONSTRAINT "AssetMemberSetting_pkey" PRIMARY KEY ("assetId","userId")
 );

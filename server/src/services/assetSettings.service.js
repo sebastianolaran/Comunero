@@ -16,7 +16,7 @@ const SELECT = {
   responseHours: true,
   noResponseAction: true,
   users: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
-  memberSettings: { select: { userId: true, percent: true, hue: true } },
+  memberSettings: { select: { userId: true, percent: true } },
   activityLogs: {
     where: { type: LOG_TYPE },
     // id desempata dos cambios en el mismo instante, para un orden estable.
@@ -30,23 +30,21 @@ function storedBy(asset, key) {
   return Object.fromEntries(asset.memberSettings.map((s) => [s.userId, s[key]]));
 }
 
-// Valores efectivos: los porcentajes en null si se reparte en partes iguales y
-// un color para cada integrante, lo haya elegido o no.
+// Valores efectivos: los porcentajes en null si se reparte en partes iguales.
 function effective(asset) {
   const ids = asset.users.map((u) => u.id);
   return {
     ...Object.fromEntries(rules.ASSET_FIELDS.map((field) => [field, asset[field]])),
     percents: rules.resolvePercents(ids, storedBy(asset, 'percent')),
-    hues: rules.resolveHues(ids, storedBy(asset, 'hue')),
   };
 }
 
 function toView(asset) {
-  const { percents, hues, ...numbers } = effective(asset);
+  const { percents, ...numbers } = effective(asset);
+  const hues = rules.resolveHues(asset.users.map((u) => u.id));
   return {
     ...numbers,
     members: asset.users.map((u) => ({ id: u.id, name: u.name, percent: percents?.[u.id] ?? null, hue: hues[u.id] })),
-    palette: rules.MEMBER_HUES,
     changes: asset.activityLogs.map((log) => ({
       id: log.id,
       createdAt: log.createdAt.toISOString(),
@@ -63,15 +61,12 @@ async function load(db, assetId, userId) {
   return { asset };
 }
 
-// Color de cada integrante del bien (userId -> tono), con la misma regla que la
-// pantalla de Configuración: el calendario, las tarjetas y Movimientos lo usan.
+// Color de cada integrante del bien (userId -> tono), el mismo en Configuración,
+// el calendario, las tarjetas y Movimientos.
 async function huesOf(assetId, db = prisma) {
-  const asset = await db.asset.findUnique({
-    where: { id: assetId },
-    select: { users: { select: { id: true } }, memberSettings: { select: { userId: true, hue: true } } },
-  });
+  const asset = await db.asset.findUnique({ where: { id: assetId }, select: { users: { select: { id: true } } } });
   if (!asset) return {};
-  return rules.resolveHues(asset.users.map((u) => u.id), storedBy(asset, 'hue'));
+  return rules.resolveHues(asset.users.map((u) => u.id));
 }
 
 // Porcentaje de cada integrante (userId -> %), o null si se reparte en partes
@@ -93,24 +88,16 @@ async function getSettings({ assetId, userId }, db = prisma) {
 }
 
 async function saveMembers(tx, assetId, changes) {
-  if ('percents' in changes) {
-    if (changes.percents === null) {
-      await tx.assetMemberSetting.updateMany({ where: { assetId }, data: { percent: null } });
-    } else {
-      for (const [userId, percent] of Object.entries(changes.percents)) {
-        await tx.assetMemberSetting.upsert({
-          where: { assetId_userId: { assetId, userId } },
-          create: { assetId, userId, percent },
-          update: { percent },
-        });
-      }
-    }
+  if (!('percents' in changes)) return;
+  if (changes.percents === null) {
+    await tx.assetMemberSetting.updateMany({ where: { assetId }, data: { percent: null } });
+    return;
   }
-  for (const [userId, hue] of Object.entries(changes.hues ?? {})) {
+  for (const [userId, percent] of Object.entries(changes.percents)) {
     await tx.assetMemberSetting.upsert({
       where: { assetId_userId: { assetId, userId } },
-      create: { assetId, userId, hue },
-      update: { hue },
+      create: { assetId, userId, percent },
+      update: { percent },
     });
   }
 }
@@ -119,8 +106,8 @@ async function saveMembers(tx, assetId, changes) {
 // { error: 'INVALID', field, message }.
 async function updateSettings({ assetId, userId, body }, db = prisma) {
   return db.$transaction(async (tx) => {
-    // Serializa los cambios del mismo bien: sin esto, dos colores elegidos a la
-    // vez podrían quedar repetidos.
+    // Serializa los cambios del mismo bien: sin esto, dos cambios a la vez
+    // quedarían registrados con el mismo "antes".
     await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
     const { asset, error } = await load(tx, assetId, userId);
     if (error) return { error };
@@ -128,19 +115,14 @@ async function updateSettings({ assetId, userId, body }, db = prisma) {
     const parsed = rules.parseSettingsInput(body, asset.users.map((u) => u.id));
     if (parsed.error) return { error: 'INVALID', field: parsed.field, message: parsed.error };
 
-    // Un color elegido no puede ser el que hoy tiene otro integrante.
     const before = effective(asset);
-    const changes = parsed.value.hues ? { ...parsed.value, hues: { ...before.hues, ...parsed.value.hues } } : parsed.value;
-    if (changes.hues && new Set(Object.values(changes.hues)).size !== Object.keys(changes.hues).length) {
-      return { error: 'INVALID', field: 'hues', message: 'Dos integrantes no pueden tener el mismo color' };
-    }
-
+    const changes = parsed.value;
     const diff = rules.diffSettings(before, changes);
     if (diff.length === 0) return { settings: toView(asset) };
 
     const columns = Object.fromEntries(rules.ASSET_FIELDS.filter((f) => f in changes).map((f) => [f, changes[f]]));
     if (Object.keys(columns).length > 0) await tx.asset.update({ where: { id: assetId }, data: columns });
-    await saveMembers(tx, assetId, parsed.value);
+    await saveMembers(tx, assetId, changes);
     await tx.activityLog.create({ data: { assetId, userId, type: LOG_TYPE, payload: { changes: diff } } });
 
     const { asset: updated } = await load(tx, assetId, userId);

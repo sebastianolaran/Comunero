@@ -38,7 +38,6 @@ const AYUDAS = {
     'Si una reserva de uso propio o una solicitud de alquiler sigue sin el voto de todos pasado este tiempo desde que se pidió, se rechaza sola. Vacío, queda pendiente hasta que voten todos.',
   noResponse:
     'Qué pasa con quien no votó cuando vence el tiempo para responder. Rechazado: la reserva se rechaza sola. Aprobado: su silencio cuenta como un Sí, así que se aprueba si nadie votó que no. Solo aplica si hay un tiempo máximo cargado.',
-  hues: 'Es el color con el que aparece cada uno en el calendario, en las tarjetas del bien y en los movimientos. Dos integrantes no pueden tener el mismo.',
 }
 
 // Botón "i" con la explicación: se abre al pasar el mouse, con foco o con un
@@ -334,52 +333,6 @@ function PanelReglas({ settings, onGuardado }) {
   )
 }
 
-// Cada click guarda: elegir un color es un cambio en sí mismo.
-function PanelColores({ settings, onGuardado }) {
-  const estado = useGuardar(onGuardado)
-  const { members, palette } = settings
-
-  return (
-    <Panel titulo="Colores" ayuda={AYUDAS.hues} hint="Con qué color aparece cada integrante en el calendario y en el resto de la app.">
-      <div className="cfg__rows">
-        {members.map((m) => (
-          <div className="cfg__row cfg__row--tonos" key={m.id}>
-            <div className="cfg__lbl">
-              <span className="legend__d" style={{ background: color(m.hue) }} />
-              {m.name}
-            </div>
-            <div className="cfg__tonos" role="group" aria-label={`Color de ${m.name}`}>
-              {palette.map((hue) => {
-                const deOtro = members.find((o) => o.id !== m.id && o.hue === hue)
-                return (
-                  <button
-                    key={hue}
-                    type="button"
-                    className={`cfg__tono${m.hue === hue ? ' cfg__tono--on' : ''}${deOtro ? ' cfg__tono--ocupado' : ''}`}
-                    style={{ '--c': color(hue) }}
-                    aria-pressed={m.hue === hue}
-                    aria-label={deOtro ? `Color de ${deOtro.name}` : 'Elegir este color'}
-                    title={deOtro ? `Lo tiene ${deOtro.name}` : undefined}
-                    disabled={Boolean(deOtro) || estado.guardando}
-                    onClick={() => m.hue !== hue && estado.guardar({ hues: { [m.id]: hue } })}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-      {estado.error && (
-        <div className="cfg__pie">
-          <p className="cfg__error" role="alert">
-            {estado.error}
-          </p>
-        </div>
-      )}
-    </Panel>
-  )
-}
-
 function PanelCambios({ settings }) {
   const nombres = Object.fromEntries(settings.members.map((m) => [m.id, m.name]))
   const lineas = settings.changes.flatMap((registro) =>
@@ -454,11 +407,10 @@ function Configuracion() {
       <div className="cfg__col">
         <PanelPorcentajes settings={settings} onGuardado={onGuardado} />
         <PanelAlquiler settings={settings} onGuardado={onGuardado} />
-        <PanelCambios settings={settings} />
       </div>
       <div className="cfg__col">
         <PanelReglas settings={settings} onGuardado={onGuardado} />
-        <PanelColores settings={settings} onGuardado={onGuardado} />
+        <PanelCambios settings={settings} />
       </div>
     </div>
   )

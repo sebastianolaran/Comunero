@@ -1,5 +1,5 @@
 // Reglas de la configuración del bien que no tocan la base: validación del
-// PATCH, porcentajes y colores efectivos de cada integrante, y qué cambió
+// PATCH, porcentajes efectivos y color de cada integrante, y qué cambió
 // (para el registro de cambios).
 
 const MAX_DB_INT = 2147483647;
@@ -22,12 +22,11 @@ const LABELS = {
   maxConsecutiveDays: 'El máximo de días consecutivos',
   responseHours: 'El tiempo para responder',
 };
-const FIELDS = [...ASSET_FIELDS, 'percents', 'hues'];
+const FIELDS = [...ASSET_FIELDS, 'percents'];
 
-// Tonos oklch. Los primeros seis son los que el client ya calculaba por id, así
-// nadie cambia de color hasta que elija uno. Los dos últimos van en los huecos
-// más grandes de la rueda (a 35-40° de sus vecinos) para que no se confundan.
-// El 195 es del alquiler.
+// Tonos oklch. Los primeros seis son los que el client ya calculaba por id. Los
+// dos últimos van en los huecos más grandes de la rueda (a 35-40° de sus
+// vecinos) para que no se confundan. El 195 es del alquiler.
 const MEMBER_HUES = [250, 40, 150, 320, 80, 285, 0, 115];
 const LEGACY_HUE_COUNT = 6;
 const RENTAL_HUE = 195;
@@ -68,18 +67,6 @@ function parsePercents(value, memberIds) {
   return { value: { ...value } };
 }
 
-function parseHues(value, memberIds) {
-  if (!isPlainObject(value)) return fail('hues', 'Los colores tienen un formato inválido');
-  const ids = Object.keys(value);
-  if (ids.some((id) => !memberIds.includes(id))) {
-    return fail('hues', 'Hay un color para alguien que no es copropietario del bien');
-  }
-  const hues = Object.values(value);
-  if (hues.some((hue) => !MEMBER_HUES.includes(hue))) return fail('hues', 'Ese color no está disponible');
-  if (new Set(hues).size !== hues.length) return fail('hues', 'Dos integrantes no pueden tener el mismo color');
-  return { value: { ...value } };
-}
-
 // { value } con solo las claves que vinieron, o { field, error } con la primera
 // inválida. null en un número lo deja sin límite; en percents, partes iguales.
 function parseSettingsInput(body, memberIds) {
@@ -91,7 +78,6 @@ function parseSettingsInput(body, memberIds) {
   for (const field of present) {
     let parsed;
     if (field === 'percents') parsed = parsePercents(input.percents, memberIds);
-    else if (field === 'hues') parsed = parseHues(input.hues, memberIds);
     else if (field === 'noResponseAction') parsed = parseNoResponseAction(input.noResponseAction);
     else parsed = parseNumber(field, input[field]);
     if (parsed.error) return parsed;
@@ -106,21 +92,13 @@ function hashHue(userId) {
   return MEMBER_HUES[hash % LEGACY_HUE_COUNT];
 }
 
-// Color de cada integrante: el que eligió o, si no eligió, el calculado por id
-// salvo que ya lo tenga otro, en cuyo caso el primero libre de la paleta. Se
-// recorre por id para que no dependa del orden. Con más integrantes que
-// colores, se repite el calculado.
-function resolveHues(memberIds, stored) {
+// Color de cada integrante: el calculado por id salvo que ya lo tenga otro, en
+// cuyo caso el primero libre de la paleta. Se recorre por id para que no
+// dependa del orden. Con más integrantes que colores, se repite el calculado.
+function resolveHues(memberIds) {
   const hues = {};
   const taken = new Set();
-  for (const id of memberIds) {
-    if (stored[id] != null) {
-      hues[id] = stored[id];
-      taken.add(stored[id]);
-    }
-  }
   for (const id of [...memberIds].sort()) {
-    if (hues[id] != null) continue;
     const preferred = hashHue(id);
     const hue = taken.has(preferred) ? (MEMBER_HUES.find((h) => !taken.has(h)) ?? preferred) : preferred;
     hues[id] = hue;
@@ -156,8 +134,6 @@ module.exports = {
   LIMITS,
   NUMBER_FIELDS,
   ASSET_FIELDS,
-  MEMBER_HUES,
-  RENTAL_HUE,
   parseSettingsInput,
   resolveHues,
   resolvePercents,

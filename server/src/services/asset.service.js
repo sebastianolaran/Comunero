@@ -16,7 +16,6 @@ function cardSelect(today) {
     name: true,
     inviteCode: true,
     users: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
-    memberSettings: { select: { userId: true, hue: true } },
     reservations: {
       where: {
         OR: [{ status: 'PENDING' }, { status: 'ACTIVE', endDate: { gte: new Date(`${today}T00:00:00.000Z`) } }],
@@ -37,8 +36,7 @@ function cardSelect(today) {
 }
 
 function toCard(asset, userId, today) {
-  const stored = Object.fromEntries(asset.memberSettings.map((s) => [s.userId, s.hue]));
-  const hues = resolveHues(asset.users.map((u) => u.id), stored);
+  const hues = resolveHues(asset.users.map((u) => u.id));
   return rules.toCard(
     {
       ...asset,
