@@ -29,7 +29,7 @@ const FILTERS = [
 
 const tone = (amount) => (amount > 0 ? 'pos' : amount < 0 ? 'neg' : 'muted')
 
-const SALDO_TEXTO = { pos: 'te deben', neg: 'debés', muted: 'estás al día' }
+const SALDO_TEXTO = { pos: 'a favor', neg: 'en contra', muted: 'al día' }
 
 // Lo principal es tu saldo del período; el flujo del grupo va de contexto. Si el
 // server todavía no manda `mine` (client y server se despliegan aparte), se
@@ -61,17 +61,17 @@ function Resumen({ summary, titulo, cobrado }) {
   return (
     <>
       <div className="sum">
-        <span className="sum__l">{titulo} te toca</span>
+        <span className="sum__l">Saldo de {titulo.toLowerCase()}</span>
         <span className={`sum__v mov-tone-${tono}`}>{fmtSigned(summary.mine)}</span>
         <span className="sum__l">{SALDO_TEXTO[tono]}</span>
       </div>
       {cobrado > 0 && (
         <p className="sum__nota">
-          Incluye {fmtMoney(cobrado)} de ingresos que cobraste vos y les tocan a los demás.
+          Incluye {fmtMoney(cobrado)} de ingresos cobrados que corresponden al resto del grupo.
         </p>
       )}
       <p className="sum__s">
-        Grupo: {grupo} · Neto {fmtSigned(summary.net)} · <Link to="/balance">Ver lo que debés en total en Balance</Link>
+        Grupo: {grupo} · Neto {fmtSigned(summary.net)} · <Link to="/balance">Ver el saldo total en Balance</Link>
       </p>
     </>
   )
@@ -168,7 +168,7 @@ function Movimientos() {
   }
 
   if (!configurado) {
-    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+    return <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
   }
 
   const ready = coowners && periods && data

@@ -52,14 +52,14 @@ export async function login({ email, password }) {
   } catch {
     // fetch rechaza con "Failed to fetch" cuando no hay red o el server no
     // está: ese texto no es para mostrarle a nadie.
-    throw new Error('No pudimos conectarnos. Probá de nuevo en un momento.')
+    throw new Error('No hay conexión con el servidor. Intentar de nuevo en un momento.')
   }
 
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
     // El 400 y el 401 traen un { error } ya escrito para la pantalla. Un 500
     // no trae nada útil, así que se reemplaza por algo legible.
-    throw new Error(body.error ?? 'No pudimos entrar. Probá de nuevo en un momento.')
+    throw new Error(body.error ?? 'No se pudo ingresar. Intentar de nuevo en un momento.')
   }
 
   return body.user

@@ -209,7 +209,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
             label="Descripción (opcional)"
             htmlFor={`${uid}-description`}
             error={errors.description}
-            hint={`Si la dejás vacía se usan los nombres. Hasta ${MAX_DESCRIPTION} caracteres.`}
+            hint={`Vacía, se usan los nombres. Hasta ${MAX_DESCRIPTION} caracteres.`}
           >
             <input
               id={`${uid}-description`}
@@ -241,7 +241,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
               aria-invalid={Boolean(errors.paidById)}
               onChange={(event) => set({ paidById: event.target.value === '' ? null : event.target.value })}
             >
-              {draft.paidById === null && <option value="">Elegí…</option>}
+              {draft.paidById === null && <option value="">Elegir…</option>}
               {coowners.map((coowner) => (
                 <option key={coowner.id} value={coowner.id}>
                   {coowner.name}
@@ -251,7 +251,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           </Field>
         </div>
 
-        <FieldError>{serverError ?? (hasErrors ? 'Revisá los campos marcados: son obligatorios.' : null)}</FieldError>
+        <FieldError>{serverError ?? (hasErrors ? 'Hay campos obligatorios sin completar.' : null)}</FieldError>
 
         <ModalAcciones>
           <button type="button" className="btn" onClick={onCancel}>

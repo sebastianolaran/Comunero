@@ -5,7 +5,7 @@ export async function fetchAssets(userId, { signal } = {}) {
   const params = new URLSearchParams({ userId })
   const res = await pedir(`${API_URL}/api/assets?${params}`, { signal })
   const body = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(body?.error ?? 'No pudimos traer tus bienes.')
+  if (!res.ok) throw new Error(body?.error ?? 'No se pudieron cargar los bienes.')
   return body.assets
 }
 
@@ -18,7 +18,7 @@ async function enviar(path, datos, errorPorDefecto) {
       body: JSON.stringify(datos),
     })
   } catch {
-    throw new Error('No pudimos conectarnos. Probá de nuevo en un momento.')
+    throw new Error('No hay conexión con el servidor. Intentar de nuevo en un momento.')
   }
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {

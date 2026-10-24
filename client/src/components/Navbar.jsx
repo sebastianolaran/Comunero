@@ -41,7 +41,7 @@ function CodigoDelBien({ codigo }) {
         </button>
       </div>
       <p className="codigo__ok" role="status">
-        {copiado ? 'Copiado. Pegalo en el chat del grupo para que se sumen.' : ''}
+        {copiado ? 'Código copiado, listo para compartir con el grupo.' : ''}
       </p>
     </div>
   )
@@ -54,7 +54,7 @@ function Navbar() {
     <aside className="side">
       <Link to="/bienes" className="side__volver">
         <Icono nombre="atras" />
-        Mis bienes
+        Bienes
       </Link>
 
       <div className="brand">

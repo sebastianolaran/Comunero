@@ -8,8 +8,8 @@ const ERRORS = {
   USER_NOT_FOUND: [404, 'No existe el usuario'],
   CODE_NOT_FOUND: [404, 'Ese código no corresponde a ningún bien'],
   ASSET_NOT_FOUND: [404, 'No existe el bien'],
-  NOT_COOWNER: [403, 'No sos copropietario de este bien'],
-  LAST_MEMBER: [409, 'Sos el único integrante: si te vas, el bien queda sin nadie'],
+  NOT_COOWNER: [403, 'Solo los copropietarios pueden hacer esto en este bien'],
+  LAST_MEMBER: [409, 'No es posible salir siendo el único integrante: el bien quedaría sin nadie'],
   OPEN_VOTES: [409, 'Hay reservas o decisiones esperando votos: cuando se resuelvan vas a poder salir del bien'],
 };
 
@@ -34,7 +34,7 @@ async function list(req, res) {
   } catch (err) {
     // El detalle (puede incluir la connection string) va al log, no a la respuesta.
     console.error('assets: fallo la consulta de bienes', err);
-    res.status(500).json({ error: 'No se pudieron obtener tus bienes' });
+    res.status(500).json({ error: 'No se pudieron obtener los bienes' });
   }
 }
 
@@ -69,7 +69,7 @@ async function join(req, res) {
     res.status(result.alreadyMember ? 200 : 201).json(result);
   } catch (err) {
     console.error('assets: fallo el alta como copropietario', err);
-    res.status(500).json({ error: 'No pudimos sumarte al bien. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo sumar al bien. Intentar de nuevo en un momento.' });
   }
 }
 
@@ -84,7 +84,7 @@ async function leave(req, res) {
     res.status(204).end();
   } catch (err) {
     console.error('assets: fallo la salida del bien', err);
-    res.status(500).json({ error: 'No pudimos sacarte del bien. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo salir del bien. Intentar de nuevo en un momento.' });
   }
 }
 

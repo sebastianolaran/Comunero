@@ -44,7 +44,7 @@ async function update(req, res) {
     sendResult(res, await settingsService.updateSettings({ assetId: req.params.id, userId: body.userId, body }));
   } catch (err) {
     console.error('settings: fallo el cambio de configuración', err);
-    res.status(500).json({ error: 'No se pudo guardar la configuración. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo guardar la configuración. Intentar de nuevo en un momento.' });
   }
 }
 

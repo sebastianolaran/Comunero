@@ -37,9 +37,9 @@ export function monthOptions(periods, current) {
 export function myPartLabel({ kind, amount }) {
   switch (kind) {
     case 'OWED_TO_YOU':
-      return { text: `+ ${fmtMoney(amount)}`, sub: 'te deben', tone: 'pos' }
+      return { text: `+ ${fmtMoney(amount)}`, sub: 'a favor', tone: 'pos' }
     case 'YOU_OWE':
-      return { text: `- ${fmtMoney(amount)}`, sub: 'debés', tone: 'neg' }
+      return { text: `- ${fmtMoney(amount)}`, sub: 'en contra', tone: 'neg' }
     case 'NO_DEBT':
       return { text: '—', sub: 'sin deudas', tone: 'muted' }
     default:
@@ -47,20 +47,13 @@ export function myPartLabel({ kind, amount }) {
   }
 }
 
-// Quién le debe a quién por una parte del reparto, visto por el usuario actual.
-// En un gasto los demás le deben a quien pagó; en un ingreso quien cobró le
+// Quién le debe a quién por una parte del reparto. En un gasto los demás le deben a quien pagó; en un ingreso quien cobró le
 // debe a cada uno su parte.
-export function shareNote(movement, share, meId) {
+export function shareNote(movement, share) {
   const payer = movement.paidBy
   if (share.userId === payer.id) return movement.type === 'INCOME' ? 'cobró' : 'pagó'
-  const shareIsMe = share.userId === meId
-  const payerIsMe = payer.id === meId
-  if (movement.type === 'EXPENSE') {
-    if (shareIsMe) return `le debés a ${payer.name}`
-    return payerIsMe ? 'te debe' : `le debe a ${payer.name}`
-  }
-  if (shareIsMe) return `${payer.name} te debe`
-  return payerIsMe ? 'le debés' : `${payer.name} le debe`
+  if (movement.type === 'EXPENSE') return `debe a ${payer.name}`
+  return `${payer.name} le debe`
 }
 
 // Aclaración del reparto de un ítem mientras se carga: "$3.333 por persona"

@@ -93,7 +93,7 @@ async function create(req, res) {
   const dias = cantidadDias(inicio, fin);
   if (maximo != null && dias > maximo) {
     return res.status(400).json({
-      error: `Un turno de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (pediste ${dias})`,
+      error: `Un turno de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (el pedido es de ${dias})`,
     });
   }
 

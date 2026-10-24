@@ -155,7 +155,7 @@ El carácter elegido para los componentes es **cálido y amable**: controles que
 - Plano con bordes finos; las sombras solo para lo que flota.
 - Denso y de escritorio, con cifras tabulares.
 - Una sola tipografía (Inter) en pocos tamaños.
-- Español rioplatense en cada texto, con voseo.
+- Textos en español neutro e impersonal.
 
 ## Colors
 
@@ -273,7 +273,7 @@ Superficie blanca de 392px de ancho, 24px de relleno, título de 17px y la sombr
 - **Do** usar el tono de cada integrante siempre que se nombre o se muestre a una persona en un contexto de uso o de reparto, y el mismo tono en todas las pantallas.
 - **Do** mantener las cifras tabulares y alinear montos a la derecha en tablas y campos numéricos.
 - **Do** explicar cada regla con un botón "i" y un tooltip en lenguaje llano, en la misma fila donde actúa.
-- **Do** escribir con voseo y nombrar la app como "Comunero".
+- **Do** escribir en tono neutro e impersonal (infinitivos, sin vos ni usted) y nombrar la app como "Comunero".
 - **Do** respetar `prefers-reduced-motion`: las animaciones se apagan.
 
 ### Don't:

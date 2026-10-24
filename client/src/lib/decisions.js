@@ -72,5 +72,5 @@ export function mostrarBotones({ myVote }, editando) {
 }
 
 export function textoTuVoto(myVote) {
-  return `Tu voto: ${VOTOS[myVote]}`
+  return `Voto propio: ${VOTOS[myVote]}`
 }

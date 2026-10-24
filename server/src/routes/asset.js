@@ -13,7 +13,7 @@ const limitarIntentos = rateLimit({
   skipSuccessfulRequests: true,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' },
+  message: { error: 'Demasiados intentos. Esperar unos minutos e intentar de nuevo.' },
 });
 
 const router = Router();

@@ -68,7 +68,7 @@ export function quitarTarea(alquiler, tareaId) {
   )
 }
 
-const ERROR_GENERICO = 'No se pudo agregar la tarea. Probá de nuevo.'
+const ERROR_GENERICO = 'No se pudo agregar la tarea. Intentar de nuevo.'
 
 // Los mensajes de un error del server: la lista `errors` si viene, si no `error`,
 // y si la respuesta no tiene forma conocida, `generico` (cada acción trae el suyo).

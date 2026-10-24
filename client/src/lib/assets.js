@@ -52,7 +52,7 @@ export function textoEstadia(stay, hoy = new Date()) {
   const anio = hoy.getFullYear()
   switch (stay?.kind) {
     case 'MY_STAY':
-      return `Tu próxima estadía: ${rangoCorto(stay.startDate, stay.endDate, anio)}`
+      return `Próxima estadía propia: ${rangoCorto(stay.startDate, stay.endDate, anio)}`
     case 'RENTED':
       return `Alquilada ${rangoLargo(stay.startDate, stay.endDate, anio)}`
     case 'RESERVED':
@@ -64,7 +64,7 @@ export function textoEstadia(stay, hoy = new Date()) {
 
 export function validarNombreBien(nombre) {
   const limpio = nombre.trim()
-  if (!limpio) return { error: 'Ponele un nombre al bien.' }
+  if (!limpio) return { error: 'Falta el nombre del bien.' }
   if (limpio.length > MAX_NOMBRE_BIEN) {
     return { error: `El nombre no puede superar los ${MAX_NOMBRE_BIEN} caracteres.` }
   }
@@ -76,10 +76,10 @@ const CODIGO = /^([A-Z]{3})-?([A-Z0-9]{4})$/
 // Un código mal formado no se manda: no gasta intentos del límite.
 export function validarCodigo(texto) {
   const limpio = texto.replace(/\s+/g, '').toUpperCase()
-  if (!limpio) return { error: 'Ingresá el código que te pasaron.' }
+  if (!limpio) return { error: 'Falta el código del bien.' }
   const partesCodigo = CODIGO.exec(limpio)
   if (!partesCodigo) {
-    return { error: 'Revisá el código: son tres letras, un guion y cuatro caracteres (ej: QNT-7K4P).' }
+    return { error: 'El código no es válido: son tres letras, un guion y cuatro caracteres (ej: QNT-7K4P).' }
   }
   return { codigo: `${partesCodigo[1]}-${partesCodigo[2]}` }
 }

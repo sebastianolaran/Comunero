@@ -200,7 +200,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
   function guardar() {
     if (vacio) return estado.guardar({ percents: null })
     if (Object.values(borrador).some((v) => !/^\d+$/.test(v.trim()))) {
-      return estado.fallar('Completá el porcentaje de todos con números enteros.')
+      return estado.fallar('Falta el porcentaje de alguien: tienen que ser números enteros.')
     }
     if (suma !== 100) return estado.fallar(`Los porcentajes tienen que sumar 100 (suman ${suma}).`)
     estado.guardar({ percents: Object.fromEntries(Object.entries(borrador).map(([id, v]) => [id, Number(v)])) })
@@ -372,7 +372,7 @@ function PanelCambios({ settings }) {
 function efectoEnPorcentajes(members, userId) {
   const mio = members.find((m) => m.id === userId)?.percent
   if (mio == null) return 'Los gastos se siguen repartiendo en partes iguales entre los que quedan.'
-  if (mio === 0) return 'Tu porcentaje es 0%: los de los demás quedan como están.'
+  if (mio === 0) return 'El porcentaje propio es 0%: el de los demás queda igual.'
   return 'Los porcentajes de gastos dejan de sumar 100 y vuelven a partes iguales entre los que quedan.'
 }
 
@@ -413,8 +413,8 @@ function PanelSalir({ settings }) {
       titulo="Salir del bien"
       hint={
         ultimo
-          ? 'Sos el único integrante: no podés irte, el bien quedaría sin nadie.'
-          : 'Dejás de ser copropietario. Lo ya cargado (movimientos, reservas pasadas) queda como está.'
+          ? 'Único integrante: no es posible salir, el bien quedaría sin nadie.'
+          : 'Se deja de ser copropietario. Lo ya cargado (movimientos, reservas pasadas) queda como está.'
       }
       pie={
         <div className="cfg__pie">
@@ -435,7 +435,7 @@ function PanelSalir({ settings }) {
           lines={[
             ...(avisoSaldos ? [avisoSaldos] : []),
             efectoEnPorcentajes(settings.members, userIdActual()),
-            'Para volver a entrar vas a necesitar el código del bien.',
+            'Para volver a entrar hace falta el código del bien.',
           ]}
           confirmLabel="Salir del bien"
           busyLabel="Saliendo…"

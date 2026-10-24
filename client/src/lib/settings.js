@@ -77,8 +77,8 @@ export function textoSaldosAlSalir(coowners) {
   const debes = coowners.filter((c) => c.balance < 0)
   const teDeben = coowners.filter((c) => c.balance > 0)
   const partes = []
-  if (debes.length) partes.push(`Todavía le debés ${lista(debes.map((c) => `${fmtMoney(-c.balance)} a ${c.user.name}`))}.`)
-  if (teDeben.length) partes.push(`Te deben ${lista(teDeben.map((c) => `${c.user.name} ${fmtMoney(c.balance)}`))}.`)
+  if (debes.length) partes.push(`Deudas pendientes: ${lista(debes.map((c) => `${fmtMoney(-c.balance)} a ${c.user.name}`))}.`)
+  if (teDeben.length) partes.push(`Saldos a favor: ${lista(teDeben.map((c) => `${c.user.name} ${fmtMoney(c.balance)}`))}.`)
   if (!partes.length) return null
-  return `${partes.join(' ')} Salir no salda nada: conviene arreglarlo antes en Balance.`
+  return `${partes.join(' ')} Salir del bien no las salda: conviene resolverlas antes en Balance.`
 }

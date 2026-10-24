@@ -106,8 +106,8 @@ function Login() {
         <div className="login__marca">Comunero</div>
 
         <form className="login__form" onSubmit={onSubmit} noValidate>
-          <h1 className="login__t">Ingresá a tu cuenta</h1>
-          <p className="login__s">Con el mail y la contraseña con los que te sumaron al grupo.</p>
+          <h1 className="login__t">Ingresar a Comunero</h1>
+          <p className="login__s">Con el mail y la contraseña asignados al sumarse al grupo.</p>
 
           {alerta && (
             <p className="login__alert" role="alert">
@@ -177,7 +177,7 @@ function Login() {
         </form>
 
         <p className="login__foot">
-          ¿Todavía no tenés cuenta? Pedile a alguien del grupo que te sume.
+          Las cuentas las crea alguien del grupo con el mail de cada integrante.
         </p>
       </main>
 

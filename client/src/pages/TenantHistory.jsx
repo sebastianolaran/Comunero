@@ -60,7 +60,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
   }
 
   if (!assetId) {
-    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+    return <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
   }
 
   return (
@@ -151,7 +151,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
               <circle cx="12" cy="8" r="3.5" />
               <path d="M5 20c0-3.5 3.1-5.5 7-5.5s7 2 7 5.5" />
             </svg>
-            Elegí un inquilino para ver su historial y sus observaciones.
+            Elegir un inquilino para ver su historial y sus observaciones.
           </div>
         </aside>
       )}

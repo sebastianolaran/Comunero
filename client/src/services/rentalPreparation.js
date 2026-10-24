@@ -12,7 +12,7 @@ export async function fetchRentalPreparations(assetId, { signal } = {}) {
   return alquileres
 }
 
-const SIN_CONEXION = 'No se pudo conectar con el servidor. Probá de nuevo.'
+const SIN_CONEXION = 'No hay conexión con el servidor. Intentar de nuevo.'
 
 // Error del alta con los mensajes ya listos para mostrar en el formulario.
 export class AltaTareaError extends Error {
@@ -55,8 +55,8 @@ export async function createRentalTask({ reservationId, name, assignedToId }, { 
   return body
 }
 
-const ERROR_MODIFICAR = 'No se pudo modificar la tarea. Probá de nuevo.'
-const ERROR_ELIMINAR = 'No se pudo eliminar la tarea. Probá de nuevo.'
+const ERROR_MODIFICAR = 'No se pudo modificar la tarea. Intentar de nuevo.'
+const ERROR_ELIMINAR = 'No se pudo eliminar la tarea. Intentar de nuevo.'
 
 // PATCH/DELETE sobre una tarea. Si no hay conexión lanza CambioTareaError.
 async function pedirCambio(id, { method, body }, { signal }) {

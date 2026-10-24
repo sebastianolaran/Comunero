@@ -45,7 +45,7 @@ function RentalHistory({ assetId = assetIdActual() }) {
   }
 
   if (!assetId) {
-    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+    return <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
   }
 
   if (carga.estado === 'loading') {

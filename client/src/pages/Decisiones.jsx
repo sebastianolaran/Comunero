@@ -275,7 +275,7 @@ function Decisiones({ assetId = assetIdActual() }) {
           <Historial assetId={assetId} version={versionHistorial} />
         </>
       ) : (
-        <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+        <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
       )}
     </div>
   )

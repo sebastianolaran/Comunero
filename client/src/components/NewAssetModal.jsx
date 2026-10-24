@@ -43,11 +43,11 @@ function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
     <Modal
       abierto={abierto}
       icono={creado && <Icono nombre="check" />}
-      titulo={creado ? `Creaste “${creado.name}”` : 'Nuevo bien compartido'}
+      titulo={creado ? `Bien creado: “${creado.name}”` : 'Nuevo bien compartido'}
       subtitulo={
         creado
-          ? 'Pasales este código a tus amigos. Con él, desde “Unirme con código”, se suman al bien.'
-          : 'Ponele un nombre que el grupo reconozca. Después te damos un código para que se sumen.'
+          ? 'Con este código, desde “Unirse con código”, el resto del grupo se suma al bien.'
+          : 'Un nombre que el grupo reconozca. Después se genera un código para que se sumen.'
       }
       onAbrir={limpiar}
       onClose={onClose}
@@ -64,7 +64,7 @@ function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
             </button>
           </div>
           <p className="hint bienes-modal__nota">
-            Lo vas a tener siempre en el menú del bien, debajo del nombre, por si se suma alguien más.
+            El código queda siempre en el menú del bien, debajo del nombre, por si se suma alguien más.
           </p>
           <ModalAcciones>
             <button type="button" className="btn" onClick={() => onIr(creado)}>

@@ -9,11 +9,11 @@ export function validarLogin({ email, password }) {
   const errores = {}
   const mail = email.trim()
 
-  if (!mail) errores.email = 'Ingresá tu mail.'
-  else if (!MAIL_RE.test(mail)) errores.email = 'Revisá el mail: le falta algo.'
+  if (!mail) errores.email = 'Falta el mail.'
+  else if (!MAIL_RE.test(mail)) errores.email = 'El mail no es válido.'
 
   // La contraseña no se recorta: los espacios son parte de la contraseña.
-  if (!password) errores.pass = 'Ingresá tu contraseña.'
+  if (!password) errores.pass = 'Falta la contraseña.'
 
   return errores
 }

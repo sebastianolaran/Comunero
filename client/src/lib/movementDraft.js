@@ -146,7 +146,7 @@ export function validateDraft(draft) {
     if (!String(item.amount).trim()) errors[`${item.key}.amount`] = 'El monto es obligatorio'
     else if (isInvalidAmount(item.amount)) errors[`${item.key}.amount`] = INVALID_AMOUNT
 
-    if (item.shareIds.length === 0) errors[`${item.key}.shareIds`] = 'Elegí al menos a una persona para dividir'
+    if (item.shareIds.length === 0) errors[`${item.key}.shareIds`] = 'Falta elegir al menos una persona para dividir'
   }
 
   if (draft.items.length > 1) {
@@ -154,7 +154,7 @@ export function validateDraft(draft) {
     if (itemsTotal(draft.items) > MAX_AMOUNT) errors.total = 'El monto total es demasiado grande'
   }
   if (!isValidDay(draft.date)) errors.date = 'La fecha es obligatoria'
-  if (draft.paidById === null) errors.paidById = isIncome ? 'Elegí quién cobró' : 'Elegí quién pagó'
+  if (draft.paidById === null) errors.paidById = isIncome ? 'Falta elegir quién cobró' : 'Falta elegir quién pagó'
 
   return errors
 }

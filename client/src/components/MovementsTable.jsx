@@ -2,21 +2,20 @@ import { Fragment, useState } from 'react'
 import { dayLabel, fmtMoney, myPartLabel, shareNote } from '../lib/movements'
 
 function MovementDetail({ movement, meId }) {
-  const who = (share) => (share.userId === meId ? 'Vos' : share.name)
   const isIncome = movement.type === 'INCOME'
   return (
     <div className="mov-detail">
       <div>
         <p className="mov-detail-title">
-          {isIncome ? 'Cobrado' : 'Pagado'} por {movement.paidBy.id === meId ? 'vos' : movement.paidBy.name}:{' '}
+          {isIncome ? 'Cobrado' : 'Pagado'} por {movement.paidBy.name}:{' '}
           {fmtMoney(movement.amount)} · así se repartió:
         </p>
         <ul className="mov-share-list">
           {movement.shares.map((share) => (
             <li key={share.userId} className={share.userId === meId ? 'is-me' : undefined}>
               <span>
-                {who(share)}
-                <span className="mov-share-note">{shareNote(movement, share, meId)}</span>
+                {share.name}
+                <span className="mov-share-note">{shareNote(movement, share)}</span>
               </span>
               <span>{fmtMoney(share.amount)}</span>
             </li>
@@ -64,7 +63,7 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
             </th>
             <th scope="col">Gestionó</th>
             <th scope="col" className="mov-num">
-              Te toca
+              Saldo
             </th>
             <th scope="col">
               <span className="solo-lector">Acciones</span>

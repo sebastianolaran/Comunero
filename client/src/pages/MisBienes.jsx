@@ -63,15 +63,15 @@ function MisBienes() {
       <main className="bienes__main">
         <div className="bienes__cab">
           <div>
-            <h1 className="bienes__t">Tus bienes compartidos</h1>
+            <h1 className="bienes__t">Bienes compartidos</h1>
             <p className="bienes__s">
-              Elegí uno para ver su calendario. Si todavía no está, crealo o sumate con el código que te pasaron.
+              Elegir uno para ver su calendario. Si todavía no está, se puede crear o unirse con el código del grupo.
             </p>
           </div>
           <div className="bienes__acc">
             <button type="button" className="btn bienes__btn" onClick={() => setModal('unirme')}>
               <Icono nombre="llave" />
-              Unirme con código
+              Unirse con código
             </button>
             <button type="button" className="btn btn--primary bienes__btn" onClick={() => setModal('crear')}>
               <Icono nombre="mas" />
@@ -81,7 +81,7 @@ function MisBienes() {
         </div>
 
         {carga.estado === 'cargando' && carga.bienes.length === 0 && (
-          <Cargando panel={false}>Cargando tus bienes…</Cargando>
+          <Cargando panel={false}>Cargando bienes…</Cargando>
         )}
 
         {carga.estado === 'error' && (
@@ -89,9 +89,8 @@ function MisBienes() {
         )}
 
         {carga.estado === 'listo' && carga.bienes.length === 0 && (
-          <Vacio panel titulo="Todavía no estás en ningún bien.">
-            Si sos el primero del grupo, crealo y pasales el código a los demás. Si ya lo creó otro, pedile el código
-            y sumate.
+          <Vacio panel titulo="Todavía no hay bienes.">
+            Quien empieza crea el bien y comparte el código; el resto del grupo se une con ese código.
           </Vacio>
         )}
 

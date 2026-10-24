@@ -40,11 +40,11 @@ function JoinAssetModal({ abierto, onClose, onJoin, onIr }) {
   return (
     <Modal
       abierto={abierto}
-      titulo={yaEstaba ? `Ya sos parte de “${yaEstaba.name}”` : 'Unirme a un bien'}
+      titulo={yaEstaba ? `“${yaEstaba.name}” ya está en la lista de bienes` : 'Unirse a un bien'}
       subtitulo={
         yaEstaba
-          ? 'Ese código es de un bien en el que ya estás. No cambió nada.'
-          : 'Pedile el código a alguien que ya esté en el grupo.'
+          ? 'Ese código es de un bien de la lista. No cambió nada.'
+          : 'El código lo tiene cualquier integrante del grupo.'
       }
       onAbrir={limpiar}
       onClose={onClose}
@@ -87,7 +87,7 @@ function JoinAssetModal({ abierto, onClose, onJoin, onIr }) {
               Cancelar
             </button>
             <button type="submit" className="btn btn--primary" disabled={enviando}>
-              {enviando ? 'Uniendo…' : 'Unirme'}
+              {enviando ? 'Uniendo…' : 'Unirse'}
             </button>
           </ModalAcciones>
         </form>

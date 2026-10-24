@@ -96,7 +96,7 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
             {...input('telefono')}
           />
           {!errores.telefono && (
-            <p className="hint campo__ayuda">Con el teléfono reconocemos si ya alquiló antes y te traemos sus observaciones.</p>
+            <p className="hint campo__ayuda">Con el teléfono se reconoce si ya alquiló antes y se traen sus observaciones.</p>
           )}
         </Campo>
 

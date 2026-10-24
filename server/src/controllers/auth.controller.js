@@ -3,7 +3,7 @@ const authService = require('../services/auth.service');
 // Un solo texto para "ese mail no existe" y para "esa contrasena no es":
 // dos mensajes distintos dejarian averiguar quien esta registrado probando
 // mails contra el login.
-const CREDENCIALES_INVALIDAS = 'El mail o la contraseña no coinciden. Revisalos y probá de nuevo.';
+const CREDENCIALES_INVALIDAS = 'El mail o la contraseña no coinciden.';
 
 // POST /api/auth/login
 // body: { email, password }
@@ -29,7 +29,7 @@ async function login(req, res) {
     // El detalle (puede incluir la connection string) va al log, no a la
     // respuesta: sin este catch, Express responde HTML con el stack adentro.
     console.error('auth: fallo el login', err);
-    res.status(500).json({ error: 'No pudimos entrar. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo ingresar. Intentar de nuevo en un momento.' });
   }
 }
 

@@ -64,7 +64,7 @@ function RentalRequestDetail({
             <path d="M4 5h16v11H8l-4 4z" />
             <path d="M8 9h8M8 12.5h5" />
           </svg>
-          Elegí una solicitud para ver el detalle completo, la votación y las objeciones.
+          Elegir una solicitud para ver el detalle completo, la votación y las objeciones.
         </div>
       </aside>
     )
@@ -164,7 +164,7 @@ function RentalRequestDetail({
               >
                 {solicitud.votes.map((c) => (
                   <option key={c.userId} value={c.userId}>
-                    {c.userId === userId ? `${c.name} (vos)` : c.name}
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -190,7 +190,7 @@ function RentalRequestDetail({
       )}
 
       {!puedeVotar && pendiente && (
-        <p className="hint alq-det__bloque">No encontramos tu sesión. Volvé a entrar para poder votar.</p>
+        <p className="hint alq-det__bloque">La sesión no está activa: hay que ingresar de nuevo para votar.</p>
       )}
 
       {puedeVotar && mostrarVotar && (
@@ -211,7 +211,7 @@ function RentalRequestDetail({
 
       {puedeVotar && mostrarMiVoto && (
         <div className="alq-mivoto alq-mivoto--det">
-          <span>Tu voto: {VOTO_TEXTO[vote]}</span>
+          <span>Voto propio: {VOTO_TEXTO[vote]}</span>
           <button type="button" className="btn btn--link" onClick={onChangeVote}>
             Cambiar voto
           </button>

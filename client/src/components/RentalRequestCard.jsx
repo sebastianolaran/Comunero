@@ -71,7 +71,7 @@ function RentalRequestCard({
           {votable &&
             (vote ? (
               <div className="alq-mivoto">
-                <span>Tu voto: {VOTO_TEXTO[vote]}</span>
+                <span>Voto propio: {VOTO_TEXTO[vote]}</span>
                 <button type="button" className="btn btn--link" onClick={sinPropagar(onChangeVote)}>
                   Cambiar voto
                 </button>

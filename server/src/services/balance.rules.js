@@ -151,7 +151,7 @@ const fmtMoney = (amount) => `$${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g,
 function currentDebt(viewerId, other, movements, settlements) {
   const current = computeBalanceWith(viewerId, other, movements, settlements);
   if (current.balance > 0) throw forbidden('Solo quien debe puede saldar la deuda');
-  if (current.balance === 0) throw conflict(`Ya estás al día con ${other.name}`);
+  if (current.balance === 0) throw conflict(`El balance con ${other.name} ya está al día`);
   return { current, owed: -current.balance };
 }
 
@@ -187,13 +187,13 @@ function buildPartialPayment(viewerId, other, movements, settlements, amount) {
   if (!(amount > 0)) throw badRequest('El monto tiene que ser mayor a $0');
   const { owed } = currentDebt(viewerId, other, movements, settlements);
   if (amount === owed) {
-    throw conflict(`Ese monto es toda tu deuda con ${other.name}: para saldar todo usá el pago total`, {
+    throw conflict(`Ese monto salda toda la deuda con ${other.name}: para eso está el pago total`, {
       currentAmount: owed,
     });
   }
   if (amount > owed) {
     throw conflict(
-      `El monto supera tu deuda con ${other.name} (${fmtMoney(owed)}). Para saldar todo usá el pago total`,
+      `El monto supera la deuda con ${other.name} (${fmtMoney(owed)}). Para saldar todo está el pago total`,
       { currentAmount: owed },
     );
   }

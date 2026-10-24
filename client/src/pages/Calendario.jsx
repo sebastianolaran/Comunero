@@ -337,7 +337,7 @@ function Calendario() {
   }
 
   if (!assetId) {
-    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+    return <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
   }
 
   const dias = diasDelMes(year, month)
@@ -464,7 +464,7 @@ function Calendario() {
             <form onSubmit={handleSolicitar}>
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
-                Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
+                Turno de uso propio. Para alquilar a un tercero está la sección Alquiler.
                 {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
@@ -566,13 +566,13 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
       <header className="cal-pending__head">
         <h2 className="cal-pending__t">Por votar ({visibles.length})</h2>
       </header>
-      <p className="hint cal-pending__hint">Pendiente de los demás. Tocá una para verla en el calendario.</p>
+      <p className="hint cal-pending__hint">Pendientes de votación. Al elegir una, se muestra en el calendario.</p>
       <label className="chk cal-pending__filtro">
         <input type="checkbox" checked={soloMiVoto} onChange={(event) => setSoloMiVoto(event.target.checked)} />
-        Solo las que me faltan votar
+        Solo las que esperan el voto propio
       </label>
       <FieldError>{error}</FieldError>
-      {visibles.length === 0 && <p className="hint cal-pending__hint">No te falta votar ninguna.</p>}
+      {visibles.length === 0 && <p className="hint cal-pending__hint">No hay pedidos esperando el voto propio.</p>}
       <ul className="cal-pending__list" role="list">
         {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
@@ -584,7 +584,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
             <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
               <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
                 <span className="cal-pending__title">
-                  <strong>{nombre}{propia && ' (vos)'}</strong>
+                  <strong>{nombre}{propia && ' · pedido propio'}</strong>
                   <span>{fmtAprobaron(peticion.approvalCount ?? 0, peticion.coownerCount ?? 0)}</span>
                 </span>
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
@@ -598,7 +598,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
                     disabled={votando !== null || aceptada}
                     onClick={() => onVote(peticion, 'APPROVE')}
                   >
-                    {aceptada ? 'Ya aceptaste' : 'Aceptar'}
+                    {aceptada ? 'Aceptado' : 'Aceptar'}
                   </button>
                   <button
                     type="button"
@@ -628,18 +628,18 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
 
 function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onTareaChange }) {
   const info = dia ? estadoDelDia(dia, reservas) : null
-  let descripcion = 'Elegí un día del calendario para ver su detalle.'
+  let descripcion = 'Elegir un día del calendario para ver su detalle.'
 
   if (dia && info.estado === 'libre') {
     descripcion = 'Día disponible para ser reservado.'
   } else if (dia && info.estado === 'reservado') {
     if (info.pendiente) {
       descripcion = info.userId === userId
-        ? 'Tu turno está pendiente de confirmación.'
+        ? 'Turno propio, pendiente de confirmación.'
         : `Turno pendiente de ${info.userName ?? 'un integrante'}.`
     } else {
       descripcion = info.userId === userId
-        ? 'Tu turno está confirmado.'
+        ? 'Turno propio, confirmado.'
         : `Turno confirmado de ${info.userName ?? 'un integrante'}.`
     }
   } else if (dia && info.estado === 'alquilado') {

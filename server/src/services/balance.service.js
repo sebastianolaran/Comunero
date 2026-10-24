@@ -28,7 +28,7 @@ async function getBalances({ assetId, userId }) {
 // save(tx, payee, movements, settlements) en una transaccion, con el balance
 // recalculado adentro para validar contra la deuda vigente al confirmar.
 async function payInTransaction({ assetId, fromUserId, toUserId }, save) {
-  if (fromUserId === toUserId) throw badRequest('No podés saldar una deuda con vos mismo');
+  if (fromUserId === toUserId) throw badRequest('No se puede saldar una deuda con uno mismo');
   if (!(await repo.assetExists(assetId))) throw notFound('No existe el bien');
   const coowners = await repo.listCoowners(assetId);
   const payee = coowners.find((coowner) => coowner.id === toUserId);
@@ -44,7 +44,7 @@ async function payInTransaction({ assetId, fromUserId, toUserId }, save) {
     });
   } catch (err) {
     if (repo.isSerializationFailure(err)) {
-      throw conflict(`El balance con ${payee.name} cambió mientras confirmabas. Volvé a intentar`);
+      throw conflict(`El balance con ${payee.name} cambió mientras se confirmaba. Intentar de nuevo`);
     }
     throw err;
   }

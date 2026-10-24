@@ -47,7 +47,7 @@ Lo que no ofrece la suma de Splitwise, Google Calendar y un grupo de WhatsApp:
 ## Brand Commitments
 
 - El nombre es **Comunero**. "Compartido" es el nombre viejo del prototipo y no aparece en ningún texto de marca.
-- Idioma: español rioplatense, con voseo ("Elegí", "Votá", "No podés").
+- Idioma: español, en tono neutro e impersonal: sin vos, usted ni tú. Botones en infinitivo ("Ingresar", "Elegir un bien"), avisos impersonales ("No se pudo guardar"), saldos como datos ("Saldo a favor", "Voto: Sí").
 
 ## Evidence on Hand
 

@@ -1,7 +1,7 @@
 import { API_URL } from '../lib/api'
 import { pedir } from '../lib/http'
 
-const SIN_CONEXION = 'No pudimos conectarnos. Probá de nuevo en un momento.'
+const SIN_CONEXION = 'No hay conexión con el servidor. Intentar de nuevo en un momento.'
 
 export async function fetchSettings(assetId, userId, { signal } = {}) {
   const params = new URLSearchParams({ userId })

@@ -28,7 +28,7 @@ export function turnoDemasiadoLargo(inicio, fin, maximo) {
   const dias = Math.round((Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86_400_000) + 1;
   if (dias <= maximo) return null;
   const limite = maximo === 1 ? '1 día' : `${maximo} días seguidos`;
-  return `Un turno de uso propio no puede durar más de ${limite} (pediste ${dias}).`;
+  return `Un turno de uso propio no puede durar más de ${limite} (el pedido es de ${dias}).`;
 }
 
 export function nombreMes(year, month) {

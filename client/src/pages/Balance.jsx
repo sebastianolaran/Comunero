@@ -24,7 +24,7 @@ function EntryList({ entries }) {
               {entry.isRental && <span className="tag bal-tag-rental">Alquiler</span>}
             </span>
             <span className="bal-entry-who">
-              {entryWho(entry, userIdActual())} · total {fmtMoney(entry.total)}
+              {entryWho(entry)} · total {fmtMoney(entry.total)}
             </span>
           </span>
           <span className={`bal-entry-amount bal-tone-${balanceStatus(entry.amount).tone}`}>
@@ -93,7 +93,7 @@ function SettleChoice({ name, onTotal, onPartial, onCancel }) {
   const total = useRef(null)
 
   return (
-    <Modal titulo={`Saldar deuda con ${name}`} subtitulo="¿Le pagaste todo lo que le debías o una parte?" foco={total} onClose={onCancel}>
+    <Modal titulo={`Saldar deuda con ${name}`} subtitulo="¿Pago de toda la deuda o de una parte?" foco={total} onClose={onCancel}>
       <div className="bal-choice">
         <button ref={total} type="button" className="btn btn--primary" onClick={onTotal}>
           Pago total
@@ -134,7 +134,7 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
       <form onSubmit={handleSubmit} noValidate>
         <div className="campo">
           <label className="lbl" htmlFor={`${id}-monto`}>
-            ¿Cuánto le pagaste?
+            Monto pagado
           </label>
           <div className="plata">
             <span aria-hidden="true">$</span>
@@ -159,7 +159,7 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
             <FieldError id={`${id}-ayuda`}>{error}</FieldError>
           ) : (
             <p id={`${id}-ayuda`} className="hint campo__ayuda">
-              Le debés {fmtMoney(owed)}. Tiene que ser menos: para saldar todo usá el pago total.
+              Deuda actual: {fmtMoney(owed)}. El pago parcial tiene que ser menor; para saldar todo está el pago total.
             </p>
           )}
         </div>
@@ -293,7 +293,7 @@ function Balance() {
     } catch (err) {
       // Si el balance cambió, el modal pasa a mostrar el monto actual.
       const error = err.currentAmount
-        ? `El balance cambió mientras confirmabas: ahora le debés ${fmtMoney(err.currentAmount)}.`
+        ? `El balance cambió mientras se confirmaba: la deuda ahora es de ${fmtMoney(err.currentAmount)}.`
         : err.message
       setSettling((actual) =>
         actual && { ...actual, busy: false, error, amount: err.currentAmount ?? actual.amount },
@@ -303,7 +303,7 @@ function Balance() {
   }
 
   if (!configurado) {
-    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
+    return <Vacio panel titulo="La sesión no está activa.">Ingresar de nuevo para continuar.</Vacio>
   }
 
   return (
@@ -322,10 +322,10 @@ function Balance() {
       {data && (
         <>
           <div className="bal-summary">
-            <p className="bal-summary-label">Tu saldo, sumando todos los meses</p>
+            <p className="bal-summary-label">Saldo total, sumando todos los meses</p>
             <p className={`bal-net bal-tone-${balanceStatus(data.net).tone}`}>{fmtSigned(data.net)}</p>
             <p className="bal-sub">{netSummary(data.net)}</p>
-            <p className="hint">Movimientos muestra mes por mes; acá se suma todo y se descuentan los pagos entre ustedes.</p>
+            <p className="hint">Movimientos muestra mes por mes; acá se suma todo y se descuentan los pagos entre integrantes.</p>
           </div>
 
           {data.coowners.length === 0 ? (
@@ -375,8 +375,8 @@ function Balance() {
             <ConfirmDialog
               title={`Pago parcial a ${settling.user.name}`}
               lines={[
-                `¿Confirmás que le pagaste ${fmtMoney(settling.partial)} a ${settling.user.name}?`,
-                `Le vas a seguir debiendo ${fmtMoney(settling.amount - settling.partial)}.`,
+                `¿Confirmar el pago de ${fmtMoney(settling.partial)} a ${settling.user.name}?`,
+                `Queda una deuda de ${fmtMoney(settling.amount - settling.partial)}.`,
               ]}
               confirmLabel="Confirmar pago"
               tono="positivo"
@@ -391,8 +391,8 @@ function Balance() {
             <ConfirmDialog
               title={`Saldar deuda con ${settling.user.name}`}
               lines={[
-                `¿Confirmás que le pagaste ${fmtMoney(settling.amount)} a ${settling.user.name}?`,
-                'El balance entre ustedes pasa a $0 y el detalle queda guardado en Saldos cerrados.',
+                `¿Confirmar el pago de ${fmtMoney(settling.amount)} a ${settling.user.name}?`,
+                `El balance con ${settling.user.name} pasa a $0 y el detalle queda guardado en Saldos cerrados.`,
               ]}
               confirmLabel="Confirmar pago"
               tono="positivo"

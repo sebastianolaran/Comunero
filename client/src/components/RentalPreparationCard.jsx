@@ -52,7 +52,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
       alConfirmar(resultado)
       setAvisoCambio(aviso)
     } catch (err) {
-      setErroresCambio(err.mensajes ?? ['No se pudo modificar la tarea. Probá de nuevo.'])
+      setErroresCambio(err.mensajes ?? ['No se pudo modificar la tarea. Intentar de nuevo.'])
       // 404: otro copropietario ya la eliminó. Sin esto quedaría en la lista y
       // cada acción daría el mismo error hasta recargar la página.
       if (err.status === 404) onTareaEliminada(id, tarea.id)
@@ -118,7 +118,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
       nombreRef.current?.focus()
     } catch (err) {
       // Sin tocar nombre ni responsable: lo escrito se conserva.
-      setErrores(err.mensajes ?? ['No se pudo agregar la tarea. Probá de nuevo.'])
+      setErrores(err.mensajes ?? ['No se pudo agregar la tarea. Intentar de nuevo.'])
       nombreRef.current?.focus()
     } finally {
       setEnviando(false)
