@@ -126,6 +126,8 @@ input[type=date]{ cursor:text }
 .btn--primary{ background:var(--ink); border-color:var(--ink); color:#fff; font-weight:600; box-shadow:var(--shadow-raise) }
 .btn--primary:hover{ background:oklch(30% 0 0); border-color:oklch(30% 0 0); color:#fff }
 .btn--primary:active{ background:oklch(17% 0 0) }
+/* Deshabilitado se lee como "todavía no", no como un bloque apagado. */
+.btn--primary:disabled,.btn--primary:disabled:hover{ opacity:1; background:var(--surface); border-color:var(--line-strong); color:var(--faint); box-shadow:none }
 .btn--block{ width:100% }
 .btn--grow{ flex:1 }
 .btn--sm{ padding:6px 11px; font-size:var(--fs-meta) }
@@ -290,7 +292,7 @@ input[type=date]{ cursor:text }
 .cfg__col{ display:flex; flex-direction:column; gap:16px; min-width:0 }
 .cfg__p{ padding:22px 24px }
 .cfg__rows{ display:flex; flex-direction:column; gap:14px }
-.cfg__row{ display:grid; grid-template-columns:minmax(0,1fr) 196px; align-items:center; gap:16px; min-height:34px }
+.cfg__row{ display:grid; grid-template-columns:minmax(0,1fr) 224px; align-items:center; gap:16px; min-height:34px }
 .cfg__lbl{ display:flex; align-items:center; gap:10px; font-size:var(--fs-body); line-height:1.4; min-width:0 }
 .cfg__ctl{ display:grid; grid-template-columns:88px 1fr; align-items:center; column-gap:8px }
 .cfg__ctl--full{ display:block }

@@ -17,7 +17,7 @@ export function filtrar(decisiones, filtroId) {
 export function textoMonto(estimado) {
   if (!estimado) return null
   const monto = formatMoney(estimado.amount)
-  return estimado.type === 'INCOME' ? `Ingreso estimado: + ${monto}` : `Gasto estimado: - ${monto}`
+  return estimado.type === 'INCOME' ? `Ingreso estimado: ${monto}` : `Gasto estimado: ${monto}`
 }
 
 // Sin votesNeeded (propuestas cerradas antes de guardarlo) no hay denominador.

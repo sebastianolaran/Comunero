@@ -171,8 +171,9 @@
   font-weight: 500;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  background: oklch(95% 0.045 85);
-  color: oklch(42% 0.09 70);
+  border: 1px dashed var(--line-loud);
+  background: var(--surface);
+  color: var(--ink-2);
 }
 
 .bienes-in--codigo {
