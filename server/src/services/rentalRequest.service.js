@@ -27,8 +27,12 @@ function voteValue(userId, approvedBy, rejectedBy) {
 
 // coowners: [{ id, name }] del bien, en el orden en que se muestran.
 // blockedByOverlap: se pisa con una reserva aprobada, asi que no se puede votar.
+// Solo cuentan los votos de los integrantes actuales: quien se fue no suma al
+// "N/M aprobaron" ni aparece en las objeciones.
 function toListItem(reservation, coowners, userId, { blockedByOverlap = false } = {}) {
-  const { approvals, objections } = reservation;
+  const isCoowner = (vote) => coowners.some((u) => u.id === vote.userId);
+  const approvals = reservation.approvals.filter(isCoowner);
+  const objections = reservation.objections.filter(isCoowner);
   const approvedBy = new Set(approvals.map((a) => a.userId));
   const rejectedBy = new Set(objections.map((o) => o.userId));
   const nameById = new Map(coowners.map((u) => [u.id, u.name]));
