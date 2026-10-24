@@ -85,3 +85,11 @@
 
 /* Modal de nueva decisión */
 
+
+.dec-card .chips-voto {
+  margin: -4px 0 8px;
+}
+
+.dec-card .hint {
+  margin-bottom: 12px;
+}

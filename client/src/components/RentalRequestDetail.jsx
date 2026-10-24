@@ -7,6 +7,7 @@ import {
   motivoRechazo,
   puedeCancelar,
   puedeMarcarPago,
+  fechaPasada,
   puedeVotar as admiteVoto,
   textoEstado,
   VOTO_TEXTO,
@@ -122,7 +123,11 @@ function RentalRequestDetail({
         </ul>
       )}
 
-      {solicitud.blockedByOverlap && (
+      {fechaPasada(solicitud) && (
+        <p className="hint alq-det__bloque">La fecha ya pasó: no se puede votar.</p>
+      )}
+
+      {!fechaPasada(solicitud) && solicitud.blockedByOverlap && (
         <p className="hint alq-det__bloque">
           Se pisa con una reserva aprobada: no se puede votar mientras esa reserva siga en pie.
         </p>

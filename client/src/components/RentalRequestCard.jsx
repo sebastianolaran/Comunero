@@ -1,4 +1,5 @@
 import {
+  fechaPasada,
   puedeVotar as sePuedeVotar,
   daysLabel,
   formatMoney,
@@ -50,6 +51,7 @@ function RentalRequestCard({
         </h3>
         <span className="alq-badges">
           <PagoTag solicitud={solicitud} />
+          {fechaPasada(solicitud) && <span className="tag tag--dash">Fecha pasada</span>}
           <span className="badge">{textoEstado(solicitud)}</span>
         </span>
       </div>
@@ -65,7 +67,10 @@ function RentalRequestCard({
             <ChipsVoto votes={solicitud.votes} />
           </div>
 
-          {solicitud.blockedByOverlap && (
+          {fechaPasada(solicitud) && (
+            <p className="hint alq-rq__aviso">La fecha ya pasó: no se puede votar.</p>
+          )}
+          {!fechaPasada(solicitud) && solicitud.blockedByOverlap && (
             <p className="hint alq-rq__aviso">Se pisa con una reserva aprobada: no se puede votar mientras siga en pie.</p>
           )}
           {votable &&

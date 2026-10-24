@@ -36,7 +36,16 @@ function toClosedDecision(decision) {
 
 // Se aprueba con el Sí de todos: mientras está abierta, el denominador son los
 // copropietarios actuales.
-function toOpenDecision(decision, votesNeeded, myVote = null) {
+// Voto de cada copropietario, con los mismos valores que Alquiler (APPROVE /
+// REJECT / null) para que el client los muestre igual.
+const VALOR_VOTO = { YES: 'APPROVE', NO: 'REJECT' };
+
+function votosPorIntegrante(users, votes) {
+  const porUsuario = new Map(votes.map((v) => [v.userId, v.value]));
+  return users.map((u) => ({ userId: u.id, name: u.name, value: VALOR_VOTO[porUsuario.get(u.id)] ?? null }));
+}
+
+function toOpenDecision(decision, votesNeeded, myVote = null, votes = undefined) {
   return {
     id: decision.id,
     title: decision.title,
@@ -46,6 +55,7 @@ function toOpenDecision(decision, votesNeeded, myVote = null) {
     yesVotes: decision._count.votes,
     votesNeeded,
     myVote,
+    ...(votes && { votes }),
   };
 }
 
@@ -80,22 +90,23 @@ async function listClosed(assetId, { status } = {}, db = prisma) {
 // Propuestas en votación de un bien, con el voto de `userId` si viene.
 // Devuelve null si el bien no existe.
 async function listOpen(assetId, userId, db = prisma) {
-  // Sin userId no se pide `votes`: un where con userId undefined traería los de todos.
-  const ownVote = userId ? { votes: { where: { userId }, select: { value: true } } } : {};
   const asset = await db.asset.findUnique({
     where: { id: assetId },
     select: {
-      _count: { select: { users: true } },
+      users: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
       decisions: {
         where: { status: 'OPEN' },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { ...OPEN_SELECT, ...ownVote },
+        select: { ...OPEN_SELECT, votes: { select: { userId: true, value: true } } },
       },
     },
   });
   if (!asset) return null;
 
-  return asset.decisions.map((d) => toOpenDecision(d, asset._count.users, d.votes?.[0]?.value ?? null));
+  return asset.decisions.map((d) => {
+    const mine = userId ? (d.votes.find((v) => v.userId === userId)?.value ?? null) : null;
+    return toOpenDecision(d, asset.users.length, mine, votosPorIntegrante(asset.users, d.votes));
+  });
 }
 
 // Arranca sin votos, tampoco el de quien la propone.
@@ -148,7 +159,7 @@ async function vote({ decisionId, userId, value }, db = prisma) {
 
     const decision = await tx.decision.findUnique({
       where: { id: decisionId },
-      select: { status: true, asset: { select: { users: { select: { id: true } } } } },
+      select: { status: true, asset: { select: { users: { select: { id: true, name: true }, orderBy: { name: 'asc' } } } } },
     });
     if (!decision) return { error: 'NOT_FOUND' };
     const { users } = decision.asset;
@@ -161,7 +172,7 @@ async function vote({ decisionId, userId, value }, db = prisma) {
       create: { decisionId, userId, value },
       update: { value },
     });
-    const votes = await tx.vote.findMany({ where: { decisionId }, select: { value: true } });
+    const votes = await tx.vote.findMany({ where: { decisionId }, select: { userId: true, value: true } });
     const status = nextStatus({ ...countVotes(votes), coowners: users.length });
 
     const updated = await tx.decision.update({
@@ -170,7 +181,10 @@ async function vote({ decisionId, userId, value }, db = prisma) {
       select: { ...OPEN_SELECT, closedAt: true, votesNeededAtClose: true },
     });
     return {
-      decision: status === 'OPEN' ? toOpenDecision(updated, votesNeeded, value) : toClosedDecision(updated),
+      decision:
+        status === 'OPEN'
+          ? toOpenDecision(updated, votesNeeded, value, votosPorIntegrante(users, votes))
+          : toClosedDecision(updated),
     };
   }, TX_OPTIONS);
 }

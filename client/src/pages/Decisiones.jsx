@@ -4,6 +4,7 @@ import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
 import Filtros from '../components/ui/Filtros'
+import { ChipsVoto } from '../components/ui/Votacion'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import {
@@ -19,6 +20,7 @@ import {
 } from '../lib/decisions'
 import { createDecision, fetchClosedDecisions, fetchOpenDecisions, voteDecision } from '../services/decision'
 import { usePaginacion } from '../lib/pagination'
+import { textoFaltan } from '../lib/rentalRequests'
 import './Decisiones.css'
 
 // Referencia estable: useDecisiones la usa como dependencia del efecto.
@@ -134,6 +136,8 @@ function DecisionAbierta({ decision, onVotar }) {
       <p className="dec-meta">{textoFecha(decision.createdAt)}</p>
       {monto && <p className="dec-meta">{monto}</p>}
       <p className="dec-votos">{textoVotos(decision)}</p>
+      {decision.votes?.length > 0 && <ChipsVoto votes={decision.votes} />}
+      {decision.votes && textoFaltan(decision.votes) && <p className="hint">{textoFaltan(decision.votes)}</p>}
       <Votacion decision={decision} onVotar={onVotar} />
     </article>
   )

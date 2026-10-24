@@ -12,8 +12,13 @@ export function agrupar(solicitudes) {
 
 // Misma regla que el server: una rechazada sigue abierta para todos, salvo que se
 // pise con una reserva aprobada, que sea un alquiler cancelado o que haya vencido.
-export function puedeVotar({ status, blockedByOverlap = false, cancelled = false, expired = false }) {
-  return status !== 'APPROVED' && !blockedByOverlap && !cancelled && !expired
+export function puedeVotar({ status, startDate, blockedByOverlap = false, cancelled = false, expired = false }) {
+  return status !== 'APPROVED' && !blockedByOverlap && !cancelled && !expired && !fechaPasada({ status, startDate })
+}
+
+// Un pedido que sigue en votación cuando su fecha ya empezó no tiene sentido votarlo.
+export function fechaPasada({ status, startDate }) {
+  return status === 'PENDING' && Boolean(startDate) && startDate.slice(0, 10) < hoyLocal()
 }
 
 // El motivo es opcional al rechazar.

@@ -231,8 +231,9 @@ function Calendario() {
   const seleccionarDia = (dia) => {
     setErrorTarea(null)
     setDiaSeleccionado(dia.toISOString())
+    // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
     const fecha = fechaInput(dia)
-    setForm({ inicio: fecha, fin: fecha })
+    setForm(estadoDelDia(dia, reservas).estado === 'libre' ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
     setFormAbierto(false)
     setFormError(null)
   }
@@ -407,6 +408,7 @@ function Calendario() {
               info={estadoDelDia(dia, reservas, peticionVisibleId)}
               seleccionado={diaSeleccionado === dia.toISOString()}
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
+              cargando={estadoCarga === 'loading'}
               onSelect={() => seleccionarDia(dia)}
             />
           ))}
@@ -456,7 +458,9 @@ function Calendario() {
               title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
               onClick={() => setFormAbierto(true)}
             >
-              {diaSeleccionado ? etiquetaReserva(new Date(diaSeleccionado)) : 'Reservar'}
+              {diaSeleccionado && estadoDelDia(new Date(diaSeleccionado), reservas).estado === 'libre'
+                ? etiquetaReserva(new Date(diaSeleccionado))
+                : 'Reservar'}
             </button>
           )}
 
@@ -577,6 +581,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
         {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
           const aceptada = yaAprobo(peticion, userId)
+          const pasada = rangoPeticion(peticion).desde < hoyLocal()
           const { desde, hasta } = rangoPeticion(peticion)
           const nombre = peticion.user?.name ?? 'Integrante'
 
@@ -590,7 +595,8 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
                 <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
               </button>
-              {!propia && (
+              {pasada && <span className="tag tag--dash cal-pending__pasada">Fecha pasada: ya no se vota</span>}
+              {!propia && !pasada && (
                 <div className="cal-pending__actions">
                   <button
                     type="button"
@@ -721,7 +727,7 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, cargando, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
@@ -742,7 +748,10 @@ function Dia({ dia, info, seleccionado, hoy, onSelect }) {
   }
 
   const sufijo = info.pendiente ? ' (pendiente)' : ''
-  const titulo = info.userName
+  // Mientras carga, la grilla vacía no tiene que anunciar "Libre".
+  const titulo = cargando
+    ? 'Cargando'
+    : info.userName
     ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${sufijo}`
     : `${ETIQUETA_ESTADO[estado]}${sufijo}`
 
