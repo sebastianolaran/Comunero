@@ -1,5 +1,6 @@
 const reservationService = require('../services/reservation.service');
 const { parseFechaISO, cantidadDias } = require('../lib/fecha');
+const { todayInArgentina } = require('../validation/newRentalRequest');
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -41,6 +42,22 @@ async function listPending(req, res) {
 
   const reservations = await reservationService.listPendingUse(assetId);
   res.json({ reservations });
+}
+
+async function listRentalHistory(req, res) {
+  const { assetId } = req.query;
+  if (typeof assetId !== 'string' || assetId.trim() === '') {
+    return res.status(400).json({ error: 'falta el parametro assetId' });
+  }
+
+  try {
+    const rentals = await reservationService.listRentalHistory(assetId, parseFechaISO(todayInArgentina()));
+    if (rentals === null) return res.status(404).json({ error: 'no existe el bien' });
+    res.json({ rentals });
+  } catch (err) {
+    console.error('reservations: fallo la consulta del historial de alquileres', err);
+    res.status(500).json({ error: 'no se pudo obtener el historial de alquileres' });
+  }
 }
 
 // POST /api/reservations
@@ -131,4 +148,4 @@ async function cancelUse(req, res) {
   res.json({ reservation: result.reservation });
 }
 
-module.exports = { listForCalendar, listPending, create, voteUse, cancelUse };
+module.exports = { listForCalendar, listPending, listRentalHistory, create, voteUse, cancelUse };

@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router'
 import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
+import Pagination from '../components/Pagination'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
 import { useDetalleEnMobile } from '../lib/useDetalleEnMobile'
+import { usePaginacion } from '../lib/pagination'
 import { fetchSettings } from '../services/settings'
 import {
   cancelRental,
@@ -136,6 +138,12 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     setIntento((n) => n + 1)
   }
 
+  const { pendientes, resueltas } = agrupar(carga.solicitudes)
+  const pendientesOrdenadas = [...pendientes].sort((a, b) => a.startDate.localeCompare(b.startDate))
+  const resueltasOrdenadas = [...resueltas].sort((a, b) => b.startDate.localeCompare(a.startDate))
+  const paginaPendientes = usePaginacion(pendientesOrdenadas, 'pendientes')
+  const paginaResueltas = usePaginacion(resueltasOrdenadas, 'resueltas')
+
   if (!assetId) {
     return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
   }
@@ -187,7 +195,6 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     )
   }
 
-  const { pendientes, resueltas } = agrupar(carga.solicitudes)
   const seleccionada = carga.solicitudes.find((s) => s.id === seleccion) ?? null
   const puedeVotar = Boolean(userId)
 
@@ -224,8 +231,9 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
             {pendientes.length === 0 ? (
               <p className="empty">No hay solicitudes esperando votación.</p>
             ) : (
-              <div className="alq-lista">{pendientes.map(tarjeta)}</div>
+              <div className="alq-lista">{paginaPendientes.elementos.map(tarjeta)}</div>
             )}
+            <Pagination {...paginaPendientes} />
           </section>
 
           {resueltas.length > 0 && (
@@ -233,7 +241,8 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
               <h2 id={idResueltas} className="sect alq-grupo__t">
                 Resueltas
               </h2>
-              <div className="alq-lista alq-lista--resueltas">{resueltas.map(tarjeta)}</div>
+              <div className="alq-lista alq-lista--resueltas">{paginaResueltas.elementos.map(tarjeta)}</div>
+              <Pagination {...paginaResueltas} />
             </section>
           )}
         </div>

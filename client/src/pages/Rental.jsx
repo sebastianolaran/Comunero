@@ -4,6 +4,7 @@ import './Rental.css'
 
 const SUBSECCIONES = [
   { path: 'solicitudes', label: 'Solicitudes' },
+  { path: 'historial-alquileres', label: 'Historial de alquileres' },
   { path: 'historial-inquilinos', label: 'Historial de inquilinos' },
   { path: 'tareas-preparacion', label: 'Tareas de preparación' },
 ]

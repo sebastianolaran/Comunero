@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import MovementModal from '../components/MovementModal'
 import MovementsTable from '../components/MovementsTable'
+import Pagination from '../components/Pagination'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { draftFromMovement, emptyDraft } from '../lib/movementDraft'
@@ -15,6 +16,7 @@ import {
   todayISO,
 } from '../lib/movements'
 import * as movementService from '../services/movement'
+import { usePaginacion } from '../lib/pagination'
 import './Movimientos.css'
 
 const FILTERS = [
@@ -119,6 +121,8 @@ function Movimientos() {
   const closeDelete = useCallback(() => setToDelete(null), [])
   const reload = () => setVersion((v) => v + 1)
   const coownerIds = coowners ? coowners.map((coowner) => coowner.id) : []
+  const movimientosOrdenados = [...(data?.movements ?? [])].sort((a, b) => b.date.localeCompare(a.date))
+  const paginacion = usePaginacion(movimientosOrdenados, `${period ?? ''}:${filter}`)
 
   const openCreate = () =>
     setModal({ movementId: null, draft: emptyDraft({ meId: quien.userId, coownerIds, today: todayISO() }) })
@@ -234,12 +238,13 @@ function Movimientos() {
           </div>
 
           <MovementsTable
-            movements={data.movements}
+            movements={paginacion.elementos}
             meId={quien.userId}
             emptyText={`No hay ${filterDef.empty} en ${periodLabel(period)}.`}
             onEdit={openEdit}
             onDelete={(movement) => setToDelete({ movement, busy: false, error: null })}
           />
+          <Pagination {...paginacion} />
         </>
       )}
 

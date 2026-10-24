@@ -70,7 +70,7 @@ async function getDetail(renterId, assetId, hoy) {
       reservations: {
         where: finishedStays(hoy),
         orderBy: { startDate: 'desc' },
-        select: { startDate: true, endDate: true },
+        select: { id: true, startDate: true, endDate: true },
       },
       observations: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], select: COMMENT_SELECT },
     },
@@ -83,7 +83,11 @@ async function getDetail(renterId, assetId, hoy) {
     name,
     phone,
     rating,
-    stays: reservations.map((r) => ({ startDate: toDateOnly(r.startDate), endDate: toDateOnly(r.endDate) })),
+    stays: reservations.map((r) => ({
+      id: r.id,
+      startDate: toDateOnly(r.startDate),
+      endDate: toDateOnly(r.endDate),
+    })),
     comments: observations.map(toComment),
   };
 }

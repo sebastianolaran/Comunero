@@ -46,6 +46,32 @@
   gap: 10px;
 }
 
+.alq-historial {
+  max-width: 720px;
+}
+
+.alq-hist__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.alq-hist__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.alq-hist__item--seleccionado {
+  border-color: var(--line-loud);
+  box-shadow: 0 0 0 2px var(--line-soft);
+}
+
 .alq-inq {
   gap: 14px;
 }
@@ -186,6 +212,10 @@
   margin: 0 0 12px;
   padding: 0;
   list-style: none;
+}
+
+.alq-det__estadia {
+  font: inherit;
 }
 
 .alq-det__estadias {

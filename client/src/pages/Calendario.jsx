@@ -9,9 +9,11 @@ import {
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
+import Pagination from '../components/Pagination'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import { fetchSettings } from '../services/settings'
+import { usePaginacion } from '../lib/pagination'
 import {
   DIAS_SEMANA,
   diasDelMes,
@@ -545,6 +547,7 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
 function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, votando, onSelect, onCancel, onVote }) {
   const [soloMiVoto, setSoloMiVoto] = useState(false)
   const visibles = soloMiVoto ? peticiones.filter((peticion) => faltaMiVoto(peticion, userId)) : peticiones
+  const paginacion = usePaginacion(visibles, String(soloMiVoto))
 
   return (
     <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
@@ -562,7 +565,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
       {error && <p className="cal-form__err" role="alert">{error}</p>}
       {visibles.length === 0 && <p className="hint cal-pending__hint">No te falta votar ninguna.</p>}
       <ul className="cal-pending__list" role="list">
-        {visibles.map((peticion) => {
+        {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
           const aceptada = yaAprobo(peticion, userId)
           const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
@@ -611,6 +614,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
           )
         })}
       </ul>
+      <Pagination {...paginacion} />
     </section>
   )
 }

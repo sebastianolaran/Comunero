@@ -9,6 +9,9 @@ router.get('/', controller.listForCalendar);
 // GET /api/reservations/pending?assetId=...
 router.get('/pending', controller.listPending);
 
+// GET /api/reservations/history?assetId=...
+router.get('/history', controller.listRentalHistory);
+
 // POST /api/reservations  (solicitar turno de uso propio)
 router.post('/', controller.create);
 

@@ -29,6 +29,15 @@ export async function fetchPendingUseReservations(assetId, { signal } = {}) {
   return body.reservations
 }
 
+export async function fetchRentalHistory(assetId, { signal } = {}) {
+  const params = new URLSearchParams({ assetId })
+  const res = await fetch(`${API_URL}/api/reservations/history?${params}`, { signal })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const body = await res.json()
+  if (!Array.isArray(body.rentals)) throw new Error('Respuesta inesperada')
+  return body.rentals
+}
+
 // Entrar con mail y contraseña. Si no coinciden, el server responde 401 con
 // un { error } que ya viene escrito para mostrarle a quien está entrando.
 export async function login({ email, password }) {
