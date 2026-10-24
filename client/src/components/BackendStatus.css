@@ -6,6 +6,15 @@
   font-size: var(--fs-meta);
 }
 
+.backend-status:empty {
+  display: none;
+}
+
+.backend-status-texto {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .backend-status-texto::before {
   content: '';
   display: inline-block;
@@ -16,10 +25,15 @@
   background: var(--line-loud);
 }
 
-.backend-status-texto.is-ok::before {
-  background: var(--pos);
-}
-
 .backend-status-texto.is-error::before {
   background: var(--neg);
+}
+
+.backend-status-texto.is-loading::before {
+  animation: backend-pulso 1.2s var(--ease) infinite alternate;
+}
+
+@keyframes backend-pulso {
+  from { opacity: 0.35 }
+  to { opacity: 1 }
 }

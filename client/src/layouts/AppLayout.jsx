@@ -40,7 +40,7 @@ function AppLayout() {
                 <span className="who__a" aria-hidden="true">
                   {iniciales(nombreUsuario)}
                 </span>
-                {nombreUsuario}
+                <span className="who__n">{nombreUsuario}</span>
                 <button
                   type="button"
                   className="btn btn--link who__out"

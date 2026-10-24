@@ -1,10 +1,11 @@
 import { API_URL } from '../lib/api'
+import { pedir, mensajeHttp } from '../lib/http'
 
 // Historial de propuestas cerradas, de la más reciente a la más vieja.
 export async function fetchClosedDecisions(assetId, { signal } = {}) {
   const params = new URLSearchParams({ assetId })
-  const res = await fetch(`${API_URL}/api/decisions?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/decisions?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   const body = await res.json()
   return body.decisions
 }
@@ -12,14 +13,14 @@ export async function fetchClosedDecisions(assetId, { signal } = {}) {
 // Propuestas en votación, de la más nueva a la más vieja.
 export async function fetchOpenDecisions(assetId, { userId, signal } = {}) {
   const params = new URLSearchParams({ assetId, status: 'OPEN', ...(userId && { userId }) })
-  const res = await fetch(`${API_URL}/api/decisions?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/decisions?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   const body = await res.json()
   return body.decisions
 }
 
 export async function createDecision(decision) {
-  const res = await fetch(`${API_URL}/api/decisions`, {
+  const res = await pedir(`${API_URL}/api/decisions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(decision),
@@ -33,7 +34,7 @@ export async function createDecision(decision) {
 
 // El error lleva .status para distinguir el 409 de una propuesta ya cerrada.
 export async function voteDecision(decisionId, { userId, value }) {
-  const res = await fetch(`${API_URL}/api/decisions/${encodeURIComponent(decisionId)}/votes`, {
+  const res = await pedir(`${API_URL}/api/decisions/${encodeURIComponent(decisionId)}/votes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, value }),

@@ -1,3 +1,4 @@
+import { pedir, mensajeHttp } from './http.js'
 // URL base del backend. En build, Vite reemplaza import.meta.env.VITE_API_URL
 // por el valor del entorno; si no esta seteada, cae al server local.
 // El `?.` es para que los tests puedan importar este módulo con node --test,
@@ -9,10 +10,10 @@ export const API_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:3000'
 // desmontar el componente o al cambiar de mes.
 export async function fetchReservations(assetId, month, { signal } = {}) {
   const params = new URLSearchParams({ assetId, month })
-  const res = await fetch(`${API_URL}/api/reservations?${params}`, { signal })
+  const res = await pedir(`${API_URL}/api/reservations?${params}`, { signal })
 
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
+    throw new Error(mensajeHttp(res.status))
   }
 
   const body = await res.json()
@@ -21,9 +22,9 @@ export async function fetchReservations(assetId, month, { signal } = {}) {
 
 export async function fetchPendingUseReservations(assetId, { signal } = {}) {
   const params = new URLSearchParams({ assetId })
-  const res = await fetch(`${API_URL}/api/reservations/pending?${params}`, { signal })
+  const res = await pedir(`${API_URL}/api/reservations/pending?${params}`, { signal })
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
 
   const body = await res.json()
   return body.reservations
@@ -31,8 +32,8 @@ export async function fetchPendingUseReservations(assetId, { signal } = {}) {
 
 export async function fetchRentalHistory(assetId, { signal } = {}) {
   const params = new URLSearchParams({ assetId })
-  const res = await fetch(`${API_URL}/api/reservations/history?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/reservations/history?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   const body = await res.json()
   if (!Array.isArray(body.rentals)) throw new Error('Respuesta inesperada')
   return body.rentals
@@ -43,7 +44,7 @@ export async function fetchRentalHistory(assetId, { signal } = {}) {
 export async function login({ email, password }) {
   let res
   try {
-    res = await fetch(`${API_URL}/api/auth/login`, {
+    res = await pedir(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -68,7 +69,7 @@ export async function login({ email, password }) {
 // Si el server rechaza la solicitud (400/409), tira un Error con el mensaje
 // que mandó el backend (fechas invertidas, dias ocupados, etc.).
 export async function createReservation({ assetId, userId, startDate, endDate, note }) {
-  const res = await fetch(`${API_URL}/api/reservations`, {
+  const res = await pedir(`${API_URL}/api/reservations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assetId, userId, startDate, endDate, note }),
@@ -76,32 +77,32 @@ export async function createReservation({ assetId, userId, startDate, endDate, n
 
   const body = await res.json()
   if (!res.ok) {
-    throw new Error(body.error ?? `HTTP ${res.status}`)
+    throw new Error(body.error ?? mensajeHttp(res.status))
   }
 
   return body.reservation
 }
 
 export async function voteUseReservation(id, { userId, value }) {
-  const res = await fetch(`${API_URL}/api/reservations/${encodeURIComponent(id)}/votes`, {
+  const res = await pedir(`${API_URL}/api/reservations/${encodeURIComponent(id)}/votes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, value }),
   })
 
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw new Error(body.error ?? mensajeHttp(res.status))
   return body.reservation
 }
 
 export async function cancelUseReservation(id, { userId }) {
-  const res = await fetch(`${API_URL}/api/reservations/${encodeURIComponent(id)}/cancellation`, {
+  const res = await pedir(`${API_URL}/api/reservations/${encodeURIComponent(id)}/cancellation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId }),
   })
 
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw new Error(body.error ?? mensajeHttp(res.status))
   return body.reservation
 }

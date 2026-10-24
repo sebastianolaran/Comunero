@@ -69,3 +69,16 @@ export function nombresDelRegistro(members, changes, formerNames = {}) {
 
 // "21 oct 2026, 14:05", en hora de Buenos Aires como el resto de la app.
 export const textoFechaCambio = fmtFechaHora
+
+// Aviso de la confirmación de salir: qué deudas siguen abiertas con cada uno.
+// coowners: los del balance ({ user, balance }); negativo es lo que debés.
+export function textoSaldosAlSalir(coowners) {
+  const lista = (items) => new Intl.ListFormat('es', { type: 'conjunction' }).format(items)
+  const debes = coowners.filter((c) => c.balance < 0)
+  const teDeben = coowners.filter((c) => c.balance > 0)
+  const partes = []
+  if (debes.length) partes.push(`Todavía le debés ${lista(debes.map((c) => `${fmtMoney(-c.balance)} a ${c.user.name}`))}.`)
+  if (teDeben.length) partes.push(`Te deben ${lista(teDeben.map((c) => `${c.user.name} ${fmtMoney(c.balance)}`))}.`)
+  if (!partes.length) return null
+  return `${partes.join(' ')} Salir no salda nada: conviene arreglarlo antes en Balance.`
+}

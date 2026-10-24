@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import ConfirmDialog from '../components/ConfirmDialog'
+import FieldError from '../components/ui/FieldError'
 import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { soltarBien } from '../lib/session'
@@ -11,10 +12,11 @@ import {
   sumaPorcentajes,
   textoCambio,
   textoFechaCambio,
+  textoSaldosAlSalir,
 } from '../lib/settings'
+import { fetchBalances } from '../services/balance'
 import { fetchSettings, leaveAsset, updateSettings } from '../services/settings'
 import './Configuracion.css'
-import FieldError from '../components/ui/FieldError'
 
 const color = (hue) => `oklch(56% 0.12 ${hue})`
 
@@ -378,7 +380,22 @@ function PanelSalir({ settings }) {
   const navigate = useNavigate()
   const [confirmando, setConfirmando] = useState(false)
   const [estado, setEstado] = useState({ saliendo: false, error: null })
+  const [avisoSaldos, setAvisoSaldos] = useState(null)
   const ultimo = settings.members.length === 1
+
+  // Irse no salda nada: si hay deudas abiertas, la confirmación lo dice. Si el
+  // balance no se puede traer, se confirma igual sin el aviso.
+  async function pedirConfirmacion() {
+    setEstado({ saliendo: false, error: null })
+    setAvisoSaldos(null)
+    setConfirmando(true)
+    try {
+      const { coowners } = await fetchBalances({ assetId: assetIdActual(), userId: userIdActual() })
+      setAvisoSaldos(textoSaldosAlSalir(coowners))
+    } catch {
+      setAvisoSaldos(null)
+    }
+  }
 
   async function salir() {
     setEstado({ saliendo: true, error: null })
@@ -405,10 +422,7 @@ function PanelSalir({ settings }) {
             type="button"
             className="btn btn--sm btn--danger"
             disabled={ultimo}
-            onClick={() => {
-              setEstado({ saliendo: false, error: null })
-              setConfirmando(true)
-            }}
+            onClick={pedirConfirmacion}
           >
             Salir del bien
           </button>
@@ -419,6 +433,7 @@ function PanelSalir({ settings }) {
         <ConfirmDialog
           title={`¿Salir de ${assetNameActual() ?? 'este bien'}?`}
           lines={[
+            ...(avisoSaldos ? [avisoSaldos] : []),
             efectoEnPorcentajes(settings.members, userIdActual()),
             'Para volver a entrar vas a necesitar el código del bien.',
           ]}

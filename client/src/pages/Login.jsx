@@ -78,6 +78,7 @@ function Login() {
     if (encontrados.email || encontrados.pass) {
       setErrores(encontrados)
       setAlerta('')
+      document.getElementById(encontrados.email ? 'login-email' : 'login-pass')?.focus()
       return
     }
 

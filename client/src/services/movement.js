@@ -1,4 +1,5 @@
 import { API_URL } from '../lib/api'
+import { mensajeHttp, pedir as pedirHttp } from '../lib/http'
 
 // Movimientos del bien. Todos los pedidos llevan assetId y userId: el bien que
 // se mira y quien lo mira (define "cuánto te toca").
@@ -7,7 +8,7 @@ import { API_URL } from '../lib/api'
 // Devuelve el cuerpo (null en un 204) y, si la respuesta no es 2xx, tira un
 // Error con el mensaje de { error } que mandó el server.
 async function pedir(path, { method = 'GET', body, signal } = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await pedirHttp(`${API_URL}${path}`, {
     method,
     signal,
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
@@ -15,7 +16,7 @@ async function pedir(path, { method = 'GET', body, signal } = {}) {
   })
   if (res.status === 204) return null
   const data = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw new Error(data?.error ?? mensajeHttp(res.status))
   return data
 }
 

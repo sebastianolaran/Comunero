@@ -2,24 +2,20 @@ import { useEffect, useState } from 'react'
 import { API_URL } from '../lib/api'
 import './BackendStatus.css'
 
-const ESTADOS = {
-  loading: { texto: 'conectando con el backend…', clase: 'is-loading' },
-  ok: { texto: 'backend ok', clase: 'is-ok' },
-  error: { texto: 'sin conexión con el backend', clase: 'is-error' },
-}
-
-// El backend corre en el free tier de Render: si estuvo inactivo un rato, el
-// primer request puede tardar ~30–50 s en despertar el servicio.
-const HINT_COLD_START =
-  'Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.'
+// Render apaga el server si nadie entra un rato y tarda hasta un minuto en
+// despertarlo. Con el server andando no se muestra nada; el aviso aparece solo
+// si la primera respuesta tarda más de AVISO_MS o si no hay conexión.
+const AVISO_MS = 2500
 
 function BackendStatus() {
   const [estado, setEstado] = useState('loading')
+  const [lento, setLento] = useState(false)
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     let vivo = true
+    const timer = setTimeout(() => vivo && setLento(true), AVISO_MS)
 
     fetch(`${API_URL}/api/health/db`, { signal: controller.signal })
       .then((res) => {
@@ -35,30 +31,30 @@ function BackendStatus() {
 
     return () => {
       vivo = false
+      clearTimeout(timer)
       controller.abort()
     }
   }, [intento])
 
   const reintentar = () => {
     setEstado('loading')
+    setLento(false)
     setIntento((n) => n + 1)
   }
 
-  const { texto, clase } = ESTADOS[estado]
+  if (estado === 'ok' || (estado === 'loading' && !lento)) return <div className="backend-status" role="status" />
 
   return (
-    <div className="backend-status">
-      <p
-        className={`backend-status-texto ${clase}`}
-        role="status"
-        title={estado === 'ok' ? API_URL : HINT_COLD_START}
-      >
-        {texto}
-      </p>
-      {estado === 'error' && (
-        <button type="button" className="btn btn--sm" onClick={reintentar}>
-          Reintentar
-        </button>
+    <div className="backend-status" role="status">
+      {estado === 'loading' ? (
+        <p className="backend-status-texto is-loading">Despertando el servidor, puede tardar hasta un minuto…</p>
+      ) : (
+        <>
+          <p className="backend-status-texto is-error">No hay conexión con el servidor.</p>
+          <button type="button" className="btn btn--sm" onClick={reintentar}>
+            Reintentar
+          </button>
+        </>
       )}
     </div>
   )

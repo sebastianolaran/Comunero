@@ -1,4 +1,5 @@
 import { API_URL } from '../lib/api'
+import { pedir } from '../lib/http'
 
 const SIN_CONEXION = 'No pudimos conectarnos. Probá de nuevo en un momento.'
 
@@ -6,7 +7,7 @@ export async function fetchSettings(assetId, userId, { signal } = {}) {
   const params = new URLSearchParams({ userId })
   let res
   try {
-    res = await fetch(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/settings?${params}`, { signal })
+    res = await pedir(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/settings?${params}`, { signal })
   } catch (err) {
     // La cancelación al desmontar tiene que seguir siendo AbortError.
     if (err.name === 'AbortError') throw err
@@ -21,7 +22,7 @@ export async function fetchSettings(assetId, userId, { signal } = {}) {
 export async function updateSettings(assetId, userId, cambios) {
   let res
   try {
-    res = await fetch(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/settings`, {
+    res = await pedir(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/settings`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, ...cambios }),
@@ -41,7 +42,7 @@ export async function updateSettings(assetId, userId, cambios) {
 export async function leaveAsset(assetId, userId) {
   let res
   try {
-    res = await fetch(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/leave`, {
+    res = await pedir(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/leave`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),

@@ -1,16 +1,17 @@
 import { API_URL } from '../lib/api'
+import { pedir, mensajeHttp } from '../lib/http'
 
 export async function fetchRentalRequests(assetId, { userId, signal } = {}) {
   const params = new URLSearchParams({ assetId })
   if (userId) params.set('userId', userId)
-  const res = await fetch(`${API_URL}/api/rental-requests?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/rental-requests?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   return res.json()
 }
 
 // Tira un Error con el mensaje del server (ej. 409 si ya se resolvió).
 export async function voteRentalRequest(id, voto) {
-  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/votes`, {
+  const res = await pedir(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/votes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(voto),
@@ -23,7 +24,7 @@ export async function voteRentalRequest(id, voto) {
 // Tira un Error con el mensaje del server (ej. 409 si ya estaba pago).
 // collectedById: quien cobró; si no viene, el server usa a quien marca el pago.
 export async function markRentalPaid(id, { userId, collectedById }) {
-  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/payment`, {
+  const res = await pedir(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/payment`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, collectedById }),
@@ -35,7 +36,7 @@ export async function markRentalPaid(id, { userId, collectedById }) {
 
 // Tira un Error con el mensaje del server (ej. 409 si ya estaba pago).
 export async function cancelRental(id, { userId }) {
-  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/cancellation`, {
+  const res = await pedir(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/cancellation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId }),
@@ -47,7 +48,7 @@ export async function cancelRental(id, { userId }) {
 
 // Tira un Error con el mensaje del server y, si es de un campo, su nombre en .field.
 export async function createRentalRequest(solicitud) {
-  const res = await fetch(`${API_URL}/api/rental-requests`, {
+  const res = await pedir(`${API_URL}/api/rental-requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(solicitud),

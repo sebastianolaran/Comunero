@@ -1,8 +1,9 @@
 import { API_URL } from '../lib/api'
+import { pedir } from '../lib/http'
 
 export async function fetchAssets(userId, { signal } = {}) {
   const params = new URLSearchParams({ userId })
-  const res = await fetch(`${API_URL}/api/assets?${params}`, { signal })
+  const res = await pedir(`${API_URL}/api/assets?${params}`, { signal })
   const body = await res.json().catch(() => null)
   if (!res.ok) throw new Error(body?.error ?? 'No pudimos traer tus bienes.')
   return body.assets
@@ -11,7 +12,7 @@ export async function fetchAssets(userId, { signal } = {}) {
 async function enviar(path, datos, errorPorDefecto) {
   let res
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    res = await pedir(`${API_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos),

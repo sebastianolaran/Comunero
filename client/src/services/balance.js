@@ -1,13 +1,14 @@
 import { API_URL } from '../lib/api'
+import { pedir, mensajeHttp } from '../lib/http'
 
 // { net, coowners }: tu balance con cada uno de los demás copropietarios del
 // bien, con el detalle que lo compone.
 // TODO: el userId sale de la sesión cuando exista el login.
 export async function fetchBalances({ assetId, userId }, { signal } = {}) {
   const params = new URLSearchParams({ assetId, userId })
-  const res = await fetch(`${API_URL}/api/balances?${params}`, { signal })
+  const res = await pedir(`${API_URL}/api/balances?${params}`, { signal })
   const data = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw new Error(data?.error ?? mensajeHttp(res.status))
   return data
 }
 
@@ -17,14 +18,14 @@ export async function fetchBalances({ assetId, userId }, { signal } = {}) {
 // actual.
 // TODO: fromUserId sale de la sesión cuando exista el login.
 export async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
-  const res = await fetch(`${API_URL}/api/balances/close`, {
+  const res = await pedir(`${API_URL}/api/balances/close`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assetId, fromUserId, toUserId, amount }),
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) {
-    const err = new Error(data?.error ?? `HTTP ${res.status}`)
+    const err = new Error(data?.error ?? mensajeHttp(res.status))
     err.currentAmount = data?.currentAmount
     throw err
   }
@@ -37,14 +38,14 @@ export async function closeBalance({ assetId, fromUserId, toUserId, amount }) {
 // currentAmount con la deuda actual.
 // TODO: fromUserId sale de la sesión cuando exista el login.
 export async function payPartial({ assetId, fromUserId, toUserId, amount }) {
-  const res = await fetch(`${API_URL}/api/balances/partial`, {
+  const res = await pedir(`${API_URL}/api/balances/partial`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assetId, fromUserId, toUserId, amount }),
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) {
-    const err = new Error(data?.error ?? `HTTP ${res.status}`)
+    const err = new Error(data?.error ?? mensajeHttp(res.status))
     err.currentAmount = data?.currentAmount
     throw err
   }

@@ -1,22 +1,23 @@
 import { API_URL } from '../lib/api'
+import { pedir, mensajeHttp } from '../lib/http'
 
 export async function fetchTenants(assetId, { q = '', signal } = {}) {
   const params = new URLSearchParams({ assetId })
   if (q.trim()) params.set('q', q.trim())
-  const res = await fetch(`${API_URL}/api/tenants?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/tenants?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   return res.json()
 }
 
 export async function fetchTenant(id, { assetId, signal } = {}) {
   const params = new URLSearchParams({ assetId })
-  const res = await fetch(`${API_URL}/api/tenants/${encodeURIComponent(id)}?${params}`, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const res = await pedir(`${API_URL}/api/tenants/${encodeURIComponent(id)}?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
   return res.json()
 }
 
 async function enviar(url, method, body, errorPorDefecto) {
-  const res = await fetch(url, {
+  const res = await pedir(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
