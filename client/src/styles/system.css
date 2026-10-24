@@ -174,6 +174,11 @@ input[type=date]{ cursor:text }
       padding:2px 6px; background:var(--surface); white-space:nowrap }
 .tag--solid{ background:var(--inset); color:var(--ink-2) }
 .tag--dash{ border-style:dashed }
+/* Recomendado / no recomendado se distinguen por forma, no solo por el gris. */
+.tag--si::before,.tag--no::before{ content:""; width:8px; height:8px; margin-right:5px; flex:none; background:currentColor;
+     -webkit-mask:var(--i-check) center/contain no-repeat; mask:var(--i-check) center/contain no-repeat }
+.tag--no{ border-style:dashed; color:var(--ink-2) }
+.tag--no::before{ -webkit-mask-image:var(--i-x); mask-image:var(--i-x) }
 .badge{ font-size:var(--fs-label); font-weight:500; padding:3px 9px; border-radius:var(--r-pill);
         background:var(--inset); color:var(--ink-2); white-space:nowrap; flex:none }
 .badge--line{ background:var(--surface); border:1px solid var(--line-strong) }
@@ -244,6 +249,19 @@ input[type=date]{ cursor:text }
 .tbl__r{ border-bottom:1px solid var(--line-soft); transition:background var(--t-fast) var(--ease) }
 .tbl__r:last-child{ border-bottom:none }
 .row-hit:hover{ background:var(--sunken) }
+
+/* ---- tabla de datos (Movimientos la arma igual con sus clases) ---- */
+.tabla-wrap{ overflow-x:auto }
+.tabla-wrap .paginacion{ margin:0; padding:12px 18px; border-top:1px solid var(--line-soft) }
+.tabla{ width:100%; border-collapse:collapse; font-size:var(--fs-body) }
+.tabla th,.tabla td{ padding:12px 10px; text-align:left; vertical-align:middle }
+.tabla thead th{ padding-block:10px; font-weight:600 }
+.tabla th:first-child,.tabla td:first-child{ padding-left:18px }
+.tabla th:last-child,.tabla td:last-child{ padding-right:18px }
+.tabla__nombre{ font-weight:600; color:var(--ink) }
+.tabla__suave{ color:var(--muted) }
+.tabla .tabla__num{ text-align:right; white-space:nowrap }
+.tabla__r--on{ background:var(--sunken); box-shadow:inset 0 0 0 2px var(--ink) }
 
 /* ---- filas y tareas ---- */
 .chk{ display:flex; align-items:center; gap:9px; font-size:var(--fs-body); color:var(--ink-2); cursor:pointer }

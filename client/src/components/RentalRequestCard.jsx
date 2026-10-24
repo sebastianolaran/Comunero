@@ -1,4 +1,5 @@
 import {
+  puedeVotar as sePuedeVotar,
   daysLabel,
   formatMoney,
   formatPhone,
@@ -28,6 +29,7 @@ function RentalRequestCard({
 }) {
   const { renterName, renterPhone, comments, startDate, endDate, status, vote } = solicitud
   const pendiente = status === 'PENDING'
+  const votable = puedeVotar && sePuedeVotar(solicitud)
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
   const monto = formatMoney(solicitud.amount)
@@ -63,7 +65,10 @@ function RentalRequestCard({
             <ChipsVoto votes={solicitud.votes} />
           </div>
 
-          {puedeVotar &&
+          {solicitud.blockedByOverlap && (
+            <p className="hint alq-rq__aviso">Se pisa con una reserva aprobada: no se puede votar mientras siga en pie.</p>
+          )}
+          {votable &&
             (vote ? (
               <div className="alq-mivoto">
                 <span>Tu voto: {VOTO_TEXTO[vote]}</span>

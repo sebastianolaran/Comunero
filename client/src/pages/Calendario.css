@@ -245,6 +245,23 @@
   color: oklch(50% 0 0);
 }
 
+/* Hoy: el número en una píldora de tinta, sin pisar el color del turno. */
+.cal__c--hoy .cal__n {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal__hoy {
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: #fff;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .cal__c--on,
 .cal__c--on:hover {
   box-shadow: inset 0 0 0 2px var(--ink);

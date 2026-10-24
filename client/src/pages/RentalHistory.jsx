@@ -65,34 +65,44 @@ function RentalHistory({ assetId = assetIdActual() }) {
   }
 
   return (
-    <div className="alq-historial">
-      <h2 className="solo-lector">Historial de alquileres</h2>
-      <ul className="alq-lista alq-lista--resueltas">
-        {paginacion.elementos.map((alquiler) => {
-          const seleccionado = alquiler.id === reservationId
-          const monto = formatMoney(alquiler.amount)
-          return (
-            <li
-              key={alquiler.id}
-              id={`alquiler-historico-${alquiler.id}`}
-              className={seleccionado ? 'card card--pad alq-hist__item alq-hist__item--seleccionado' : 'card card--pad alq-hist__item'}
-              aria-current={seleccionado ? 'true' : undefined}
-            >
-              <div className="alq-hist__head">
-                <div>
-                  <h3 className="alq-rq__name">{alquiler.renter?.name ?? 'Inquilino no disponible'}</h3>
-                  <p className="meta">{formatRange(alquiler.startDate, alquiler.endDate)}</p>
-                </div>
-                <PagoTag solicitud={{ status: 'APPROVED', paid: Boolean(alquiler.paidAt) }} />
-              </div>
-              <div className="alq-hist__meta">
-                {alquiler.renter?.phone && <span>{formatPhone(alquiler.renter.phone)}</span>}
-                {monto && <span className="money">{monto}</span>}
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+    <div className="card card--flush tabla-wrap">
+      <table className="tabla">
+        <caption className="solo-lector">Historial de alquileres</caption>
+        <thead>
+          <tr className="tbl__h">
+            <th scope="col">Inquilino</th>
+            <th scope="col">Fechas</th>
+            <th scope="col">Teléfono</th>
+            <th scope="col" className="tabla__num">
+              Monto
+            </th>
+            <th scope="col">Pago</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginacion.elementos.map((alquiler) => {
+            const seleccionado = alquiler.id === reservationId
+            return (
+              <tr
+                key={alquiler.id}
+                id={`alquiler-historico-${alquiler.id}`}
+                className={seleccionado ? 'tbl__r tabla__r--on' : 'tbl__r'}
+                aria-current={seleccionado ? 'true' : undefined}
+              >
+                <th scope="row" className="tabla__nombre">
+                  {alquiler.renter?.name ?? 'Inquilino no disponible'}
+                </th>
+                <td>{formatRange(alquiler.startDate, alquiler.endDate)}</td>
+                <td className="tabla__suave">{alquiler.renter?.phone ? formatPhone(alquiler.renter.phone) : '—'}</td>
+                <td className="tabla__num money">{formatMoney(alquiler.amount) ?? '—'}</td>
+                <td>
+                  <PagoTag solicitud={{ status: 'APPROVED', paid: Boolean(alquiler.paidAt) }} />
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
       <Pagination {...paginacion} />
     </div>
   )

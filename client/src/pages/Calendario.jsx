@@ -13,7 +13,7 @@ import Pagination from '../components/Pagination'
 import { ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
 import { fmtAprobaron } from '../lib/format'
-import { daysLabel, formatRange } from '../lib/rentalRequests'
+import { daysLabel, formatRange, hoyLocal } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import { fetchSettings } from '../services/settings'
 import { usePaginacion } from '../lib/pagination'
@@ -237,11 +237,18 @@ function Calendario() {
     setFormError(null)
   }
 
+  // Un pedido de otro mes lleva el calendario a ese mes para que se vea.
   const seleccionarPeticion = (peticion) => {
     setErrorVoto(null)
     setPeticionVisible(peticion)
     setDiaSeleccionado(null)
     setFormAbierto(false)
+    const [y, m] = rangoPeticion(peticion).desde.split('-').map(Number)
+    if (y !== year || m !== month) {
+      setEstadoCarga('loading')
+      setYear(y)
+      setMonth(m)
+    }
   }
 
   const quitarPrevisualizacion = () => {
@@ -399,6 +406,7 @@ function Calendario() {
               dia={dia}
               info={estadoDelDia(dia, reservas, peticionVisibleId)}
               seleccionado={diaSeleccionado === dia.toISOString()}
+              hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
               onSelect={() => seleccionarDia(dia)}
             />
           ))}
@@ -713,23 +721,24 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
+  if (hoy) clases.push('cal__c--hoy')
   let etiqueta = ''
   let estilo
 
   if (estado === 'reservado') {
     if (info.pendiente) clases.push('cal__c--pendiente')
     estilo = { '--h': tonoDeIntegrante(info.userId, info.hue) }
-    etiqueta = (info.userName ?? '').slice(0, 2)
+    etiqueta = info.userName ?? ''
   } else if (estado === 'alquilado') {
     // Pendiente de aprobacion: borde punteado, como el uso propio.
     if (info.pendiente) clases.push('cal__c--pendiente')
-    etiqueta = 'Alq.'
+    etiqueta = 'Alquiler'
   } else if (estado === 'rechazado') {
-    etiqueta = 'Rech.'
+    etiqueta = 'Rechazado'
   }
 
   const sufijo = info.pendiente ? ' (pendiente)' : ''
@@ -743,11 +752,15 @@ function Dia({ dia, info, seleccionado, onSelect }) {
       className={clases.join(' ')}
       style={estilo}
       title={titulo}
-      aria-label={`${fechaDetalle(dia)}. ${titulo}`}
+      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}`}
       aria-pressed={seleccionado}
+      aria-current={hoy ? 'date' : undefined}
       onClick={onSelect}
     >
-      <span className="cal__n">{dia.getUTCDate()}</span>
+      <span className="cal__n">
+        {dia.getUTCDate()}
+        {hoy && <span className="cal__hoy">Hoy</span>}
+      </span>
       {etiqueta && <span className="cal__t">{etiqueta}</span>}
     </button>
   )

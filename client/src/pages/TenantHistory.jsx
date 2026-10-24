@@ -12,7 +12,7 @@ import { usePaginacion } from '../lib/pagination'
 
 const DEBOUNCE_MS = 250
 
-const CLASE_TAG = { solida: 'tag tag--solid', normal: 'tag', punteada: 'tag tag--dash' }
+const CLASE_TAG = { solida: 'tag tag--solid tag--si', normal: 'tag tag--no', punteada: 'tag tag--dash' }
 
 function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
   const [busqueda, setBusqueda] = useState('')

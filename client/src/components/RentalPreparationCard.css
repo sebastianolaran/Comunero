@@ -2,6 +2,24 @@
   max-width: 720px;
 }
 
+.prep-terminados {
+  margin-top: 22px;
+}
+
+.prep-terminados > summary {
+  margin-bottom: 14px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.prep-terminados > summary::-webkit-details-marker {
+  display: none;
+}
+
+.prep-terminados[open] > summary {
+  color: var(--ink);
+}
+
 /* Recibe el foco por código al eliminar una tarea (el botón que lo tenía desaparece). */
 .prep:focus {
   outline: none;

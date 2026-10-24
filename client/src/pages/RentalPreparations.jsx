@@ -12,8 +12,12 @@ import { usePaginacion } from '../lib/pagination'
 function RentalPreparations({ assetId = assetIdActual() }) {
   const [carga, setCarga] = useState({ estado: 'loading', alquileres: [] })
   const [intento, setIntento] = useState(0)
-  const alquileresOrdenados = [...carga.alquileres].sort((a, b) => a.startDate.localeCompare(b.startDate))
-  const paginacion = usePaginacion(alquileresOrdenados)
+  // Primero lo que viene, del más cercano al más lejano: es lo que hay que
+  // preparar. Los terminados van aparte, del más reciente al más viejo.
+  const proximos = carga.alquileres.filter((a) => !a.finished).sort((a, b) => a.startDate.localeCompare(b.startDate))
+  const terminados = carga.alquileres.filter((a) => a.finished).sort((a, b) => b.startDate.localeCompare(a.startDate))
+  const paginacion = usePaginacion(proximos)
+  const paginacionTerminados = usePaginacion(terminados)
 
   useEffect(() => {
     if (!assetId) return
@@ -78,21 +82,41 @@ function RentalPreparations({ assetId = assetIdActual() }) {
     return <Vacio panel titulo="Todavía no hay alquileres aprobados." />
   }
 
+  const lista = (alquileres) => (
+    <ul className="alq-lista" role="list">
+      {alquileres.map((alquiler) => (
+        <li key={alquiler.id}>
+          <RentalPreparationCard
+            alquiler={alquiler}
+            onTareaCreada={agregarTareaAlAlquiler}
+            onTareaActualizada={actualizarTareaDelAlquiler}
+            onTareaEliminada={quitarTareaDelAlquiler}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+
   return (
     <div className="prep-lista">
-      <ul className="alq-lista" role="list">
-        {paginacion.elementos.map((alquiler) => (
-          <li key={alquiler.id}>
-            <RentalPreparationCard
-              alquiler={alquiler}
-              onTareaCreada={agregarTareaAlAlquiler}
-              onTareaActualizada={actualizarTareaDelAlquiler}
-              onTareaEliminada={quitarTareaDelAlquiler}
-            />
-          </li>
-        ))}
-      </ul>
-      <Pagination {...paginacion} />
+      {proximos.length > 0 ? (
+        <>
+          {lista(paginacion.elementos)}
+          <Pagination {...paginacion} />
+        </>
+      ) : (
+        <Vacio panel titulo="No hay alquileres por venir.">Cuando se apruebe uno, acá van a aparecer sus tareas.</Vacio>
+      )}
+
+      {terminados.length > 0 && (
+        <details className="prep-terminados">
+          <summary className="btn btn--link">
+            {terminados.length === 1 ? 'Ver 1 alquiler terminado' : `Ver ${terminados.length} alquileres terminados`}
+          </summary>
+          {lista(paginacionTerminados.elementos)}
+          <Pagination {...paginacionTerminados} />
+        </details>
+      )}
     </div>
   )
 }
