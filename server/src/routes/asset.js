@@ -21,6 +21,7 @@ const router = Router();
 router.get('/', controller.list);
 router.post('/', controller.create);
 router.post('/join', limitarIntentos, controller.join);
+router.post('/:id/leave', controller.leave);
 router.get('/:id/settings', settings.get);
 router.patch('/:id/settings', settings.update);
 

@@ -117,20 +117,44 @@ async function join({ userId, code }, db = prisma) {
   if (!alreadyMember) {
     // Con alguien nuevo los porcentajes ya no suman 100: el reparto vuelve a
     // partes iguales solo, y queda en los cambios de Configuración.
-    const percents = await settingsService.percentsOf(asset.id, db);
-    await db.asset.update({ where: { id: asset.id }, data: { users: { connect: { id: userId } } } });
-    if (percents) {
-      await db.activityLog.create({
-        data: {
-          assetId: asset.id,
-          userId,
-          type: settingsService.LOG_TYPE,
-          payload: { changes: [{ field: 'percents', from: percents, to: null, reason: 'MEMBER_JOINED' }] },
-        },
-      });
-    }
+    await db.$transaction(async (tx) => {
+      await settingsService.lockAsset(tx, asset.id);
+      const before = await settingsService.percentsOf(asset.id, tx);
+      await tx.asset.update({ where: { id: asset.id }, data: { users: { connect: { id: userId } } } });
+      await settingsService.applyMembershipChange(tx, { assetId: asset.id, userId, before, reason: 'MEMBER_JOINED' });
+    }, settingsService.TX_OPTIONS);
   }
   return { asset: await cardOf(db, asset.id, userId), alreadyMember };
 }
 
-module.exports = { listForUser, create, join };
+// Irse del bien, sin votación. Lo ya cargado (movimientos, reservas pasadas)
+// queda como está. No se puede con votaciones abiertas, porque cambiaría
+// cuántos votos hacen falta a mitad de camino, ni siendo el último (el bien
+// quedaría sin nadie). Los porcentajes: como al entrar alguien, ver
+// applyMembershipChange. Devuelve {} o { error }.
+async function leave({ assetId, userId }, db = prisma) {
+  // Las pendientes vencidas se resuelven antes: no tienen que trabar la salida.
+  await require('./reservationExpiry.service').expireForAsset(assetId, new Date(), db);
+
+  return db.$transaction(async (tx) => {
+    await settingsService.lockAsset(tx, assetId);
+    const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { users: { select: { id: true } } } });
+    if (!asset) return { error: 'ASSET_NOT_FOUND' };
+    if (!asset.users.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    if (asset.users.length === 1) return { error: 'LAST_MEMBER' };
+
+    const [reservations, decisions] = await Promise.all([
+      tx.reservation.count({ where: { assetId, status: 'PENDING' } }),
+      tx.decision.count({ where: { assetId, status: 'OPEN' } }),
+    ]);
+    if (reservations + decisions > 0) return { error: 'OPEN_VOTES' };
+
+    const before = await settingsService.percentsOf(assetId, tx);
+    await tx.asset.update({ where: { id: assetId }, data: { users: { disconnect: { id: userId } } } });
+    await tx.assetMemberSetting.deleteMany({ where: { assetId, userId } });
+    await settingsService.applyMembershipChange(tx, { assetId, userId, before, reason: 'MEMBER_LEFT' });
+    return {};
+  }, settingsService.TX_OPTIONS);
+}
+
+module.exports = { listForUser, create, join, leave };

@@ -54,6 +54,12 @@ function toView(asset) {
   };
 }
 
+// Serializa los cambios del mismo bien (configuración, entrar, salir): sin
+// esto, dos a la vez quedarían registrados con el mismo "antes".
+async function lockAsset(tx, assetId) {
+  await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
+}
+
 async function load(db, assetId, userId) {
   const asset = await db.asset.findUnique({ where: { id: assetId }, select: SELECT });
   if (!asset) return { error: 'ASSET_NOT_FOUND' };
@@ -106,9 +112,7 @@ async function saveMembers(tx, assetId, changes) {
 // { error: 'INVALID', field, message }.
 async function updateSettings({ assetId, userId, body }, db = prisma) {
   return db.$transaction(async (tx) => {
-    // Serializa los cambios del mismo bien: sin esto, dos cambios a la vez
-    // quedarían registrados con el mismo "antes".
-    await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
+    await lockAsset(tx, assetId);
     const { asset, error } = await load(tx, assetId, userId);
     if (error) return { error };
 
@@ -130,4 +134,31 @@ async function updateSettings({ assetId, userId, body }, db = prisma) {
   }, TX_OPTIONS);
 }
 
-module.exports = { getSettings, updateSettings, huesOf, percentsOf, LOG_TYPE };
+// Después de que alguien entra o se va (dentro de esa transacción, con el bien
+// bloqueado). before: los porcentajes de antes. Siguen solo si los que quedan
+// suman 100; si no, se borran todos (para que no vuelvan solos si el que entró
+// se va después) y el reparto pasa a partes iguales. Si cambió algo, queda en
+// el registro con el motivo.
+async function applyMembershipChange(tx, { assetId, userId, before, reason }) {
+  const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { users: { select: { id: true } } } });
+  const after = rules.resolvePercents(asset.users.map((u) => u.id), before);
+  if (after === null) await tx.assetMemberSetting.updateMany({ where: { assetId }, data: { percent: null } });
+
+  const [change] = rules.diffSettings({ percents: before }, { percents: after });
+  if (change) {
+    await tx.activityLog.create({
+      data: { assetId, userId, type: LOG_TYPE, payload: { changes: [{ ...change, reason }] } },
+    });
+  }
+}
+
+module.exports = {
+  getSettings,
+  updateSettings,
+  huesOf,
+  percentsOf,
+  lockAsset,
+  applyMembershipChange,
+  LOG_TYPE,
+  TX_OPTIONS,
+};

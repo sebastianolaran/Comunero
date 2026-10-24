@@ -108,9 +108,9 @@ function resolveHues(memberIds) {
 }
 
 // Mapa userId -> porcentaje, o null (partes iguales) si falta alguno o no
-// suman 100: pasa cuando se suma alguien al bien después de cargarlos.
+// suman 100: pasa cuando se suma o se va alguien después de cargarlos.
 function resolvePercents(memberIds, stored) {
-  if (memberIds.length === 0 || memberIds.some((id) => stored[id] == null)) return null;
+  if (memberIds.length === 0 || memberIds.some((id) => stored?.[id] == null)) return null;
   const sum = memberIds.reduce((total, id) => total + stored[id], 0);
   if (sum !== 100) return null;
   return Object.fromEntries(memberIds.map((id) => [id, stored[id]]));
