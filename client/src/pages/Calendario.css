@@ -59,11 +59,9 @@
 .cal-detail__sect {
   margin-top: 18px;
   margin-bottom: 8px;
-  font-size: var(--fs-label);
+  font-size: var(--fs-body);
   font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .06em;
+  color: var(--ink-2);
 }
 
 .cal-detail__tasks {
@@ -123,7 +121,6 @@
 .cal-pending__t {
   font-size: var(--fs-body);
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .cal-pending__hint {

@@ -33,11 +33,9 @@
 }
 
 .bal-summary-label {
-  font-size: var(--fs-meta);
+  font-size: var(--fs-body);
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-2);
 }
 
 .bal-net {
@@ -91,8 +89,11 @@
 }
 
 .bal-caret {
-  width: 12px;
   color: var(--muted);
+}
+
+.bal-caret.is-open {
+  transform: rotate(90deg);
 }
 
 .bal-name {
@@ -207,11 +208,9 @@
 
 .bal-section-title {
   margin: 28px 0 10px;
-  font-size: var(--fs-meta);
+  font-size: var(--fs-body);
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-2);
 }
 
 .bal-closed-date {

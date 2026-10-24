@@ -62,15 +62,18 @@
 .codigo__v {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
   font-family: var(--mono);
-  font-size: var(--fs-body);
+  font-size: var(--fs-meta);
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--ink);
 }
 
 .codigo__v--oculto {
-  letter-spacing: 0.12em;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 

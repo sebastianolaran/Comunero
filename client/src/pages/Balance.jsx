@@ -2,11 +2,13 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
+import MemberName from '../components/ui/MemberName'
 import Modal, { ModalAcciones } from '../components/ui/Modal'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { descripcionLegible } from '../lib/format'
+import { useTonos } from '../lib/useTonos'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
 import './Balance.css'
@@ -53,6 +55,7 @@ function BalanceDetail({ coowner, id }) {
 
 function BalanceItem({ coowner, onSettle }) {
   const [open, setOpen] = useState(false)
+  const tonos = useTonos()
   const status = balanceStatus(coowner.balance)
   const detailId = `bal-detail-${coowner.user.id}`
 
@@ -66,8 +69,12 @@ function BalanceItem({ coowner, onSettle }) {
           aria-controls={detailId}
           onClick={() => setOpen((value) => !value)}
         >
-          <span className="bal-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
-          <span className="bal-name">{coowner.user.name}</span>
+          <svg className={open ? 'chev bal-caret is-open' : 'chev bal-caret'} viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+          <span className="bal-name">
+            <MemberName id={coowner.user.id} name={coowner.user.name} tonos={tonos} />
+          </span>
           {coowner.upToDate && <span className="badge">Al día</span>}
           {coowner.hasPartialPayments && <span className="badge badge--line">Con pagos parciales</span>}
         </button>
@@ -190,7 +197,9 @@ function ClosedSettlement({ settlement }) {
           aria-controls={detailId}
           onClick={() => setOpen((value) => !value)}
         >
-          <span className="bal-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
+          <svg className={open ? 'chev bal-caret is-open' : 'chev bal-caret'} viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
           <span className="bal-name">Saldo cerrado con {settlement.other.name}</span>
           <span className="bal-closed-date">{dayLabel(settlement.date)}</span>
         </button>

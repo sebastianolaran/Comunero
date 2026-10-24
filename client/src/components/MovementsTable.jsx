@@ -1,7 +1,9 @@
 import { Fragment, useState } from 'react'
 import { dayLabel, fmtMoney, myPartLabel, shareNote } from '../lib/movements'
+import { useTonos } from '../lib/useTonos'
+import MemberName from './ui/MemberName'
 
-function MovementDetail({ movement, meId }) {
+function MovementDetail({ movement, meId, tonos }) {
   const isIncome = movement.type === 'INCOME'
   return (
     <div className="mov-detail">
@@ -14,7 +16,7 @@ function MovementDetail({ movement, meId }) {
           {movement.shares.map((share) => (
             <li key={share.userId} className={share.userId === meId ? 'is-me' : undefined}>
               <span>
-                {share.name}
+                <MemberName id={share.userId} name={share.name} tonos={tonos} />
                 <span className="mov-share-note">{shareNote(movement, share)}</span>
               </span>
               <span>{fmtMoney(share.amount)}</span>
@@ -46,6 +48,7 @@ function MovementDetail({ movement, meId }) {
 
 function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
   const [openId, setOpenId] = useState(null)
+  const tonos = useTonos()
 
   if (movements.length === 0) {
     return <p className="panel empty">{emptyText}</p>
@@ -103,7 +106,9 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
                     </span>{' '}
                     {fmtMoney(movement.amount)}
                   </td>
-                  <td>{movement.paidBy.name}</td>
+                  <td>
+                    <MemberName id={movement.paidBy.id} name={movement.paidBy.name} tonos={tonos} />
+                  </td>
                   <td className="mov-num">
                     <span className={`mov-part mov-tone-${part.tone}`}>{part.text}</span>
                     <span className="mov-part-sub">{part.sub}</span>
@@ -130,7 +135,7 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
                 {open && (
                   <tr className="mov-detail-row">
                     <td colSpan={6}>
-                      <MovementDetail movement={movement} meId={meId} />
+                      <MovementDetail movement={movement} meId={meId} tonos={tonos} />
                     </td>
                   </tr>
                 )}
