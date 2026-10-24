@@ -70,10 +70,12 @@ const PARTES_ARGENTINA = new Intl.DateTimeFormat('en-US', {
 })
 
 // userId -> nombre de los integrantes, y al final los que ya no están pero
-// aparecen en el registro (quien se fue firma su salida), para nombrarlos.
-export function nombresDelRegistro(members, changes) {
+// aparecen en el registro (quien se fue firma su salida, o figura en porcentajes
+// viejos), para nombrarlos.
+export function nombresDelRegistro(members, changes, formerNames = {}) {
   const nombres = Object.fromEntries(members.map((m) => [m.id, m.name]))
   for (const { user } of changes) nombres[user.id] ??= user.name
+  for (const [id, name] of Object.entries(formerNames)) nombres[id] ??= name
   return nombres
 }
 

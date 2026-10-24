@@ -4,8 +4,6 @@
 
 const repo = require('./balance.repo');
 const rules = require('./balance.rules');
-// Modulo entero (no destructuring) para poder mockearlo en los tests.
-const movementService = require('./movement.service');
 const { badRequest, conflict, forbidden, notFound } = require('../lib/httpError');
 
 // { net, coowners }: el balance con cada uno de los demas copropietarios del
@@ -18,9 +16,6 @@ async function getBalances({ assetId, userId }) {
     throw forbidden('Solo los copropietarios del bien pueden ver su balance');
   }
 
-  // Igual que al abrir Movimientos: sin esto, un recurrente del mes podria no
-  // estar generado todavia y faltaria en el balance hasta la pasada horaria.
-  await movementService.generateDueRecurrences(assetId);
   const [movements, settlements] = await Promise.all([
     repo.findMovementsOf(assetId, userId),
     repo.findSettlementsOf(assetId, userId),
@@ -41,8 +36,6 @@ async function payInTransaction({ assetId, fromUserId, toUserId }, save) {
     throw forbidden('Solo los copropietarios del bien pueden saldar deudas entre ellos');
   }
 
-  // Mismo numero que vio en Balance, que tambien genera los pendientes.
-  await movementService.generateDueRecurrences(assetId);
   try {
     return await repo.inTransaction(async (tx) => {
       const movements = await repo.findMovementsOf(assetId, fromUserId, tx);

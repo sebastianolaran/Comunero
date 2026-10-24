@@ -45,9 +45,9 @@ const AYUDAS = {
   maxConsecutiveDays:
     'Nadie puede pedir un turno de uso propio más largo que esto. No aplica a los alquileres a terceros. Vacío, sin límite.',
   responseHours:
-    'Si una reserva de uso propio o una solicitud de alquiler sigue sin el voto de todos pasado este tiempo desde que se pidió, se rechaza sola. Vacío, queda pendiente hasta que voten todos.',
+    'Cuántas horas tienen los demás para votar un uso propio o una solicitud de alquiler, contadas desde que se pide. Si pasado ese tiempo falta algún voto, la votación se cierra sola como diga la opción de abajo. Vacío, no vence: espera a que voten todos.',
   noResponse:
-    'Qué pasa con quien no votó cuando vence el tiempo para responder. Rechazado: la reserva se rechaza sola. Aprobado: su silencio cuenta como un Sí, así que se aprueba si nadie votó que no. Solo aplica si hay un tiempo máximo cargado.',
+    'Cómo se cierra la votación cuando vence el tiempo y alguien no votó. Rechazado: se rechaza. Aprobado: quien no votó cuenta como un Sí; si alguien votó que no, se rechaza igual. Solo aplica si hay un tiempo máximo cargado.',
 }
 
 // Botón "i" con la explicación: se abre al pasar el mouse, con foco o con un
@@ -344,7 +344,7 @@ function PanelReglas({ settings, onGuardado }) {
 }
 
 function PanelCambios({ settings }) {
-  const nombres = nombresDelRegistro(settings.members, settings.changes)
+  const nombres = nombresDelRegistro(settings.members, settings.changes, settings.formerNames)
   const lineas = settings.changes.flatMap((registro) =>
     registro.changes.map((cambio) => ({ registro, cambio })),
   )

@@ -41,9 +41,6 @@ function MovementDetail({ movement, meId }) {
           </ul>
         </div>
       )}
-      {movement.recurring && (
-        <p className="mov-detail-rule">Recurrente: se genera solo el 1° de cada mes, con el mismo monto y reparto.</p>
-      )}
     </div>
   )
 }
@@ -85,7 +82,6 @@ function MovementsTable({ movements, meId, emptyText, onEdit, onDelete }) {
                   <td>
                     <div className="mov-desc">
                       {movement.type === 'INCOME' && <span className="tag">Ingreso</span>}
-                      {movement.recurring && <span className="tag tag--dash">Recurrente</span>}
                       {movement.items.length > 0 && <span className="tag tag--solid">Desglosado</span>}
                       <span className="mov-desc-t" title={movement.description}>
                         {movement.description}

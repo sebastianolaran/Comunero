@@ -7,6 +7,7 @@ const { todayInArgentina } = require('../validation/newRentalRequest');
 const { resolveHues } = require('./assetSettings.rules');
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const settingsService = require('./assetSettings.service');
+const rentalRequestService = require('./rentalRequest.service');
 
 const CODE_ATTEMPTS = 5;
 
@@ -152,6 +153,7 @@ async function leave({ assetId, userId }, db = prisma) {
     const before = await settingsService.percentsOf(assetId, tx);
     await tx.asset.update({ where: { id: assetId }, data: { users: { disconnect: { id: userId } } } });
     await tx.assetMemberSetting.deleteMany({ where: { assetId, userId } });
+    await rentalRequestService.releaseVotesOf(tx, { assetId, userId });
     await settingsService.applyMembershipChange(tx, { assetId, userId, before, reason: 'MEMBER_LEFT' });
     return {};
   }, settingsService.TX_OPTIONS);

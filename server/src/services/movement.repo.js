@@ -25,7 +25,6 @@ function movementData(input, built) {
     description: input.description,
     date: toDateOnly(input.date),
     paidById: input.paidById,
-    recurring: input.recurring,
     shares: { create: built.shares },
     items: {
       create: built.items.map((item) => ({
@@ -36,11 +35,6 @@ function movementData(input, built) {
       })),
     },
   };
-}
-
-async function listAssetIds() {
-  const rows = await prisma.asset.findMany({ select: { id: true } });
-  return rows.map((row) => row.id);
 }
 
 async function assetExists(assetId) {
@@ -80,9 +74,7 @@ async function insertMovement(assetId, input, built) {
 }
 
 // Reemplaza el movimiento completo: borra el reparto y los items anteriores
-// (los repartos de cada item caen en cascada) y crea los nuevos. No toca
-// generatedNext: editar no vuelve a generar una copia que ya se genero.
-// Devuelve null si el movimiento ya no existe.
+// (los repartos de cada item caen en cascada) y crea los nuevos. Devuelve null si el movimiento ya no existe.
 async function replaceMovement(id, input, built) {
   const data = movementData(input, built);
   try {
@@ -107,35 +99,7 @@ async function removeMovement(assetId, id) {
   return count;
 }
 
-// Recurrentes que todavia no generaron su copia y son de antes de `before`.
-async function findPendingRecurrences(assetId, before) {
-  return prisma.movement.findMany({
-    where: { assetId, recurring: true, generatedNext: false, date: { lt: before } },
-    include: movementInclude,
-    orderBy: [{ date: 'asc' }, { id: 'asc' }],
-  });
-}
-
-// Marca el original como ya copiado y crea la copia en una sola transaccion.
-// El update es condicional: si dos pedidos generan a la vez, el segundo espera
-// al primero, no encuentra nada para marcar y no crea otra copia. Devuelve la
-// copia, o null si no correspondia (ya la genero otro o le sacaron el tilde).
-async function cloneRecurrence(sourceId, assetId, input, built) {
-  return prisma.$transaction(async (tx) => {
-    const { count } = await tx.movement.updateMany({
-      where: { id: sourceId, assetId, recurring: true, generatedNext: false },
-      data: { generatedNext: true },
-    });
-    if (count === 0) return null;
-    return tx.movement.create({
-      data: { assetId, ...movementData(input, built) },
-      include: movementInclude,
-    });
-  });
-}
-
 module.exports = {
-  listAssetIds,
   assetExists,
   listCoowners,
   findMovementsInRange,
@@ -144,6 +108,4 @@ module.exports = {
   insertMovement,
   replaceMovement,
   removeMovement,
-  findPendingRecurrences,
-  cloneRecurrence,
 };

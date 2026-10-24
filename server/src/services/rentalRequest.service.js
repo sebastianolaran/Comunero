@@ -356,6 +356,43 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
   }, TX_OPTIONS);
 }
 
+// Al irse alguien del bien, sus votos dejan de contar en las solicitudes
+// rechazadas a mano (las pendientes traban la salida; las aprobadas, canceladas,
+// vencidas o por solapamiento quedan como están). Si su No era el único, la
+// solicitud vuelve a votación, o se aprueba si los que quedan ya dijeron que sí.
+async function releaseVotesOf(tx, { assetId, userId }) {
+  const votedBy = { some: { userId } };
+  const affected = await tx.reservation.findMany({
+    where: {
+      assetId,
+      type: 'RENTAL',
+      status: 'REJECTED',
+      rejectionReason: null,
+      OR: [{ objections: votedBy }, { approvals: votedBy }],
+    },
+    select: { id: true, assetId: true, startDate: true, endDate: true },
+  });
+  if (affected.length === 0) return;
+
+  const ids = affected.map((r) => r.id);
+  await tx.objection.deleteMany({ where: { reservationId: { in: ids }, userId } });
+  await tx.reservationApproval.deleteMany({ where: { reservationId: { in: ids }, userId } });
+
+  const coownerCount = await tx.user.count({ where: memberOf(assetId) });
+  for (const reservation of affected) {
+    const where = { reservationId: reservation.id };
+    if ((await tx.objection.count({ where })) > 0) continue;
+    const approvals = await tx.reservationApproval.count({ where });
+    const approved = nextStatus('APPROVE', approvals, coownerCount) === 'APPROVED';
+    if (approved && (await hasApprovedOverlap(tx, reservation))) {
+      await tx.reservation.update({ where: { id: reservation.id }, data: { rejectionReason: OVERLAP_REASON } });
+      continue;
+    }
+    await tx.reservation.update({ where: { id: reservation.id }, data: { status: approved ? 'ACTIVE' : 'PENDING' } });
+    if (approved) await rejectOverlapping(tx, reservation);
+  }
+}
+
 module.exports = {
   deriveStatus,
   toListItem,
@@ -369,6 +406,7 @@ module.exports = {
   lockForVote,
   hasApprovedOverlap,
   rejectOverlapping,
+  releaseVotesOf,
   OVERLAP_REASON,
   TX_OPTIONS,
 };

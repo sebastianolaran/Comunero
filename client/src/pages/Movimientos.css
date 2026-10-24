@@ -187,10 +187,6 @@
   color: var(--faint);
 }
 
-.mov-detail-rule {
-  grid-column: 1 / -1;
-}
-
 /* ---- modal de alta/edición ---- */
 dialog.mov-modal {
   width: min(440px, calc(100vw - 32px));
