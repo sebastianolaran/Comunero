@@ -21,6 +21,9 @@ import './Decisiones.css'
 // Referencia estable: useDecisiones la usa como dependencia del efecto.
 const fetchAbiertas = (assetId, opciones) => fetchOpenDecisions(assetId, { ...opciones, userId: userIdActual() })
 
+// Las cerradas vienen con closedAt y sin createdAt.
+const fecha = (decision) => decision.closedAt ?? decision.createdAt ?? ''
+
 // Carga una lista de decisiones. `version` fuerza una recarga desde afuera.
 function useDecisiones(fetcher, assetId, version = 0) {
   const [carga, setCarga] = useState({ estado: 'loading', decisiones: [] })
@@ -32,7 +35,7 @@ function useDecisiones(fetcher, assetId, version = 0) {
 
     fetcher(assetId, { signal: controller.signal })
       .then((decisiones) => {
-        if (vivo) setCarga({ estado: 'ok', decisiones: [...decisiones].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) })
+        if (vivo) setCarga({ estado: 'ok', decisiones: [...decisiones].sort((a, b) => fecha(b).localeCompare(fecha(a))) })
       })
       .catch((err) => {
         if (vivo && err.name !== 'AbortError') setCarga({ estado: 'error', decisiones: [] })
