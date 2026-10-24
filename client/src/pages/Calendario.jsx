@@ -12,17 +12,21 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import Pagination from '../components/Pagination'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
+import { fetchSettings } from '../services/settings'
 import { usePaginacion } from '../lib/pagination'
 import {
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
+  faltaMiVoto,
   integrantesEnReservas,
   mesAnterior,
   mesSiguiente,
   nombreMes,
   primerDiaSemana,
   tonoDeIntegrante,
+  turnoDemasiadoLargo,
+  yaAprobo,
 } from '../lib/calendar'
 import './Calendario.css'
 
@@ -107,6 +111,7 @@ function Calendario() {
   const [cancelacion, setCancelacion] = useState(null)
   const [errorCancelacion, setErrorCancelacion] = useState(null)
   const [cancelando, setCancelando] = useState(false)
+  const [votando, setVotando] = useState(null) // id de la peticion cuyo voto se esta enviando
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -117,6 +122,16 @@ function Calendario() {
   const [form, setForm] = useState(FORM_INICIAL)
   const [formError, setFormError] = useState(null)
   const [enviando, setEnviando] = useState(false)
+  // Máximo de días seguidos de Configuración. Si no se puede traer, valida el server igual.
+  const [maximoDias, setMaximoDias] = useState(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchSettings(assetId, userId, { signal: controller.signal })
+      .then((settings) => setMaximoDias(settings.maxConsecutiveDays))
+      .catch(() => setMaximoDias(null))
+    return () => controller.abort()
+  }, [assetId, userId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -182,6 +197,8 @@ function Calendario() {
   // hace el backend; aca solo mostramos el error que devuelva.
   const handleSolicitar = async (e) => {
     e.preventDefault()
+    const demasiadoLargo = turnoDemasiadoLargo(form.inicio, form.fin, maximoDias)
+    if (demasiadoLargo) return setFormError(demasiadoLargo)
     setFormError(null)
     setEnviando(true)
     try {
@@ -229,6 +246,9 @@ function Calendario() {
   }
 
   const votarPeticion = async (peticion, value) => {
+    if (votando) return
+
+    setVotando(peticion.id)
     setErrorVoto(null)
     try {
       await voteUseReservation(peticion.id, { userId, value })
@@ -236,6 +256,10 @@ function Calendario() {
       setRefreshKey((key) => key + 1)
     } catch (err) {
       setErrorVoto(err.message)
+      // Si la votacion ya se cerro mientras tanto, se recarga para que deje de figurar como pendiente.
+      setRefreshKey((key) => key + 1)
+    } finally {
+      setVotando(null)
     }
   }
 
@@ -311,7 +335,7 @@ function Calendario() {
   const peticionVisibleId = peticionVisible?.id ?? null
   const peticionVisibleActual = peticionesPendientes.find((peticion) => peticion.id === peticionVisibleId)
     ?? (peticionVisible?.startDate ? peticionVisible : null)
-  const integrantes = integrantesEnReservas(reservas, peticionVisibleId)
+  const integrantes = integrantesEnReservas(reservas)
 
   return (
     <div className="split split--fill">
@@ -425,6 +449,7 @@ function Calendario() {
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
                 Turno de uso propio. Para alquilar a un tercero, usá la sección Alquiler.
+                {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
               <div className="cal-form__fechas">
@@ -477,6 +502,7 @@ function Calendario() {
             onSelect={seleccionarPeticion}
             onCancel={pedirCancelacion}
             onVote={votarPeticion}
+            votando={votando}
           />
         )}
       </aside>
@@ -509,7 +535,7 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
   return (
     <div className="cal-preview" aria-live="polite">
       <p className="cal-preview__text">
-        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado, por eso no queda fijo en el calendario.
+        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado: en el calendario se ve con borde punteado.
       </p>
       <button type="button" className="btn btn--link cal-preview__action" onClick={onClear}>
         Quitar
@@ -518,22 +544,30 @@ function AvisoPeticionPendiente({ peticion, onClear }) {
   )
 }
 
-function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, onSelect, onCancel, onVote }) {
-  const paginacion = usePaginacion(peticiones)
+function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, votando, onSelect, onCancel, onVote }) {
+  const [soloMiVoto, setSoloMiVoto] = useState(false)
+  const visibles = soloMiVoto ? peticiones.filter((peticion) => faltaMiVoto(peticion, userId)) : peticiones
+  const paginacion = usePaginacion(visibles, String(soloMiVoto))
 
   return (
     <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
       <header className="cal-pending__head">
-        <h2 className="cal-pending__t">Por votar ({peticiones.length})</h2>
+        <h2 className="cal-pending__t">Por votar ({visibles.length})</h2>
         <button type="button" className="btn btn--link" disabled title="Disponible cuando exista la pestaña Reservas">
           Ver en reservas
         </button>
       </header>
       <p className="hint cal-pending__hint">Pendiente de los demás. Tocá una para verla en el calendario.</p>
+      <label className="chk cal-pending__filtro">
+        <input type="checkbox" checked={soloMiVoto} onChange={(event) => setSoloMiVoto(event.target.checked)} />
+        Solo las que me faltan votar
+      </label>
       {error && <p className="cal-form__err" role="alert">{error}</p>}
+      {visibles.length === 0 && <p className="hint cal-pending__hint">No te falta votar ninguna.</p>}
       <ul className="cal-pending__list" role="list">
         {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
+          const aceptada = yaAprobo(peticion, userId)
           const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
           const total = Math.max(0, (peticion.coownerCount ?? 0) - 1)
           const { desde, hasta } = rangoPeticion(peticion)
@@ -551,10 +585,20 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, on
               </button>
               {!propia && (
                 <div className="cal-pending__actions">
-                  <button type="button" className="btn btn--sm btn--primary" onClick={() => onVote(peticion, 'APPROVE')}>
-                    Aceptar
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--primary"
+                    disabled={votando !== null || aceptada}
+                    onClick={() => onVote(peticion, 'APPROVE')}
+                  >
+                    {aceptada ? 'Ya aceptaste' : 'Aceptar'}
                   </button>
-                  <button type="button" className="btn btn--sm" onClick={() => onVote(peticion, 'REJECT')}>
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={votando !== null}
+                    onClick={() => onVote(peticion, 'REJECT')}
+                  >
                     Rechazar
                   </button>
                 </div>
@@ -624,42 +668,49 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
   const tareas = alquiler.tasks ?? []
   const pendientes = tareas.filter((tarea) => !tarea.completed).length
   const monto = alquiler.amount == null ? null : `$${alquiler.amount.toLocaleString('es-AR')}`
+  const pendiente = alquiler.status === 'PENDING'
 
   return (
     <div className="panel cal-detail" aria-live="polite">
       <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>
       <p className="cal-detail__d">
-        Alquilado a {alquiler.renter?.name ?? 'un huésped'}
+        {pendiente ? 'Alquiler pendiente de aprobación para' : 'Alquilado a'}{' '}
+        {alquiler.renter?.name ?? 'un huésped'}
         {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
         {monto && ` · Monto total: ${monto}`}
       </p>
       <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
 
-      <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
-      {errorTarea && (
-        <p className="cal-detail__error" role="alert">
-          {errorTarea}
-        </p>
-      )}
-      {tareas.length === 0 ? (
-        <p className="cal-detail__empty">No hay tareas de preparación.</p>
-      ) : (
-        <ul className="cal-detail__tasks" role="list">
-          {tareas.map((tarea) => (
-            <li key={tarea.id} className="cal-detail__task">
-              <label className="cal-detail__task-name">
-                <input
-                  type="checkbox"
-                  checked={tarea.completed}
-                  disabled={tareasGuardando.includes(tarea.id)}
-                  onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
-                />
-                <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
-              </label>
-              <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
-            </li>
-          ))}
-        </ul>
+      {/* Las tareas de preparacion son de alquileres aprobados (el server no deja crearlas antes). */}
+      {!pendiente && (
+        <>
+          <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
+          {errorTarea && (
+            <p className="cal-detail__error" role="alert">
+              {errorTarea}
+            </p>
+          )}
+          {tareas.length === 0 ? (
+            <p className="cal-detail__empty">No hay tareas de preparación.</p>
+          ) : (
+            <ul className="cal-detail__tasks" role="list">
+              {tareas.map((tarea) => (
+                <li key={tarea.id} className="cal-detail__task">
+                  <label className="cal-detail__task-name">
+                    <input
+                      type="checkbox"
+                      checked={tarea.completed}
+                      disabled={tareasGuardando.includes(tarea.id)}
+                      onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
+                    />
+                    <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
+                  </label>
+                  <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )
@@ -676,17 +727,20 @@ function Dia({ dia, info, seleccionado, onSelect }) {
 
   if (estado === 'reservado') {
     if (info.pendiente) clases.push('cal__c--pendiente')
-    estilo = { '--h': tonoDeIntegrante(info.userId) }
+    estilo = { '--h': tonoDeIntegrante(info.userId, info.hue) }
     etiqueta = (info.userName ?? '').slice(0, 2)
   } else if (estado === 'alquilado') {
+    // Pendiente de aprobacion: borde punteado, como el uso propio.
+    if (info.pendiente) clases.push('cal__c--pendiente')
     etiqueta = 'Alq.'
   } else if (estado === 'rechazado') {
     etiqueta = 'Rech.'
   }
 
+  const sufijo = info.pendiente ? ' (pendiente)' : ''
   const titulo = info.userName
-    ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${info.pendiente ? ' (pendiente)' : ''}`
-    : ETIQUETA_ESTADO[estado]
+    ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${sufijo}`
+    : `${ETIQUETA_ESTADO[estado]}${sufijo}`
 
   return (
     <button

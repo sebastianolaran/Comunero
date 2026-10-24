@@ -12,6 +12,7 @@ const reservationRoutes = require('./routes/reservation');
 const movementRoutes = require('./routes/movement');
 const balanceRoutes = require('./routes/balance');
 const movementService = require('./services/movement.service');
+const reservationExpiry = require('./services/reservationExpiry.service');
 const tenantRoutes = require('./routes/tenant');
 const decisionRoutes = require('./routes/decision');
 
@@ -62,8 +63,18 @@ if (require.main === module) {
     movementService.generateAllDueRecurrences().catch((err) => {
       console.error('recurrentes: fallo la generacion', err);
     });
-  generateRecurrences();
-  setInterval(generateRecurrences, 60 * 60 * 1000).unref();
+  // Las reservas vencidas también se resuelven al abrir el calendario o las
+  // solicitudes; esto las resuelve aunque nadie entre.
+  const expireReservations = () =>
+    reservationExpiry.expireAll().catch((err) => {
+      console.error('vencimiento: fallo la resolucion de reservas', err);
+    });
+  const hourly = () => {
+    generateRecurrences();
+    expireReservations();
+  };
+  hourly();
+  setInterval(hourly, 60 * 60 * 1000).unref();
 }
 
 module.exports = app;

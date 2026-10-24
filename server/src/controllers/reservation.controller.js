@@ -1,5 +1,5 @@
 const reservationService = require('../services/reservation.service');
-const { parseFechaISO } = require('../lib/fecha');
+const { parseFechaISO, cantidadDias } = require('../lib/fecha');
 const { todayInArgentina } = require('../validation/newRentalRequest');
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -88,6 +88,15 @@ async function create(req, res) {
     return res.status(400).json({ error: 'startDate debe ser anterior o igual a endDate' });
   }
 
+  // Solo el uso propio: los alquileres a terceros no tienen este límite.
+  const maximo = await reservationService.maxConsecutiveDays(assetId, userId);
+  const dias = cantidadDias(inicio, fin);
+  if (maximo != null && dias > maximo) {
+    return res.status(400).json({
+      error: `Un turno de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (pediste ${dias})`,
+    });
+  }
+
   const solapa = await reservationService.hasOverlap(assetId, inicio, fin);
   if (solapa) {
     return res.status(409).json({
@@ -121,6 +130,7 @@ async function voteUse(req, res) {
   });
   if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe la solicitud de uso propio' });
   if (result.error === 'CANCELLED') return res.status(409).json({ error: 'la solicitud fue cancelada' });
+  if (result.error === 'RESOLVED') return res.status(409).json({ error: 'la votacion ya esta cerrada' });
   if (result.error === 'NOT_COOWNER') return res.status(403).json({ error: 'solo los copropietarios pueden votar' });
 
   res.json({ reservation: result.reservation });

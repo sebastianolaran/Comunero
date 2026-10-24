@@ -4,6 +4,9 @@ const prisma = require('../prisma');
 const rules = require('./asset.rules');
 const { memberOf } = require('./membership');
 const { todayInArgentina } = require('../validation/newRentalRequest');
+const { resolveHues } = require('./assetSettings.rules');
+// Modulo entero (no destructuring) para poder mockearlo en los tests.
+const settingsService = require('./assetSettings.service');
 
 const CODE_ATTEMPTS = 5;
 
@@ -33,9 +36,11 @@ function cardSelect(today) {
 }
 
 function toCard(asset, userId, today) {
+  const hues = resolveHues(asset.users.map((u) => u.id));
   return rules.toCard(
     {
       ...asset,
+      users: asset.users.map((u) => ({ ...u, hue: hues[u.id] })),
       reservations: asset.reservations.map((r) => ({
         type: r.type,
         status: r.status,
@@ -110,9 +115,46 @@ async function join({ userId, code }, db = prisma) {
 
   const alreadyMember = (await db.user.count({ where: { id: userId, ...memberOf(asset.id) } })) > 0;
   if (!alreadyMember) {
-    await db.asset.update({ where: { id: asset.id }, data: { users: { connect: { id: userId } } } });
+    // Con alguien nuevo los porcentajes ya no suman 100: el reparto vuelve a
+    // partes iguales solo, y queda en los cambios de Configuración.
+    await db.$transaction(async (tx) => {
+      await settingsService.lockAsset(tx, asset.id);
+      const before = await settingsService.percentsOf(asset.id, tx);
+      await tx.asset.update({ where: { id: asset.id }, data: { users: { connect: { id: userId } } } });
+      await settingsService.applyMembershipChange(tx, { assetId: asset.id, userId, before, reason: 'MEMBER_JOINED' });
+    }, settingsService.TX_OPTIONS);
   }
   return { asset: await cardOf(db, asset.id, userId), alreadyMember };
 }
 
-module.exports = { listForUser, create, join };
+// Irse del bien, sin votación. Lo ya cargado (movimientos, reservas pasadas)
+// queda como está. No se puede con votaciones abiertas, porque cambiaría
+// cuántos votos hacen falta a mitad de camino, ni siendo el último (el bien
+// quedaría sin nadie). Los porcentajes: como al entrar alguien, ver
+// applyMembershipChange. Devuelve {} o { error }.
+async function leave({ assetId, userId }, db = prisma) {
+  // Las pendientes vencidas se resuelven antes: no tienen que trabar la salida.
+  await require('./reservationExpiry.service').expireForAsset(assetId, new Date(), db);
+
+  return db.$transaction(async (tx) => {
+    await settingsService.lockAsset(tx, assetId);
+    const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { users: { select: { id: true } } } });
+    if (!asset) return { error: 'ASSET_NOT_FOUND' };
+    if (!asset.users.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    if (asset.users.length === 1) return { error: 'LAST_MEMBER' };
+
+    const [reservations, decisions] = await Promise.all([
+      tx.reservation.count({ where: { assetId, status: 'PENDING' } }),
+      tx.decision.count({ where: { assetId, status: 'OPEN' } }),
+    ]);
+    if (reservations + decisions > 0) return { error: 'OPEN_VOTES' };
+
+    const before = await settingsService.percentsOf(assetId, tx);
+    await tx.asset.update({ where: { id: assetId }, data: { users: { disconnect: { id: userId } } } });
+    await tx.assetMemberSetting.deleteMany({ where: { assetId, userId } });
+    await settingsService.applyMembershipChange(tx, { assetId, userId, before, reason: 'MEMBER_LEFT' });
+    return {};
+  }, settingsService.TX_OPTIONS);
+}
+
+module.exports = { listForUser, create, join, leave };

@@ -77,13 +77,25 @@ export function itemsTotal(items) {
   return items.reduce((sum, item) => sum + (parseAmount(item.amount) ?? 0), 0)
 }
 
-// Mismo reparto que el server: cada uno pone el monto dividido por la cantidad
-// de personas, redondeado para abajo, y el resto queda para quien pago o cobro.
-export function splitPreview(amountText, shareIds) {
+// Mismo reparto que el server, redondeado para abajo y con el resto para quien
+// pago o cobro. Sin porcentajes (o si ninguno de los incluidos tiene): partes
+// iguales, { each, remainder }. Con porcentajes: la parte de cada uno en
+// proporción a los de los incluidos, { parts, remainder }, en el orden de coowners.
+export function splitPreview(amountText, shareIds, coowners = []) {
   const amount = parseAmount(amountText)
   if (amount === null || shareIds.length === 0) return null
-  const each = Math.floor(amount / shareIds.length)
-  return { each, remainder: amount - each * shareIds.length }
+  const incluidos = coowners.filter((coowner) => shareIds.includes(coowner.id))
+  const total = incluidos.reduce((sum, coowner) => sum + (coowner.percent ?? 0), 0)
+  if (total === 0) {
+    const each = Math.floor(amount / shareIds.length)
+    return { each, remainder: amount - each * shareIds.length }
+  }
+  const parts = incluidos.map((coowner) => ({
+    id: coowner.id,
+    name: coowner.name,
+    amount: Math.floor((amount * (coowner.percent ?? 0)) / total),
+  }))
+  return { parts, remainder: amount - parts.reduce((sum, part) => sum + part.amount, 0) }
 }
 
 // Descripcion que se usa para un desglose si no se escribe una: los nombres de

@@ -62,7 +62,7 @@ function PeopleField({ legend, coowners, selected, onToggle, error, hint }) {
             />
             <span
               className="mov-dot"
-              style={{ background: colorDeIntegrante(coowner.id) }}
+              style={{ background: colorDeIntegrante(coowner.id, coowner.hue) }}
               aria-hidden="true"
             />
             {coowner.name}
@@ -212,7 +212,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
                   selected={item.shareIds}
                   onToggle={(id) => setItem(item.key, { shareIds: toggleId(item.shareIds, id) })}
                   error={errors[`${item.key}.shareIds`]}
-                  hint={splitHint(splitPreview(item.amount, item.shareIds), { type: draft.type, payerName: payer?.name })}
+                  hint={splitHint(splitPreview(item.amount, item.shareIds, coowners), { type: draft.type, payerName: payer?.name })}
                 />
               </div>
             )

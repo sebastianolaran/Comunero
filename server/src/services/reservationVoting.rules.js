@@ -20,4 +20,20 @@ function votingStatus({ approvals, objections, coownerCount, required }) {
   return 'PENDING';
 }
 
-module.exports = { requiredApprovals, votingStatus };
+const EXPIRED_REASON = 'Venció el plazo para responder';
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+// Una pendiente creada antes de este momento ya venció; null si el bien no
+// tiene tiempo para responder.
+function expiryLimit(responseHours, now) {
+  return responseHours == null ? null : new Date(now.getTime() - responseHours * MS_PER_HOUR);
+}
+
+// Qué pasa con una pendiente vencida: quien no votó cuenta según lo elegido en
+// Configuración. Un No ya cargado la rechaza aunque el silencio cuente como Sí.
+function expiredOutcome({ objections, action }) {
+  if (objections > 0 || action !== 'APPROVE') return 'REJECTED';
+  return 'ACTIVE';
+}
+
+module.exports = { requiredApprovals, votingStatus, EXPIRED_REASON, expiryLimit, expiredOutcome };

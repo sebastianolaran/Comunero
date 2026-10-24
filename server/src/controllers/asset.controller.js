@@ -7,6 +7,10 @@ const MAX_ID_LENGTH = 64;
 const ERRORS = {
   USER_NOT_FOUND: [404, 'No existe el usuario'],
   CODE_NOT_FOUND: [404, 'Ese código no corresponde a ningún bien'],
+  ASSET_NOT_FOUND: [404, 'No existe el bien'],
+  NOT_COOWNER: [403, 'No sos copropietario de este bien'],
+  LAST_MEMBER: [409, 'Sos el único integrante: si te vas, el bien queda sin nadie'],
+  OPEN_VOTES: [409, 'Hay reservas o decisiones esperando votos: cuando se resuelvan vas a poder salir del bien'],
 };
 
 function isId(value) {
@@ -69,4 +73,19 @@ async function join(req, res) {
   }
 }
 
-module.exports = { list, create, join };
+// POST /api/assets/:id/leave { userId } -> 204.
+async function leave(req, res) {
+  const { userId } = req.body ?? {};
+  if (!isId(userId)) return res.status(400).json({ error: 'Falta el usuario que se va' });
+
+  try {
+    const result = await assetService.leave({ assetId: req.params.id, userId });
+    if (result.error) return sendError(res, result.error);
+    res.status(204).end();
+  } catch (err) {
+    console.error('assets: fallo la salida del bien', err);
+    res.status(500).json({ error: 'No pudimos sacarte del bien. Probá de nuevo en un momento.' });
+  }
+}
+
+module.exports = { list, create, join, leave };

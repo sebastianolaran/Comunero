@@ -1,0 +1,30 @@
+/* Lo propio de Configuración. El layout del diseño (.cfg, .cfg__row, .cfg__ctl,
+   .cfg__sum…) vive en styles/system.css; acá van los tooltips, el pie de cada
+   panel, los colores y los cambios recientes, que el diseño no tenía. */
+.cfg__head { margin-bottom: 18px }
+.cfg__titulo { display: flex; align-items: center; gap: 8px; margin-bottom: 5px }
+.cfg__ayuda { position: relative; display: inline-flex }
+.cfg__pop {
+  position: absolute; top: calc(100% + 6px); left: -8px; z-index: 20; width: min(260px, calc(100vw - 32px));
+  font-size: 12px; font-weight: 400; line-height: 1.5; text-transform: none; letter-spacing: normal;
+  color: var(--ink-2); white-space: normal;
+}
+.cfg__pop[hidden] { display: none }
+.cfg__sum--mal { color: var(--neg) }
+.cfg__sel { width: 100% }
+
+.cfg__pie { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px }
+.cfg__estado { font-size: 12px; color: var(--muted); margin-right: auto }
+.cfg__error { font-size: 12px; color: var(--neg); margin-right: auto }
+
+.cfg__cambios {
+  display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0 6px 0 0; list-style: none;
+  max-height: 280px; overflow-y: auto; overscroll-behavior: contain;
+}
+.cfg__cambios:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: var(--r-sm) }
+.cfg__cambio { font-size: 13px; line-height: 1.45 }
+.cfg__cambio .meta { display: block; margin-top: 2px }
+
+@media (max-width: 520px) {
+  .cfg__row { grid-template-columns: minmax(0, 1fr) }
+}
