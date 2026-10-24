@@ -45,3 +45,11 @@ export function elegirBien(bien) {
   if (!sesion) return
   guardarSesion({ ...sesion, assetId: bien.id, assetName: bien.name, inviteCode: bien.inviteCode })
 }
+
+// Después de irse del bien: la sesión sigue, pero sin bien elegido.
+export function soltarBien() {
+  const sesion = leerSesion()
+  if (!sesion) return
+  const { assetId: _id, assetName: _nombre, inviteCode: _codigo, ...resto } = sesion
+  guardarSesion(resto)
+}

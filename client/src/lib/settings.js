@@ -46,6 +46,11 @@ export function textoCambio({ field, from, to, reason }, nombres) {
   if (field === 'percents' && reason === 'MEMBER_JOINED') {
     return `Se sumó un integrante: los porcentajes volvieron a partes iguales (eran ${textoPorcentajes(from, nombres)})`
   }
+  if (field === 'percents' && reason === 'MEMBER_LEFT') {
+    // Si el que se fue tenía 0%, los demás siguen sumando 100 y se mantienen.
+    const ahora = to == null ? 'volvieron a partes iguales' : `quedaron ${textoPorcentajes(to, nombres)}`
+    return `Se fue un integrante: los porcentajes ${ahora} (eran ${textoPorcentajes(from, nombres)})`
+  }
   if (field === 'percents') {
     return `Porcentajes: de ${textoPorcentajes(from, nombres)} a ${textoPorcentajes(to, nombres)}`
   }
@@ -63,6 +68,14 @@ const PARTES_ARGENTINA = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
   hourCycle: 'h23',
 })
+
+// userId -> nombre de los integrantes, y al final los que ya no están pero
+// aparecen en el registro (quien se fue firma su salida), para nombrarlos.
+export function nombresDelRegistro(members, changes) {
+  const nombres = Object.fromEntries(members.map((m) => [m.id, m.name]))
+  for (const { user } of changes) nombres[user.id] ??= user.name
+  return nombres
+}
 
 // "21 oct 2026, 14:05", en hora de Buenos Aires como el resto de la app.
 export function textoFechaCambio(iso) {

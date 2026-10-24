@@ -35,3 +35,22 @@ export async function updateSettings(assetId, userId, cambios) {
   }
   return body.settings
 }
+
+// Irse del bien. Sin votación; el server lo frena si hay votaciones abiertas o
+// si es el último integrante.
+export async function leaveAsset(assetId, userId) {
+  let res
+  try {
+    res = await fetch(`${API_URL}/api/assets/${encodeURIComponent(assetId)}/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+  } catch {
+    throw new Error(SIN_CONEXION)
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? 'No pudimos sacarte del bien.')
+  }
+}

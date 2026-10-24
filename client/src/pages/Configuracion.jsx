@@ -1,8 +1,18 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { assetIdActual } from '../lib/currentAsset'
+import { useNavigate } from 'react-router'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
-import { leerNumero, porcentajeIgual, sumaPorcentajes, textoCambio, textoFechaCambio } from '../lib/settings'
-import { fetchSettings, updateSettings } from '../services/settings'
+import { soltarBien } from '../lib/session'
+import {
+  leerNumero,
+  nombresDelRegistro,
+  porcentajeIgual,
+  sumaPorcentajes,
+  textoCambio,
+  textoFechaCambio,
+} from '../lib/settings'
+import { fetchSettings, leaveAsset, updateSettings } from '../services/settings'
 import './Configuracion.css'
 
 const color = (hue) => `oklch(56% 0.12 ${hue})`
@@ -334,7 +344,7 @@ function PanelReglas({ settings, onGuardado }) {
 }
 
 function PanelCambios({ settings }) {
-  const nombres = Object.fromEntries(settings.members.map((m) => [m.id, m.name]))
+  const nombres = nombresDelRegistro(settings.members, settings.changes)
   const lineas = settings.changes.flatMap((registro) =>
     registro.changes.map((cambio) => ({ registro, cambio })),
   )
@@ -354,6 +364,74 @@ function PanelCambios({ settings }) {
             </li>
           ))}
         </ul>
+      )}
+    </Panel>
+  )
+}
+
+// Lo que pasa con los porcentajes, para avisarlo antes de confirmar.
+function efectoEnPorcentajes(members, userId) {
+  const mio = members.find((m) => m.id === userId)?.percent
+  if (mio == null) return 'Los gastos se siguen repartiendo en partes iguales entre los que quedan.'
+  if (mio === 0) return 'Tu porcentaje es 0%: los de los demás quedan como están.'
+  return 'Los porcentajes de gastos dejan de sumar 100 y vuelven a partes iguales entre los que quedan.'
+}
+
+function PanelSalir({ settings }) {
+  const navigate = useNavigate()
+  const [confirmando, setConfirmando] = useState(false)
+  const [estado, setEstado] = useState({ saliendo: false, error: null })
+  const ultimo = settings.members.length === 1
+
+  async function salir() {
+    setEstado({ saliendo: true, error: null })
+    try {
+      await leaveAsset(assetIdActual(), userIdActual())
+      soltarBien()
+      navigate('/bienes', { replace: true })
+    } catch (err) {
+      setEstado({ saliendo: false, error: err.message })
+    }
+  }
+
+  return (
+    <Panel
+      titulo="Salir del bien"
+      hint={
+        ultimo
+          ? 'Sos el único integrante: no podés irte, el bien quedaría sin nadie.'
+          : 'Dejás de ser copropietario. Lo ya cargado (movimientos, reservas pasadas) queda como está.'
+      }
+      pie={
+        <div className="cfg__pie">
+          <button
+            type="button"
+            className="btn btn--sm btn--danger"
+            disabled={ultimo}
+            onClick={() => {
+              setEstado({ saliendo: false, error: null })
+              setConfirmando(true)
+            }}
+          >
+            Salir del bien
+          </button>
+        </div>
+      }
+    >
+      {confirmando && (
+        <ConfirmDialog
+          title={`¿Salir de ${assetNameActual() ?? 'este bien'}?`}
+          lines={[
+            efectoEnPorcentajes(settings.members, userIdActual()),
+            'Para volver a entrar vas a necesitar el código del bien.',
+          ]}
+          confirmLabel="Salir del bien"
+          busyLabel="Saliendo…"
+          busy={estado.saliendo}
+          error={estado.error}
+          onConfirm={salir}
+          onCancel={() => setConfirmando(false)}
+        />
       )}
     </Panel>
   )
@@ -411,6 +489,7 @@ function Configuracion() {
       <div className="cfg__col">
         <PanelReglas settings={settings} onGuardado={onGuardado} />
         <PanelCambios settings={settings} />
+        <PanelSalir settings={settings} />
       </div>
     </div>
   )
