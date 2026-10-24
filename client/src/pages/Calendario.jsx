@@ -10,6 +10,9 @@ import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Pagination from '../components/Pagination'
+import { ErrorCarga, Vacio } from '../components/ui/Estado'
+import FieldError from '../components/ui/FieldError'
+import { fmtAprobaron } from '../lib/format'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import { fetchSettings } from '../services/settings'
@@ -102,6 +105,7 @@ function Calendario() {
   const [reservas, setReservas] = useState([])
   const [peticionesPendientes, setPeticionesPendientes] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
+  const [intento, setIntento] = useState(0)
   const [diaSeleccionado, setDiaSeleccionado] = useState(null)
   const [peticionVisible, setPeticionVisible] = useState(() => leerPrevisualizacion(assetId))
   const [tareasGuardando, setTareasGuardando] = useState([])
@@ -157,7 +161,7 @@ function Calendario() {
       vivo = false
       controller.abort()
     }
-  }, [assetId, year, month, refreshKey])
+  }, [assetId, year, month, refreshKey, intento])
 
   useEffect(() => {
     if (!assetId) return
@@ -326,7 +330,7 @@ function Calendario() {
   }
 
   if (!assetId) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   const dias = diasDelMes(year, month)
@@ -369,9 +373,13 @@ function Calendario() {
         )}
 
         {estadoCarga === 'error' && (
-          <p className="note cal-error" role="alert">
-            No se pudo cargar el calendario.
-          </p>
+          <ErrorCarga
+            titulo="No se pudo cargar el calendario."
+            onReintentar={() => {
+              setEstadoCarga('loading')
+              setIntento((n) => n + 1)
+            }}
+          />
         )}
 
         <div className="cal" aria-busy={estadoCarga === 'loading'}>
@@ -475,11 +483,7 @@ function Calendario() {
                 </label>
               </div>
 
-              {formError && (
-                <p className="cal-form__err" role="alert">
-                  {formError}
-                </p>
-              )}
+              <FieldError>{formError}</FieldError>
 
               <div className="cal-form__acciones">
                 <button type="button" className="btn btn--grow btn--sm" onClick={cancelarSolicitud}>
@@ -562,14 +566,12 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
         <input type="checkbox" checked={soloMiVoto} onChange={(event) => setSoloMiVoto(event.target.checked)} />
         Solo las que me faltan votar
       </label>
-      {error && <p className="cal-form__err" role="alert">{error}</p>}
+      <FieldError>{error}</FieldError>
       {visibles.length === 0 && <p className="hint cal-pending__hint">No te falta votar ninguna.</p>}
       <ul className="cal-pending__list" role="list">
         {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
           const aceptada = yaAprobo(peticion, userId)
-          const votos = Math.max(0, (peticion.approvalCount ?? 0) - 1)
-          const total = Math.max(0, (peticion.coownerCount ?? 0) - 1)
           const { desde, hasta } = rangoPeticion(peticion)
           const nombre = peticion.user?.name ?? 'Integrante'
 
@@ -578,7 +580,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
               <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
                 <span className="cal-pending__title">
                   <strong>{nombre}{propia && ' (Tú)'}</strong>
-                  <span>{votos}/{total} votos</span>
+                  <span>{fmtAprobaron(peticion.approvalCount ?? 0, peticion.coownerCount ?? 0)}</span>
                 </span>
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
                 <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
@@ -685,11 +687,7 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
       {!pendiente && (
         <>
           <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
-          {errorTarea && (
-            <p className="cal-detail__error" role="alert">
-              {errorTarea}
-            </p>
-          )}
+          <FieldError>{errorTarea}</FieldError>
           {tareas.length === 0 ? (
             <p className="cal-detail__empty">No hay tareas de preparación.</p>
           ) : (

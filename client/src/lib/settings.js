@@ -1,6 +1,4 @@
-import { fmtMoney } from './movements.js'
-
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+import { fmtFechaHora, fmtMoney } from './format.js'
 
 const plural = (singular, varios) => (n) => `${n} ${n === 1 ? singular : varios}`
 
@@ -59,16 +57,6 @@ export function textoCambio({ field, from, to, reason }, nombres) {
   return `${label}: de ${mostrar(from)} a ${mostrar(to)}`
 }
 
-const PARTES_ARGENTINA = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/Argentina/Buenos_Aires',
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-})
-
 // userId -> nombre de los integrantes, y al final los que ya no están pero
 // aparecen en el registro (quien se fue firma su salida, o figura en porcentajes
 // viejos), para nombrarlos.
@@ -80,7 +68,4 @@ export function nombresDelRegistro(members, changes, formerNames = {}) {
 }
 
 // "21 oct 2026, 14:05", en hora de Buenos Aires como el resto de la app.
-export function textoFechaCambio(iso) {
-  const partes = Object.fromEntries(PARTES_ARGENTINA.formatToParts(new Date(iso)).map((p) => [p.type, p.value]))
-  return `${partes.day} ${MESES[partes.month - 1]} ${partes.year}, ${partes.hour}:${partes.minute}`
-}
+export const textoFechaCambio = fmtFechaHora

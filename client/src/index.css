@@ -1,20 +1,8 @@
-/* Los tokens viven en styles/system.css. Estos nombres viejos quedan como alias
-   para lo que todavía no compone las clases del sistema. */
+/* Los tokens viven en styles/system.css. */
 :root {
-  --text: var(--ink-2);
-  --text-h: var(--ink);
-  --text-muted: var(--muted);
-  --panel: var(--surface);
-  --border: var(--line);
-  --code-bg: var(--inset);
-  --accent: var(--ink);
-  --accent-bg: var(--surface);
-  --accent-border: var(--line-strong);
-
-  --heading: var(--sans);
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 400 13px/1.5 var(--sans);
+  font: 400 var(--fs-body)/1.5 var(--sans);
   font-variant-numeric: tabular-nums;
   color-scheme: light;
   color: var(--ink);
@@ -61,7 +49,6 @@ code {
 
 /* <dialog> nativo con la piel de .modal/.scrim del sistema. */
 dialog.modal {
-  width: min(392px, calc(100vw - 32px));
   border: none;
   color: var(--ink);
 }
@@ -69,12 +56,6 @@ dialog.modal {
 dialog.modal::backdrop {
   background: oklch(20% 0 0 / 38%);
   backdrop-filter: blur(2px);
-}
-
-.in[aria-invalid='true'],
-.ta[aria-invalid='true'],
-.sel[aria-invalid='true'] {
-  border-color: var(--neg);
 }
 
 /* Acción que no se deshace (eliminar). */

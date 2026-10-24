@@ -13,7 +13,8 @@ import {
   votosLabel,
 } from '../lib/rentalRequests'
 import PagoTag from './PagoTag'
-import VoteChips from './VoteChips'
+import { ChipsVoto } from './ui/Votacion'
+import FieldError from './ui/FieldError'
 
 // Acciones sobre un alquiler aprobado: las dos piden confirmar porque no se pueden deshacer.
 const ACCIONES = {
@@ -102,7 +103,7 @@ function RentalRequestDetail({
       {comments && <p className="note alq-det__bloque">{comments}</p>}
 
       <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>
-      <VoteChips votes={solicitud.votes} />
+      <ChipsVoto votes={solicitud.votes} />
 
       {(rejections.length > 0 || rejectionReason) && (
         <ul className="alq-det__objeciones">
@@ -239,11 +240,7 @@ function RentalRequestDetail({
         </div>
       )}
 
-      {envio.error && (
-        <p id={idError} className="alq-err" role="alert">
-          {envio.error}
-        </p>
-      )}
+      <FieldError id={idError}>{envio.error}</FieldError>
     </aside>
   )
 }

@@ -5,6 +5,7 @@ import { DIAS_SEMANA, nombreMes } from '../lib/calendar'
 import { LEYENDA_DEL_PANEL, celdasDelPanel, validarLogin } from '../lib/login'
 import { guardarSesion } from '../lib/session'
 import './Login.css'
+import FieldError from '../components/ui/FieldError'
 
 function PanelDelMes() {
   const { year, month } = useMemo(() => {
@@ -122,6 +123,8 @@ function Login() {
               className={`login__in${errores.email ? ' login__in--err' : ''}`}
               type="email"
               autoComplete="email"
+              aria-invalid={errores.email ? true : undefined}
+              aria-describedby={errores.email ? 'login-email-error' : undefined}
               placeholder="nombre@ejemplo.com"
               value={email}
               onChange={(ev) => {
@@ -129,7 +132,7 @@ function Login() {
                 setErrores((previos) => ({ ...previos, email: '' }))
               }}
             />
-            {errores.email && <p className="login__err">{errores.email}</p>}
+            <FieldError id="login-email-error">{errores.email}</FieldError>
           </div>
 
           <div className="login__f">
@@ -142,6 +145,8 @@ function Login() {
                 className={`login__in${errores.pass ? ' login__in--err' : ''}`}
                 type={verPass ? 'text' : 'password'}
                 autoComplete="current-password"
+                aria-invalid={errores.pass ? true : undefined}
+                aria-describedby={errores.pass ? 'login-pass-error' : undefined}
                 value={password}
                 onChange={(ev) => {
                   setPassword(ev.target.value)
@@ -162,7 +167,7 @@ function Login() {
                 </svg>
               </button>
             </span>
-            {errores.pass && <p className="login__err">{errores.pass}</p>}
+            <FieldError id="login-pass-error">{errores.pass}</FieldError>
           </div>
 
           <button type="submit" className="login__go" disabled={entrando}>

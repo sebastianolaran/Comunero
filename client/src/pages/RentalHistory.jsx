@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
 import Pagination from '../components/Pagination'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { formatMoney, formatPhone, formatRange } from '../lib/rentalRequests'
 import { assetIdActual } from '../lib/currentAsset'
 import { fetchRentalHistory } from '../lib/api'
@@ -43,31 +44,23 @@ function RentalHistory({ assetId = assetIdActual() }) {
   }
 
   if (!assetId) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   if (carga.estado === 'loading') {
     return (
-      <p className="panel empty" role="status">
-        Cargando historial de alquileres…
-      </p>
+      <Cargando>Cargando historial de alquileres…</Cargando>
     )
   }
 
   if (carga.estado === 'error') {
     return (
-      <div className="panel empty empty--rail" role="alert">
-        <p>No se pudo cargar el historial de alquileres.</p>
-        <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
-        <button type="button" className="btn btn--sm" onClick={reintentar}>
-          Reintentar
-        </button>
-      </div>
+      <ErrorCarga titulo="No se pudo cargar el historial de alquileres." onReintentar={reintentar} />
     )
   }
 
   if (carga.alquileres.length === 0) {
-    return <p className="empty">Todavía no hay alquileres terminados.</p>
+    return <Vacio panel titulo="Todavía no hay alquileres terminados." />
   }
 
   return (

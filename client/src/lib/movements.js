@@ -3,27 +3,16 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
-// Pesos enteros con punto de miles: 48000 -> "$48.000".
-export function fmtMoney(amount) {
-  const digits = String(Math.abs(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${amount < 0 ? '-' : ''}$${digits}`
-}
+import { fmtMoney, fmtSigned, fmtDiaCorto } from './format.js'
 
-export function fmtSigned(amount) {
-  if (amount > 0) return `+ ${fmtMoney(amount)}`
-  if (amount < 0) return `- ${fmtMoney(-amount)}`
-  return fmtMoney(0)
-}
+export { fmtMoney, fmtSigned }
 
 export function periodLabel(period) {
   const [year, month] = period.split('-')
   return `${MONTHS[Number(month) - 1]} ${year}`
 }
 
-export function dayLabel(day) {
-  const [, month, date] = day.split('-')
-  return `${date}/${month}`
-}
+export { fmtDiaCorto as dayLabel }
 
 // '2026-01' + (-2) -> '2025-11'.
 export function addMonths(period, count) {

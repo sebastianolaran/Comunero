@@ -7,7 +7,7 @@
   width: 100%;
   background: var(--sunken);
   color: var(--ink);
-  font: 400 13px/1.5 var(--sans);
+  font: 400 var(--fs-body)/1.5 var(--sans);
 }
 
 .login * {
@@ -22,7 +22,7 @@
 }
 
 .login__marca {
-  font-size: 17px;
+  font-size: var(--fs-title);
   font-weight: 700;
   letter-spacing: -0.014em;
 }
@@ -35,7 +35,7 @@
 }
 
 .login__t {
-  font-size: 26px;
+  font-size: var(--fs-figure);
   font-weight: 700;
   letter-spacing: -0.022em;
   line-height: 1.15;
@@ -44,7 +44,7 @@
 }
 
 .login__s {
-  font-size: 13px;
+  font-size: var(--fs-body);
   color: var(--muted);
   margin-bottom: 30px;
   text-wrap: pretty;
@@ -66,7 +66,7 @@
 
 .login__lbl {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-meta);
   font-weight: 500;
   color: var(--ink-2);
   margin-bottom: 5px;
@@ -80,7 +80,7 @@
   border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--fs-subtitle);
   font-weight: 400;
   line-height: 1.35;
   transition:
@@ -104,12 +104,6 @@
 
 .login__in--err:focus {
   box-shadow: 0 0 0 3px oklch(50% 0.16 25 / 14%);
-}
-
-.login__err {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--neg);
 }
 
 /* ---- contraseña con el ojo ---- */
@@ -172,7 +166,7 @@
   box-shadow: var(--shadow-raise);
   color: #fff;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   line-height: 1.25;
   cursor: pointer;
@@ -196,7 +190,7 @@
 }
 
 .login__foot {
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--muted);
   text-align: center;
   text-wrap: balance;
@@ -220,7 +214,7 @@
 
 .login__mes-t {
   margin-bottom: 16px;
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: #fff;
@@ -240,7 +234,7 @@
 
 .login__wd {
   padding-bottom: 4px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: oklch(62% 0 0);
   text-align: center;
@@ -254,7 +248,7 @@
   padding: 5px 6px;
   border-radius: var(--r-sm);
   background: oklch(27% 0 0);
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: oklch(62% 0 0);
 }
 
@@ -285,7 +279,7 @@
   flex-wrap: wrap;
   gap: 6px 14px;
   margin-top: 16px;
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: oklch(78% 0 0);
 }
 
@@ -303,7 +297,7 @@
 
 .login__p {
   width: min(100%, 392px);
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   line-height: 1.55;
   color: oklch(78% 0 0);
   text-wrap: pretty;

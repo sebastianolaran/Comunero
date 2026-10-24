@@ -8,7 +8,7 @@ import {
   votosLabel,
 } from '../lib/rentalRequests'
 import PagoTag from './PagoTag'
-import VoteChips from './VoteChips'
+import { ChipsVoto } from './ui/Votacion'
 
 // La tarjeta entera selecciona con el mouse; con teclado se entra por el nombre.
 const sinPropagar = (fn) => (e) => {
@@ -60,7 +60,7 @@ function RentalRequestCard({
           {comments && <p className="alq-rq__com">{comments}</p>}
           <div className="alq-rq__votos">
             <span className="meta">{votosLabel(solicitud)}</span>
-            <VoteChips votes={solicitud.votes} />
+            <ChipsVoto votes={solicitud.votes} />
           </div>
 
           {puedeVotar &&

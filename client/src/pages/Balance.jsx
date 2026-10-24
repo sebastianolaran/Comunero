@@ -1,12 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
+import FieldError from '../components/ui/FieldError'
+import Modal, { ModalAcciones } from '../components/ui/Modal'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
-// Los modales usan las clases del sistema y la composición de Movimientos.css (mov-campo, mov-money).
-import './Movimientos.css'
 import './Balance.css'
 
 // Líneas de un detalle (abierto o de un saldo cerrado), en orden de fecha.
@@ -88,28 +89,10 @@ function BalanceItem({ coowner, onSettle }) {
 
 // Primer paso de "Saldar": pago total o parcial.
 function SettleChoice({ name, onTotal, onPartial, onCancel }) {
-  const dialogo = useRef(null)
   const total = useRef(null)
-  const id = useId()
-
-  useEffect(() => {
-    dialogo.current.showModal()
-    total.current.focus()
-  }, [])
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal"
-      aria-labelledby={`${id}-titulo`}
-      onClose={onCancel}
-      onClick={(e) => {
-        if (e.target === dialogo.current) onCancel()
-      }}
-    >
-      <h2 id={`${id}-titulo`} className="modal__t">
-        Saldar deuda con {name}
-      </h2>
+    <Modal titulo={`Saldar deuda con ${name}`} subtitulo="¿Le pagaste todo lo que le debías o una parte?" foco={total} onClose={onCancel}>
       <div className="bal-choice">
         <button ref={total} type="button" className="btn btn--primary" onClick={onTotal}>
           Pago total
@@ -118,26 +101,22 @@ function SettleChoice({ name, onTotal, onPartial, onCancel }) {
           Pago parcial
         </button>
       </div>
-      <button type="button" className="btn btn--link bal-cancel" onClick={onCancel}>
-        Cancelar
-      </button>
-    </dialog>
+      <ModalAcciones>
+        <button type="button" className="btn" onClick={onCancel}>
+          Cancelar
+        </button>
+      </ModalAcciones>
+    </Modal>
   )
 }
 
 // Segundo paso del pago parcial: cuánto le pagaste. Solo pasa a confirmar si
 // el monto es mayor a $0 y menor que la deuda vigente (owed).
 function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, onCancel }) {
-  const dialogo = useRef(null)
   const campo = useRef(null)
   const id = useId()
   const [value, setValue] = useState(initialValue)
   const [error, setError] = useState(serverError)
-
-  useEffect(() => {
-    dialogo.current.showModal()
-    campo.current.focus()
-  }, [])
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -150,24 +129,13 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
   }
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal"
-      aria-labelledby={`${id}-titulo`}
-      onClose={onCancel}
-      onClick={(e) => {
-        if (e.target === dialogo.current) onCancel()
-      }}
-    >
-      <h2 id={`${id}-titulo`} className="modal__t">
-        Pago parcial a {name}
-      </h2>
+    <Modal titulo={`Pago parcial a ${name}`} foco={campo} onClose={onCancel}>
       <form onSubmit={handleSubmit} noValidate>
-        <div className="mov-campo">
+        <div className="campo">
           <label className="lbl" htmlFor={`${id}-monto`}>
             ¿Cuánto le pagaste?
           </label>
-          <div className="mov-money">
+          <div className="plata">
             <span aria-hidden="true">$</span>
             <input
               ref={campo}
@@ -187,25 +155,23 @@ function PartialAmountForm({ name, owed, initialValue, serverError, onSubmit, on
             />
           </div>
           {error ? (
-            <p id={`${id}-ayuda`} className="mov-err" role="alert">
-              {error}
-            </p>
+            <FieldError id={`${id}-ayuda`}>{error}</FieldError>
           ) : (
-            <p id={`${id}-ayuda`} className="hint mov-hint">
+            <p id={`${id}-ayuda`} className="hint campo__ayuda">
               Le debés {fmtMoney(owed)}. Tiene que ser menos: para saldar todo usá el pago total.
             </p>
           )}
         </div>
-        <div className="mov-acciones">
-          <button type="button" className="btn btn--grow" onClick={onCancel}>
+        <ModalAcciones>
+          <button type="button" className="btn" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn--grow btn--primary">
+          <button type="submit" className="btn btn--primary">
             Continuar
           </button>
-        </div>
+        </ModalAcciones>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 
@@ -336,18 +302,21 @@ function Balance() {
   }
 
   if (!configurado) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   return (
     <section className="bal">
-      {error && (
-        <p className="bal-alert" role="alert">
-          No se pudo cargar el balance: {error}
+      {error && !data && (
+        <ErrorCarga titulo="No se pudo cargar el balance." onReintentar={() => setRecarga((n) => n + 1)} />
+      )}
+      {error && data && (
+        <p className="note bal-alert" role="alert">
+          No se pudo actualizar el balance: {error}
         </p>
       )}
 
-      {!data && !error && <p className="panel empty" role="status">Cargando balance…</p>}
+      {!data && !error && <Cargando>Cargando balance…</Cargando>}
 
       {data && (
         <>
@@ -408,6 +377,7 @@ function Balance() {
                 `Le vas a seguir debiendo ${fmtMoney(settling.amount - settling.partial)}.`,
               ]}
               confirmLabel="Confirmar pago"
+              tono="positivo"
               busyLabel="Guardando…"
               busy={settling.busy}
               error={settling.error}
@@ -423,6 +393,7 @@ function Balance() {
                 'El balance entre ustedes pasa a $0 y el detalle queda guardado en Saldos cerrados.',
               ]}
               confirmLabel="Confirmar pago"
+              tono="positivo"
               busyLabel="Guardando…"
               busy={settling.busy}
               error={settling.error}

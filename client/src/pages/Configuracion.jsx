@@ -14,6 +14,7 @@ import {
 } from '../lib/settings'
 import { fetchSettings, leaveAsset, updateSettings } from '../services/settings'
 import './Configuracion.css'
+import FieldError from '../components/ui/FieldError'
 
 const color = (hue) => `oklch(56% 0.12 ${hue})`
 
@@ -116,11 +117,7 @@ function Panel({ titulo, ayuda, hint, children, pie }) {
 function Pie({ estado, onGuardar, sinCambios, children }) {
   return (
     <div className="cfg__pie">
-      {estado.error && (
-        <p className="cfg__error" role="alert">
-          {estado.error}
-        </p>
-      )}
+      <FieldError>{estado.error}</FieldError>
       {!estado.error && estado.guardado && sinCambios && (
         <p className="cfg__estado" role="status">
           Guardado

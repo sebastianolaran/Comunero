@@ -155,7 +155,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
       )}
 
       {erroresCambio.length > 0 && (
-        <ul className="alq-err prep__errores" role="alert">
+        <ul className="field-err prep__errores" role="alert">
           {erroresCambio.map((mensaje) => (
             <li key={mensaje}>{mensaje}</li>
           ))}
@@ -211,7 +211,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
           </div>
 
           {errores.length > 0 && (
-            <ul id={listaErrores} className="alq-err prep__errores" role="alert">
+            <ul id={listaErrores} className="field-err prep__errores" role="alert">
               {errores.map((mensaje) => (
                 <li key={mensaje}>{mensaje}</li>
               ))}

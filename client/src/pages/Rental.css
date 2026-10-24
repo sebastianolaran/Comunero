@@ -63,7 +63,7 @@
   align-items: center;
   gap: 8px 14px;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
@@ -86,7 +86,7 @@
 }
 
 .alq-rq__name {
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -96,7 +96,7 @@
 }
 
 .alq-rq--resuelta .alq-rq__name {
-  font-size: 13px;
+  font-size: var(--fs-body);
 }
 
 /* La tarjeta entera selecciona con el mouse; con teclado se entra por el nombre. */
@@ -124,7 +124,7 @@
 
 .alq-rq__com {
   margin-bottom: 11px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--ink-2);
 }
@@ -137,15 +137,6 @@
   margin-bottom: 11px;
 }
 
-.alq-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .alq-acciones {
   display: flex;
   gap: 6px;
@@ -155,12 +146,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
 .alq-mivoto--det {
-  font-size: 13px;
+  font-size: var(--fs-body);
 }
 
 /* ---- panel de detalle ---- */
@@ -171,7 +162,7 @@
 
 .alq-det__name {
   margin-bottom: 3px;
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -187,7 +178,7 @@
 
 .alq-det__fechas {
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   line-height: 1.6;
   color: var(--ink-2);
 }
@@ -200,7 +191,7 @@
   margin-bottom: 7px;
 }
 
-.alq-det .alq-chips {
+.alq-det .chips-voto {
   margin-bottom: 12px;
 }
 
@@ -221,7 +212,7 @@
 .alq-det__estadias {
   gap: 4px;
   margin-bottom: 16px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   color: var(--ink-2);
 }
 
@@ -233,7 +224,7 @@
 .alq-obs__meta {
   display: block;
   margin-top: 4px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--faint);
 }
 
@@ -261,39 +252,12 @@
   gap: 8px;
 }
 
-.alq-fila > .alq-campo {
+.alq-fila > .campo {
   flex: 1;
   min-width: 0;
 }
 
-.alq-campo {
-  margin-bottom: 12px;
-}
-
-.alq-campo .lbl {
-  margin-bottom: 5px;
-}
-
-.alq-campo:has(.ta) {
-  margin-bottom: 18px;
-}
-
-.alq-err {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-  color: var(--neg);
-}
-
-.alq-err--general {
-  margin: 0 0 12px;
-}
-
 /* De dónde sale el monto que se completó solo: días × precio por día. */
-.alq-sugerido {
-  margin: 4px 0 0;
-}
 
 @media (max-width: 900px) {
   .alq-split {

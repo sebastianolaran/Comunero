@@ -1,6 +1,9 @@
 import { useEffect, useId, useState } from 'react'
 import NewDecisionModal from '../components/NewDecisionModal'
 import Pagination from '../components/Pagination'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
+import FieldError from '../components/ui/FieldError'
+import Filtros from '../components/ui/Filtros'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import {
@@ -21,6 +24,9 @@ import './Decisiones.css'
 // Referencia estable: useDecisiones la usa como dependencia del efecto.
 const fetchAbiertas = (assetId, opciones) => fetchOpenDecisions(assetId, { ...opciones, userId: userIdActual() })
 
+// Las cerradas vienen con closedAt y sin createdAt.
+const fecha = (decision) => decision.closedAt ?? decision.createdAt ?? ''
+
 // Carga una lista de decisiones. `version` fuerza una recarga desde afuera.
 function useDecisiones(fetcher, assetId, version = 0) {
   const [carga, setCarga] = useState({ estado: 'loading', decisiones: [] })
@@ -32,7 +38,7 @@ function useDecisiones(fetcher, assetId, version = 0) {
 
     fetcher(assetId, { signal: controller.signal })
       .then((decisiones) => {
-        if (vivo) setCarga({ estado: 'ok', decisiones: [...decisiones].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) })
+        if (vivo) setCarga({ estado: 'ok', decisiones: [...decisiones].sort((a, b) => fecha(b).localeCompare(fecha(a))) })
       })
       .catch((err) => {
         if (vivo && err.name !== 'AbortError') setCarga({ estado: 'error', decisiones: [] })
@@ -56,25 +62,9 @@ function useDecisiones(fetcher, assetId, version = 0) {
 }
 
 function Aviso({ carga, reintentar, texto, vacio }) {
-  if (carga.estado === 'loading') {
-    return (
-      <p className="empty dec-aviso" role="status">
-        Cargando decisiones…
-      </p>
-    )
-  }
-  if (carga.estado === 'error') {
-    return (
-      <div className="note dec-aviso" role="alert">
-        <p>{texto}</p>
-        <p>Si el backend estuvo inactivo, el primer pedido puede tardar hasta un minuto.</p>
-        <button type="button" className="btn btn--sm dec-reintentar" onClick={reintentar}>
-          Reintentar
-        </button>
-      </div>
-    )
-  }
-  return <p className="empty dec-aviso">{vacio}</p>
+  if (carga.estado === 'loading') return <Cargando panel={false}>Cargando decisiones…</Cargando>
+  if (carga.estado === 'error') return <ErrorCarga panel={false} titulo={texto} onReintentar={reintentar} />
+  return <Vacio titulo={vacio} />
 }
 
 function Votacion({ decision, onVotar }) {
@@ -128,11 +118,7 @@ function Votacion({ decision, onVotar }) {
           </button>
         ))}
       </div>
-      {envio.error && (
-        <p className="dec-err" role="alert">
-          {envio.error}
-        </p>
-      )}
+      <FieldError>{envio.error}</FieldError>
     </>
   )
 }
@@ -255,19 +241,7 @@ function Historial({ assetId, version }) {
         <h2 id={idTitulo} className="sect">
           Historial de decisiones
         </h2>
-        <div className="seg" role="group" aria-label="Filtrar historial">
-          {FILTROS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              className={filtro === id ? 'seg__b seg__b--on' : 'seg__b'}
-              aria-pressed={filtro === id}
-              onClick={() => setFiltro(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <Filtros opciones={FILTROS} valor={filtro} onChange={setFiltro} etiqueta="Filtrar historial" />
       </div>
 
       {carga.estado === 'ok' && visibles.length > 0 ? (
@@ -301,7 +275,7 @@ function Decisiones({ assetId = assetIdActual() }) {
           <Historial assetId={assetId} version={versionHistorial} />
         </>
       ) : (
-        <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+        <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
       )}
     </div>
   )

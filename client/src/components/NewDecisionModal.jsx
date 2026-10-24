@@ -1,27 +1,22 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { CAMPO_DEL_SERVER, validarDecision } from '../lib/decisions'
+import FieldError from './ui/FieldError'
+import Modal, { ModalAcciones } from './ui/Modal'
 
 const VACIO = { titulo: '', monto: '' }
 
 // onCreate(decision) tiene que tirar un Error (con .field si es de un campo) si el alta falla.
 function NewDecisionModal({ abierto, onClose, onCreate }) {
-  const dialogo = useRef(null)
   const [borrador, setBorrador] = useState(VACIO)
   const [errores, setErrores] = useState({})
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const id = useId()
-  const idTitulo = `${id}-encabezado`
 
-  useEffect(() => {
-    const d = dialogo.current
-    if (abierto && !d.open) {
-      setBorrador(VACIO)
-      setErrores({})
-      setEnvio({ enviando: false, error: null })
-      d.showModal()
-    }
-    if (!abierto && d.open) d.close()
-  }, [abierto])
+  function limpiar() {
+    setBorrador(VACIO)
+    setErrores({})
+    setEnvio({ enviando: false, error: null })
+  }
 
   const cambiar = (campo) => (e) => {
     const valor = e.target.value
@@ -50,7 +45,7 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
     const idCampo = `${id}-${nombre}`
     const error = errores[nombre]
     return (
-      <div className="dec-campo">
+      <div className="campo">
         <label htmlFor={idCampo} className="lbl">
           {label}
         </label>
@@ -65,49 +60,29 @@ function NewDecisionModal({ abierto, onClose, onCreate }) {
           aria-describedby={error ? `${idCampo}-error` : undefined}
           {...props}
         />
-        {error && (
-          <p id={`${idCampo}-error`} className="dec-err">
-            {error}
-          </p>
-        )}
+        <FieldError id={`${idCampo}-error`}>{error}</FieldError>
       </div>
     )
   }
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal"
-      aria-labelledby={idTitulo}
-      onClose={onClose}
-      onClick={(e) => {
-        if (e.target === dialogo.current) onClose()
-      }}
-    >
+    <Modal abierto={abierto} titulo="Nueva decisión" onAbrir={limpiar} onClose={onClose}>
       <form onSubmit={enviar} noValidate>
-        <h2 id={idTitulo} className="modal__t">
-          Nueva decisión
-        </h2>
-
         {campo('titulo', 'Título', { placeholder: 'Ej: Cambiar el calefón', maxLength: 150 })}
         {campo('monto', 'Monto estimado (opcional)', { inputMode: 'numeric', placeholder: '0', maxLength: 20 })}
 
-        {envio.error && (
-          <p className="dec-err dec-campo" role="alert">
-            {envio.error}
-          </p>
-        )}
+        <FieldError>{envio.error}</FieldError>
 
-        <div className="dec-acciones">
-          <button type="button" className="btn btn--grow" onClick={onClose}>
+        <ModalAcciones>
+          <button type="button" className="btn" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn--grow btn--primary" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--primary" disabled={envio.enviando}>
             {envio.enviando ? 'Creando…' : 'Crear'}
           </button>
-        </div>
+        </ModalAcciones>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 

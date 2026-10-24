@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import RentalPreparationCard from '../components/RentalPreparationCard'
 import Pagination from '../components/Pagination'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { assetIdActual } from '../lib/currentAsset'
 import { actualizarTarea, agregarTarea, quitarTarea } from '../lib/rentalPreparations'
 import { fetchRentalPreparations } from '../services/rentalPreparation'
@@ -58,31 +59,23 @@ function RentalPreparations({ assetId = assetIdActual() }) {
   }
 
   if (!assetId) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   if (carga.estado === 'loading') {
     return (
-      <p className="panel empty" role="status">
-        Cargando tareas de preparación…
-      </p>
+      <Cargando>Cargando tareas de preparación…</Cargando>
     )
   }
 
   if (carga.estado === 'error') {
     return (
-      <div className="panel empty empty--rail" role="alert">
-        <p>No se pudieron cargar las tareas de preparación.</p>
-        <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
-        <button type="button" className="btn btn--sm" onClick={reintentar}>
-          Reintentar
-        </button>
-      </div>
+      <ErrorCarga titulo="No se pudieron cargar las tareas de preparación." onReintentar={reintentar} />
     )
   }
 
   if (carga.alquileres.length === 0) {
-    return <p className="empty">Todavía no hay alquileres aprobados.</p>
+    return <Vacio panel titulo="Todavía no hay alquileres aprobados." />
   }
 
   return (

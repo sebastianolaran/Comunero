@@ -4,6 +4,7 @@ import AssetCard from '../components/AssetCard'
 import Icono from '../components/Iconos'
 import JoinAssetModal from '../components/JoinAssetModal'
 import NewAssetModal from '../components/NewAssetModal'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { iniciales } from '../lib/assets'
 import { cerrarSesion, elegirBien, leerSesion } from '../lib/session'
 import { createAsset, fetchAssets, joinAsset } from '../services/asset'
@@ -80,28 +81,18 @@ function MisBienes() {
         </div>
 
         {carga.estado === 'cargando' && carga.bienes.length === 0 && (
-          <p className="empty" role="status">
-            Cargando tus bienes…
-          </p>
+          <Cargando panel={false}>Cargando tus bienes…</Cargando>
         )}
 
         {carga.estado === 'error' && (
-          <div className="panel bienes__vacio" role="alert">
-            <p>{carga.error}</p>
-            <button type="button" className="btn btn--sm" onClick={() => setIntento((n) => n + 1)}>
-              Reintentar
-            </button>
-          </div>
+          <ErrorCarga titulo={carga.error} onReintentar={() => setIntento((n) => n + 1)} />
         )}
 
         {carga.estado === 'listo' && carga.bienes.length === 0 && (
-          <div className="panel bienes__vacio">
-            <p className="bienes__vacio-t">Todavía no estás en ningún bien.</p>
-            <p className="empty">
-              Si sos el primero del grupo, crealo y pasales el código a los demás. Si ya lo creó otro, pedile el
-              código y sumate.
-            </p>
-          </div>
+          <Vacio panel titulo="Todavía no estás en ningún bien.">
+            Si sos el primero del grupo, crealo y pasales el código a los demás. Si ya lo creó otro, pedile el código
+            y sumate.
+          </Vacio>
         )}
 
         {carga.bienes.length > 0 && (

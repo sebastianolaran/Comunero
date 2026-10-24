@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import MovementModal from '../components/MovementModal'
 import MovementsTable from '../components/MovementsTable'
 import Pagination from '../components/Pagination'
@@ -83,7 +84,8 @@ function Movimientos() {
       .then(setCoowners)
       .catch((err) => !controlador.signal.aborted && setError(err.message))
     return () => controlador.abort()
-  }, [quien, configurado])
+    // Reintentar (version) también vuelve a pedir a los integrantes.
+  }, [quien, configurado, version])
 
   useEffect(() => {
     if (!configurado) return undefined
@@ -152,7 +154,7 @@ function Movimientos() {
   }
 
   if (!configurado) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   const ready = coowners && periods && data
@@ -161,17 +163,17 @@ function Movimientos() {
 
   return (
     <section>
-      {error && (
+      {error && ready && (
         <p className="note mov-alert" role="alert">
           {error}
         </p>
       )}
 
       {!ready ? (
-        !error && (
-          <p className="panel empty" role="status">
-            Cargando movimientos… Si el backend estuvo inactivo, el primer pedido puede tardar hasta un minuto.
-          </p>
+        error ? (
+          <ErrorCarga titulo="No se pudieron cargar los movimientos." onReintentar={reload} />
+        ) : (
+          <Cargando>Cargando movimientos…</Cargando>
         )
       ) : (
         <>

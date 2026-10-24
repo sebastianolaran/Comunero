@@ -1,11 +1,12 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { MAX_NOMBRE_BIEN, validarNombreBien } from '../lib/assets'
 import { useCopiado } from '../lib/useCopiado'
 import Icono from './Iconos'
+import FieldError from './ui/FieldError'
+import Modal, { ModalAcciones } from './ui/Modal'
 
 // Dos pasos en el mismo diálogo: el nombre y, ya creado, el código.
 function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
-  const dialogo = useRef(null)
   const [nombre, setNombre] = useState('')
   const [error, setError] = useState(null)
   const [enviando, setEnviando] = useState(false)
@@ -13,17 +14,12 @@ function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
   const { copiado, copiar } = useCopiado()
   const id = useId()
 
-  useEffect(() => {
-    const d = dialogo.current
-    if (abierto && !d.open) {
-      setNombre('')
-      setError(null)
-      setEnviando(false)
-      setCreado(null)
-      d.showModal()
-    }
-    if (!abierto && d.open) d.close()
-  }, [abierto])
+  function limpiar() {
+    setNombre('')
+    setError(null)
+    setEnviando(false)
+    setCreado(null)
+  }
 
   async function enviar(e) {
     e.preventDefault()
@@ -44,26 +40,20 @@ function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
   }
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal bienes-modal"
-      aria-labelledby={`${id}-t`}
+    <Modal
+      abierto={abierto}
+      icono={creado && <Icono nombre="check" />}
+      titulo={creado ? `Creaste “${creado.name}”` : 'Nuevo bien compartido'}
+      subtitulo={
+        creado
+          ? 'Pasales este código a tus amigos. Con él, desde “Unirme con código”, se suman al bien.'
+          : 'Ponele un nombre que el grupo reconozca. Después te damos un código para que se sumen.'
+      }
+      onAbrir={limpiar}
       onClose={onClose}
-      onClick={(e) => {
-        if (e.target === dialogo.current) onClose()
-      }}
     >
       {creado ? (
-        <div className="bienes-ok">
-          <span className="bienes-ok__i" aria-hidden="true">
-            <Icono nombre="check" />
-          </span>
-          <h2 id={`${id}-t`} className="bienes-modal__t">
-            Creaste “{creado.name}”
-          </h2>
-          <p className="bienes-modal__s">
-            Pasales este código a tus amigos. Con él, desde “Unirme con código”, se suman al bien.
-          </p>
+        <>
           <div className="bienes-codigo">
             <output className="bienes-codigo__v" aria-label="Código del bien">
               {creado.inviteCode}
@@ -73,54 +63,48 @@ function NewAssetModal({ abierto, onClose, onCreate, onIr }) {
               {copiado ? 'Copiado' : 'Copiar'}
             </button>
           </div>
-          <p className="bienes-modal__nota">
+          <p className="hint bienes-modal__nota">
             Lo vas a tener siempre en el menú del bien, debajo del nombre, por si se suma alguien más.
           </p>
-          <button type="button" className="btn btn--block bienes-ok__ir" onClick={() => onIr(creado)}>
-            Ir al calendario
-          </button>
-        </div>
+          <ModalAcciones>
+            <button type="button" className="btn" onClick={() => onIr(creado)}>
+              Ir al calendario
+            </button>
+          </ModalAcciones>
+        </>
       ) : (
         <form onSubmit={enviar} noValidate>
-          <h2 id={`${id}-t`} className="bienes-modal__t">
-            Nuevo bien compartido
-          </h2>
-          <p className="bienes-modal__s">
-            Ponele un nombre que el grupo reconozca. Después te damos un código para que se sumen.
-          </p>
-          <label htmlFor={`${id}-nombre`} className="bienes-lbl">
-            Nombre del bien
-          </label>
-          <input
-            id={`${id}-nombre`}
-            className="in bienes-in"
-            autoComplete="off"
-            placeholder="Ej: Casa quinta, Lancha, Depto en la costa"
-            maxLength={MAX_NOMBRE_BIEN + 20}
-            value={nombre}
-            onChange={(e) => {
-              setNombre(e.target.value)
-              setError(null)
-            }}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${id}-error` : undefined}
-          />
-          {error && (
-            <p id={`${id}-error`} className="bienes-err" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="bienes-acciones">
+          <div className="campo">
+            <label htmlFor={`${id}-nombre`} className="lbl">
+              Nombre del bien
+            </label>
+            <input
+              id={`${id}-nombre`}
+              className="in"
+              autoComplete="off"
+              placeholder="Ej: Casa quinta, Lancha, Depto en la costa"
+              maxLength={MAX_NOMBRE_BIEN + 20}
+              value={nombre}
+              onChange={(e) => {
+                setNombre(e.target.value)
+                setError(null)
+              }}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${id}-error` : undefined}
+            />
+            <FieldError id={`${id}-error`}>{error}</FieldError>
+          </div>
+          <ModalAcciones>
             <button type="button" className="btn" onClick={onClose}>
               Cancelar
             </button>
             <button type="submit" className="btn btn--primary" disabled={enviando}>
               {enviando ? 'Creando…' : 'Crear bien'}
             </button>
-          </div>
+          </ModalAcciones>
         </form>
       )}
-    </dialog>
+    </Modal>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import TenantDetail from '../components/TenantDetail'
 import Pagination from '../components/Pagination'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { formatPhone } from '../lib/rentalRequests'
@@ -59,7 +60,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
   }
 
   if (!assetId) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   return (
@@ -79,19 +80,11 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
         />
 
         {carga.estado === 'loading' && (
-          <p className="panel empty" role="status">
-            Cargando inquilinos…
-          </p>
+          <Cargando>Cargando inquilinos…</Cargando>
         )}
 
         {carga.estado === 'error' && (
-          <div className="panel empty empty--rail" role="alert">
-            <p>No se pudo cargar el historial de inquilinos.</p>
-            <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
-            <button type="button" className="btn btn--sm" onClick={reintentar}>
-              Reintentar
-            </button>
-          </div>
+          <ErrorCarga titulo="No se pudo cargar el historial de inquilinos." onReintentar={reintentar} />
         )}
 
         {carga.estado === 'ok' && carga.inquilinos.length === 0 && (

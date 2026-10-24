@@ -1,4 +1,5 @@
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+import { fmtAprobaron, fmtMoney, fmtRango } from './format.js'
+
 const MS_POR_DIA = 24 * 60 * 60 * 1000
 
 // No ordena: el server ya las manda de la más reciente a la más antigua.
@@ -27,7 +28,7 @@ export function motivoRechazo(reason) {
 }
 
 export function votosLabel({ yesCount, coownerCount }) {
-  return `${yesCount}/${coownerCount} aprobaron`
+  return fmtAprobaron(yesCount, coownerCount)
 }
 
 const CHIPS = {
@@ -42,7 +43,7 @@ export function chipVoto({ name, value }) {
 }
 
 export function formatMoney(monto) {
-  return monto == null ? null : `$${monto.toLocaleString('es-AR')}`
+  return monto == null ? null : fmtMoney(monto)
 }
 
 // El server guarda solo dígitos con código de país (5491155551234).
@@ -51,19 +52,7 @@ export function formatPhone(phone) {
   return caba ? `11 ${caba[1]}-${caba[2]}` : phone
 }
 
-// Las fechas se parsean a mano para que la zona horaria local no corra el día.
-function corto(fecha) {
-  const [, mes, dia] = fecha.split('-').map(Number)
-  return `${dia} ${MESES[mes - 1]}`
-}
-
-export function formatRange(desde, hasta = desde) {
-  const anioDesde = desde.slice(0, 4)
-  const anioHasta = hasta.slice(0, 4)
-  if (desde === hasta) return `${corto(desde)} ${anioHasta}`
-  if (anioDesde !== anioHasta) return `${corto(desde)} ${anioDesde} – ${corto(hasta)} ${anioHasta}`
-  return `${corto(desde)} – ${corto(hasta)} ${anioHasta}`
-}
+export { fmtRango as formatRange }
 
 function utc(fecha) {
   const [anio, mes, dia] = fecha.split('-').map(Number)

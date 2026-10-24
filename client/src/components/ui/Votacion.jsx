@@ -1,11 +1,12 @@
-import { chipVoto } from '../lib/rentalRequests'
+import { chipVoto } from '../../lib/rentalRequests'
 
 const CLASE_CHIP = { aprobo: 'chip chip--yes', rechazo: 'chip chip--no', pendiente: 'chip chip--none' }
 
-// El ícono del chip (tilde, cruz o punto) es decorativo: el voto se lee en el texto oculto.
-function VoteChips({ votes }) {
+// Quién votó y quién falta. El ícono del chip (tilde, cruz o punto) es
+// decorativo: el voto se lee en el texto oculto.
+export function ChipsVoto({ votes }) {
   return (
-    <ul className="alq-chips">
+    <ul className="chips-voto">
       {votes.map((v) => {
         const { descripcion, variante } = chipVoto(v)
         return (
@@ -18,5 +19,3 @@ function VoteChips({ votes }) {
     </ul>
   )
 }
-
-export default VoteChips

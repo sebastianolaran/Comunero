@@ -1,45 +1,29 @@
 /* Balance sobre los tokens de styles/system.css. Verde y rojo se reservan para
    lo que te deben y lo que debés. */
 .bal {
-  --bal-surface: var(--surface);
-  --bal-strong: var(--ink);
-  --bal-text: var(--ink-2);
-  --bal-muted: var(--muted);
-  --bal-line: var(--line);
-  --bal-line-soft: var(--line-soft);
-  --bal-soft: var(--inset);
-  --bal-pos: var(--pos);
-  --bal-neg: var(--neg);
-  --bal-neg-soft: oklch(96% 0.02 25);
-
-  color: var(--bal-text);
+  color: var(--ink-2);
 }
 
 .bal-loading,
 .bal-empty {
-  font-size: 13.5px;
-  color: var(--bal-muted);
+  font-size: var(--fs-body);
+  color: var(--muted);
 }
 
 .bal-alert {
   margin-bottom: 16px;
-  padding: 10px 12px;
-  font-size: 13.5px;
-  border-radius: 3px;
-  background: var(--bal-neg-soft);
-  color: var(--bal-neg);
 }
 
 .bal-tone-pos {
-  color: var(--bal-pos);
+  color: var(--pos);
 }
 
 .bal-tone-neg {
-  color: var(--bal-neg);
+  color: var(--neg);
 }
 
 .bal-tone-muted {
-  color: var(--bal-muted);
+  color: var(--muted);
 }
 
 /* Neto */
@@ -49,23 +33,23 @@
 }
 
 .bal-summary-label {
-  font-size: 11.5px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--bal-muted);
+  color: var(--muted);
 }
 
 .bal-net {
-  font-size: 24px;
+  font-size: var(--fs-figure);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .bal-sub {
   margin-top: 2px;
-  font-size: 12.5px;
-  color: var(--bal-muted);
+  font-size: var(--fs-body);
+  color: var(--muted);
 }
 
 /* Lista de copropietarios */
@@ -74,13 +58,13 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--bal-line);
+  border: 1px solid var(--line);
   border-radius: var(--r-md);
-  background: var(--bal-surface);
+  background: var(--surface);
 }
 
 .bal-item + .bal-item {
-  border-top: 1px solid var(--bal-line);
+  border-top: 1px solid var(--line);
 }
 
 .bal-row {
@@ -108,13 +92,13 @@
 
 .bal-caret {
   width: 12px;
-  color: var(--bal-muted);
+  color: var(--muted);
 }
 
 .bal-name {
-  font-size: 14.5px;
+  font-size: var(--fs-subtitle);
   font-weight: 500;
-  color: var(--bal-strong);
+  color: var(--ink);
 }
 
 .bal-tag-rental {
@@ -135,14 +119,14 @@
 }
 
 .bal-amount {
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .bal-status {
-  font-size: 12px;
-  color: var(--bal-muted);
+  font-size: var(--fs-meta);
+  color: var(--muted);
 }
 
 
@@ -154,8 +138,8 @@
 
 .bal-since {
   margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--bal-muted);
+  font-size: var(--fs-meta);
+  color: var(--muted);
 }
 
 .bal-entries {
@@ -170,13 +154,13 @@
   gap: 12px;
   align-items: baseline;
   padding: 8px 0;
-  border-top: 1px solid var(--bal-line-soft);
-  font-size: 13.5px;
+  border-top: 1px solid var(--line-soft);
+  font-size: var(--fs-body);
 }
 
 .bal-entry-date {
   font-variant-numeric: tabular-nums;
-  color: var(--bal-muted);
+  color: var(--muted);
 }
 
 .bal-entry-desc {
@@ -186,12 +170,12 @@
 }
 
 .bal-entry-title {
-  color: var(--bal-strong);
+  color: var(--ink);
 }
 
 .bal-entry-who {
-  font-size: 12px;
-  color: var(--bal-muted);
+  font-size: var(--fs-meta);
+  color: var(--muted);
 }
 
 .bal-entry-amount {
@@ -223,16 +207,16 @@
 
 .bal-section-title {
   margin: 28px 0 10px;
-  font-size: 11.5px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--bal-muted);
+  color: var(--muted);
 }
 
 .bal-closed-date {
-  font-size: 12px;
-  color: var(--bal-muted);
+  font-size: var(--fs-meta);
+  color: var(--muted);
 }
 
 /* Modal de Saldar: pago total / parcial */
@@ -243,7 +227,3 @@
   gap: 8px;
 }
 
-.bal-cancel {
-  display: block;
-  margin: 16px auto 0;
-}

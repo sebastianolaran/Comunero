@@ -4,6 +4,7 @@ import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
 import Pagination from '../components/Pagination'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { agrupar, validarVoto } from '../lib/rentalRequests'
@@ -145,26 +146,18 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   const paginaResueltas = usePaginacion(resueltasOrdenadas, 'resueltas')
 
   if (!assetId) {
-    return <p className="panel empty">No encontramos tu sesión. Volvé a entrar.</p>
+    return <Vacio panel titulo="No encontramos tu sesión.">Volvé a entrar.</Vacio>
   }
 
   if (carga.estado === 'loading') {
     return (
-      <p className="panel empty" role="status">
-        Cargando solicitudes…
-      </p>
+      <Cargando>Cargando solicitudes…</Cargando>
     )
   }
 
   if (carga.estado === 'error') {
     return (
-      <div className="panel empty empty--rail" role="alert">
-        <p>No se pudieron cargar las solicitudes.</p>
-        <p className="hint">Si el backend estuvo inactivo, el primer request puede tardar ~30–50 s.</p>
-        <button type="button" className="btn btn--sm" onClick={reintentar}>
-          Reintentar
-        </button>
-      </div>
+      <ErrorCarga titulo="No se pudieron cargar las solicitudes." onReintentar={reintentar} />
     )
   }
 
@@ -190,7 +183,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     return (
       <>
         {cabecera}
-        <p className="panel empty">Todavía no hay solicitudes de alquiler para este bien.</p>
+        <Vacio panel titulo="Todavía no hay solicitudes de alquiler para este bien." />
       </>
     )
   }

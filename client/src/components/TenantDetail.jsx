@@ -9,6 +9,8 @@ import {
   validarObservacion,
 } from '../lib/tenants'
 import { commentTenant, fetchTenant, rateTenant } from '../services/tenant'
+import { Cargando, ErrorCarga } from './ui/Estado'
+import FieldError from './ui/FieldError'
 
 // Se monta con key={tenantId}: cada inquilino arranca con estado limpio.
 function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
@@ -65,9 +67,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
   if (carga.estado === 'loading') {
     return (
       <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label="Detalle del inquilino">
-        <p className="empty" role="status">
-          Cargando inquilino…
-        </p>
+        <Cargando panel={false}>Cargando inquilino…</Cargando>
       </aside>
     )
   }
@@ -75,9 +75,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
   if (carga.estado === 'error') {
     return (
       <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label="Detalle del inquilino">
-        <p className="empty" role="alert">
-          No se pudo cargar el inquilino.
-        </p>
+        <ErrorCarga panel={false} titulo="No se pudo cargar el inquilino." />
       </aside>
     )
   }
@@ -104,11 +102,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
           </button>
         ))}
       </div>
-      {clasificando.error && (
-        <p className="alq-err alq-det__bloque" role="alert">
-          {clasificando.error}
-        </p>
-      )}
+      <FieldError>{clasificando.error}</FieldError>
 
       {stays.length > 0 && (
         <>
@@ -155,11 +149,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
             value={borrador}
             onChange={(e) => setBorrador(e.target.value)}
           />
-          {envio.error && (
-            <p id={idError} className="alq-err alq-det__bloque" role="alert">
-              {envio.error}
-            </p>
-          )}
+          <FieldError id={idError}>{envio.error}</FieldError>
           <button type="submit" className="btn btn--block btn--primary" disabled={envio.enviando}>
             Agregar observación
           </button>

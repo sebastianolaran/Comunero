@@ -22,7 +22,7 @@
 
 .prep__name {
   margin-bottom: 2px;
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
 }
 

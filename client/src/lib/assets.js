@@ -1,4 +1,4 @@
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+import { MESES_CORTOS as MESES } from './format.js'
 
 // Mismo tope que el server (asset.rules.js).
 export const MAX_NOMBRE_BIEN = 60

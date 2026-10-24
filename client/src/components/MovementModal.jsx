@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { colorDeIntegrante } from '../lib/calendar'
 import {
   MAX_DESCRIPTION,
@@ -15,6 +15,8 @@ import {
 } from '../lib/movementDraft'
 import { fmtMoney, splitHint } from '../lib/movements'
 import * as movementService from '../services/movement'
+import FieldError from './ui/FieldError'
+import Modal, { ModalAcciones } from './ui/Modal'
 
 const LABELS = {
   EXPENSE: {
@@ -35,20 +37,20 @@ const LABELS = {
 
 function Field({ label, htmlFor, error, hint, children }) {
   return (
-    <div className="mov-campo">
+    <div className="campo">
       <label className="lbl" htmlFor={htmlFor}>
         {label}
       </label>
       {children}
-      {hint && !error && <p className="hint mov-hint">{hint}</p>}
-      {error && <p className="mov-err">{error}</p>}
+      {hint && !error && <p className="hint campo__ayuda">{hint}</p>}
+      <FieldError>{error}</FieldError>
     </div>
   )
 }
 
 function PeopleField({ legend, coowners, selected, onToggle, error, hint }) {
   return (
-    <fieldset className="mov-campo mov-personas">
+    <fieldset className="campo mov-personas">
       <legend className="lbl">{legend}</legend>
       <div>
         {coowners.map((coowner) => (
@@ -67,16 +69,14 @@ function PeopleField({ legend, coowners, selected, onToggle, error, hint }) {
           </label>
         ))}
       </div>
-      {hint && !error && <p className="hint mov-hint">{hint}</p>}
-      {error && <p className="mov-err">{error}</p>}
+      {hint && !error && <p className="hint campo__ayuda">{hint}</p>}
+      <FieldError>{error}</FieldError>
     </fieldset>
   )
 }
 
-// Se monta ya abierto. Escape y el clic afuera lo cierran sin guardar, igual
-// que el modal de Alquiler.
+// Se monta ya abierto. Escape y el clic afuera lo cierran sin guardar.
 function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, onSaved }) {
-  const dialogo = useRef(null)
   const [draft, setDraft] = useState(initialDraft)
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -91,10 +91,6 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
   const labels = LABELS[draft.type]
   const payer = coowners.find((coowner) => coowner.id === draft.paidById)
   const multi = draft.items.length > 1
-
-  useEffect(() => {
-    dialogo.current.showModal()
-  }, [])
 
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }))
   const setItem = (key, patch) => setDraft((d) => updateItem(d, key, patch))
@@ -119,21 +115,10 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
   }
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal mov-modal"
-      aria-labelledby={`${uid}-title`}
-      onClose={onCancel}
-      onClick={(event) => {
-        if (event.target === dialogo.current) onCancel()
-      }}
-    >
+    <Modal titulo={isEdit ? 'Editar movimiento' : 'Nuevo movimiento'} onClose={onCancel}>
       <form onSubmit={handleSubmit} noValidate>
-        <h2 id={`${uid}-title`} className="modal__t">
-          {isEdit ? 'Editar movimiento' : 'Nuevo movimiento'}
-        </h2>
 
-        <div className="seg seg--grow mov-campo" role="group" aria-label="Tipo de movimiento">
+        <div className="seg seg--grow campo" role="group" aria-label="Tipo de movimiento">
           <button
             type="button"
             className={draft.type === 'EXPENSE' ? 'seg__b seg__b--on' : 'seg__b'}
@@ -170,7 +155,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
                     autoFocus={!isEdit && index === 0}
                     onChange={(event) => setItem(item.key, { description: event.target.value })}
                   />
-                  <div className="mov-money">
+                  <div className="plata">
                     <span aria-hidden="true">$</span>
                     <input
                       className="in in--num"
@@ -195,8 +180,8 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
                     </svg>
                   </button>
                 </div>
-                {descriptionError && <p className="mov-err">{descriptionError}</p>}
-                {amountError && <p className="mov-err">{amountError}</p>}
+                <FieldError>{descriptionError}</FieldError>
+                <FieldError>{amountError}</FieldError>
                 <PeopleField
                   legend={multi ? `Dividir entre (${labels.one} ${n})` : 'Dividir entre'}
                   coowners={coowners}
@@ -208,7 +193,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
               </div>
             )
           })}
-          <button type="button" className="btn btn--dash btn--sm mov-campo" onClick={() => setDraft(addItem)}>
+          <button type="button" className="btn btn--dash btn--sm campo" onClick={() => setDraft(addItem)}>
             {labels.add}
           </button>
         </div>
@@ -217,7 +202,7 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           <span>Monto total</span>
           <strong aria-live="polite">{fmtMoney(itemsTotal(draft.items))}</strong>
         </div>
-        {errors.total && <p className="mov-err mov-campo">{errors.total}</p>}
+        <FieldError>{errors.total}</FieldError>
 
         {multi && (
           <Field
@@ -266,22 +251,18 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
           </Field>
         </div>
 
-        {(serverError || hasErrors) && (
-          <p className="mov-err mov-campo" role="alert">
-            {serverError ?? 'Revisá los campos marcados: son obligatorios.'}
-          </p>
-        )}
+        <FieldError>{serverError ?? (hasErrors ? 'Revisá los campos marcados: son obligatorios.' : null)}</FieldError>
 
-        <div className="mov-acciones">
-          <button type="button" className="btn btn--grow" onClick={onCancel}>
+        <ModalAcciones>
+          <button type="button" className="btn" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn--grow btn--primary" disabled={saving}>
+          <button type="submit" className="btn btn--primary" disabled={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
-        </div>
+        </ModalAcciones>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 

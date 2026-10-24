@@ -1,3 +1,4 @@
+import { fmtAprobaron, fmtDiaDeInstante } from './format.js'
 import { formatMoney } from './rentalRequests.js'
 
 export const ESTADOS = { OPEN: 'En votación', APPROVED: 'Aprobada', REJECTED: 'Rechazada' }
@@ -21,8 +22,7 @@ export function textoMonto(estimado) {
 
 // Sin votesNeeded (propuestas cerradas antes de guardarlo) no hay denominador.
 export function textoVotos({ yesVotes, votesNeeded }) {
-  if (votesNeeded == null) return `${yesVotes} ${yesVotes === 1 ? 'voto' : 'votos'} a favor`
-  return `${yesVotes}/${votesNeeded} votos a favor`
+  return fmtAprobaron(yesVotes, votesNeeded)
 }
 
 const MONTO = /^-?\d+$/
@@ -55,16 +55,8 @@ export function validarDecision({ titulo, monto }) {
 // El server marca el campo con el nombre del body; el form usa los suyos.
 export const CAMPO_DEL_SERVER = { title: 'titulo', estimatedAmount: 'monto' }
 
-// Mismo día que ve el grupo (Buenos Aires), aunque el dispositivo esté en otra zona.
-const FECHA = new Intl.DateTimeFormat('es-AR', {
-  timeZone: 'America/Argentina/Buenos_Aires',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-})
-
 export function textoFecha(createdAt) {
-  return `Propuesta el ${FECHA.format(new Date(createdAt))}`
+  return `Propuesta el ${fmtDiaDeInstante(createdAt)}`
 }
 
 const VOTOS = { YES: 'Sí', NO: 'No' }

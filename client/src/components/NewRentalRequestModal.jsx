@@ -1,21 +1,19 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { CAMPO_DEL_SERVER, hoyLocal, montoSugerido, validarSolicitud } from '../lib/rentalRequests'
+import FieldError from './ui/FieldError'
+import Modal, { ModalAcciones } from './ui/Modal'
 
 // Como en el prototipo, las fechas arrancan en hoy.
 const vacio = (hoy) => ({ nombre: '', apellido: '', telefono: '', desde: hoy, hasta: hoy, monto: '', comentarios: '' })
 
 function Campo({ id, label, error, className = '', children }) {
   return (
-    <div className={`alq-campo ${className}`}>
+    <div className={`campo ${className}`}>
       <label htmlFor={id} className="lbl">
         {label}
       </label>
       {children}
-      {error && (
-        <p id={`${id}-error`} className="alq-err">
-          {error}
-        </p>
-      )}
+      <FieldError id={`${id}-error`}>{error}</FieldError>
     </div>
   )
 }
@@ -25,25 +23,18 @@ function Campo({ id, label, error, className = '', children }) {
 // precioPorDia: el de Configuración. Mientras no se escriba el monto a mano, se
 // muestra días × precio; escribirlo corta esa cuenta.
 function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose, onCreate }) {
-  const dialogo = useRef(null)
   const [borrador, setBorrador] = useState(() => ({ ...vacio(hoyLocal()), ...inicial }))
   const [errores, setErrores] = useState({})
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const [montoTocado, setMontoTocado] = useState(false)
   const id = useId()
-  const idTitulo = `${id}-titulo`
 
-  useEffect(() => {
-    const d = dialogo.current
-    if (abierto && !d.open) {
-      setBorrador({ ...vacio(hoyLocal()), ...inicial })
-      setMontoTocado(false)
-      setErrores({})
-      setEnvio({ enviando: false, error: null })
-      d.showModal()
-    }
-    if (!abierto && d.open) d.close()
-  }, [abierto, inicial])
+  function limpiar() {
+    setBorrador({ ...vacio(hoyLocal()), ...inicial })
+    setMontoTocado(false)
+    setErrores({})
+    setEnvio({ enviando: false, error: null })
+  }
 
   const sugerido = montoTocado ? null : montoSugerido(borrador.desde, borrador.hasta, precioPorDia)
   const monto = sugerido ? sugerido.texto : borrador.monto
@@ -83,19 +74,8 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
   })
 
   return (
-    <dialog
-      ref={dialogo}
-      className="modal"
-      aria-labelledby={idTitulo}
-      onClose={onClose}
-      onClick={(e) => {
-        if (e.target === dialogo.current) onClose()
-      }}
-    >
+    <Modal abierto={abierto} titulo="Nueva solicitud de alquiler" onAbrir={limpiar} onClose={onClose}>
       <form onSubmit={enviar} noValidate>
-        <h2 id={idTitulo} className="modal__t">
-          Nueva solicitud de alquiler
-        </h2>
 
         <div className="alq-fila">
           <Campo id={`${id}-nombre`} label="Nombre" error={errores.nombre}>
@@ -128,7 +108,7 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
 
         <Campo id={`${id}-monto`} label="Monto" error={errores.monto}>
           <input className="in" inputMode="numeric" placeholder="0" {...input('monto', { value: monto })} />
-          {sugerido && !errores.monto && <p className="hint alq-sugerido">{sugerido.detalle}</p>}
+          {sugerido && !errores.monto && <p className="hint campo__ayuda">{sugerido.detalle}</p>}
         </Campo>
 
         <Campo id={`${id}-comentarios`} label="Comentarios" error={errores.comentarios}>
@@ -139,22 +119,18 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
           />
         </Campo>
 
-        {envio.error && (
-          <p className="alq-err alq-err--general" role="alert">
-            {envio.error}
-          </p>
-        )}
+        <FieldError>{envio.error}</FieldError>
 
-        <div className="alq-det__acciones">
-          <button type="button" className="btn btn--grow" onClick={onClose}>
+        <ModalAcciones>
+          <button type="button" className="btn" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn--grow btn--primary" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--primary" disabled={envio.enviando}>
             {envio.enviando ? 'Creando…' : 'Crear solicitud'}
           </button>
-        </div>
+        </ModalAcciones>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 

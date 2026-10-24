@@ -31,7 +31,7 @@
 }
 
 .dec-card__t {
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   color: var(--ink);
   min-width: 0;
@@ -39,13 +39,13 @@
 }
 
 .dec-meta {
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--muted);
   margin-bottom: 6px;
 }
 
 .dec-votos {
-  font-size: 13px;
+  font-size: var(--fs-body);
   color: var(--muted);
   margin-bottom: 12px;
 }
@@ -57,11 +57,11 @@
 }
 
 .dec-card--cerrada .dec-card__t {
-  font-size: 13px;
+  font-size: var(--fs-body);
 }
 
 .dec-card--cerrada .dec-votos {
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--faint);
   margin-bottom: 0;
 }
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   color: var(--muted);
 }
 
@@ -83,23 +83,5 @@
   margin-bottom: 12px;
 }
 
-.dec-reintentar {
-  margin-top: 8px;
-}
-
-.dec-err {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--neg);
-}
-
 /* Modal de nueva decisión */
-.dec-campo {
-  margin-bottom: 12px;
-}
 
-.dec-acciones {
-  display: flex;
-  gap: 8px;
-  margin-top: 18px;
-}
