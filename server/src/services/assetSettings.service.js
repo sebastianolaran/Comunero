@@ -39,7 +39,7 @@ function effective(asset) {
   };
 }
 
-function toView(asset) {
+function toView(asset, formerNames) {
   const { percents, ...numbers } = effective(asset);
   const hues = rules.resolveHues(asset.users.map((u) => u.id));
   return {
@@ -51,7 +51,28 @@ function toView(asset) {
       user: { id: log.user.id, name: log.user.name },
       changes: log.payload.changes,
     })),
+    formerNames,
   };
+}
+
+// Nombres de quienes figuran en los porcentajes del registro pero ya no están
+// ni firmaron ninguno de los cambios que se muestran (userId -> nombre).
+async function formerNamesOf(db, asset) {
+  const known = new Set([...asset.users.map((u) => u.id), ...asset.activityLogs.map((log) => log.user.id)]);
+  const ids = new Set();
+  for (const log of asset.activityLogs) {
+    for (const { field, from, to } of log.payload.changes) {
+      if (field !== 'percents') continue;
+      for (const id of [...Object.keys(from ?? {}), ...Object.keys(to ?? {})]) if (!known.has(id)) ids.add(id);
+    }
+  }
+  if (ids.size === 0) return {};
+  const users = await db.user.findMany({ where: { id: { in: [...ids] } }, select: { id: true, name: true } });
+  return Object.fromEntries(users.map((u) => [u.id, u.name]));
+}
+
+async function viewOf(db, asset) {
+  return toView(asset, await formerNamesOf(db, asset));
 }
 
 // Serializa los cambios del mismo bien (configuración, entrar, salir): sin
@@ -90,7 +111,7 @@ async function percentsOf(assetId, db = prisma) {
 async function getSettings({ assetId, userId }, db = prisma) {
   const { asset, error } = await load(db, assetId, userId);
   if (error) return { error };
-  return { settings: toView(asset) };
+  return { settings: await viewOf(db, asset) };
 }
 
 async function saveMembers(tx, assetId, changes) {
@@ -122,7 +143,7 @@ async function updateSettings({ assetId, userId, body }, db = prisma) {
     const before = effective(asset);
     const changes = parsed.value;
     const diff = rules.diffSettings(before, changes);
-    if (diff.length === 0) return { settings: toView(asset) };
+    if (diff.length === 0) return { settings: await viewOf(tx, asset) };
 
     const columns = Object.fromEntries(rules.ASSET_FIELDS.filter((f) => f in changes).map((f) => [f, changes[f]]));
     if (Object.keys(columns).length > 0) await tx.asset.update({ where: { id: assetId }, data: columns });
@@ -130,7 +151,7 @@ async function updateSettings({ assetId, userId, body }, db = prisma) {
     await tx.activityLog.create({ data: { assetId, userId, type: LOG_TYPE, payload: { changes: diff } } });
 
     const { asset: updated } = await load(tx, assetId, userId);
-    return { settings: toView(updated) };
+    return { settings: await viewOf(tx, updated) };
   }, TX_OPTIONS);
 }
 

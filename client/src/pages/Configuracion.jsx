@@ -344,7 +344,7 @@ function PanelReglas({ settings, onGuardado }) {
 }
 
 function PanelCambios({ settings }) {
-  const nombres = nombresDelRegistro(settings.members, settings.changes)
+  const nombres = nombresDelRegistro(settings.members, settings.changes, settings.formerNames)
   const lineas = settings.changes.flatMap((registro) =>
     registro.changes.map((cambio) => ({ registro, cambio })),
   )
