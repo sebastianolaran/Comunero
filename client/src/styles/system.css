@@ -110,6 +110,8 @@ input[type=date]{ cursor:text }
 .sum{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px }
 .sum__l{ font-size:var(--fs-body); color:var(--muted) }
 .sum__v{ font-size:var(--fs-figure); font-weight:700; letter-spacing:-.022em; line-height:1.1 }
+.sum__nota{ font-size:var(--fs-meta); color:var(--ink-2); margin:-2px 0 4px }
+.sum__s a{ color:inherit; text-underline-offset:2px }
 .sum__s{ font-size:var(--fs-meta); color:var(--muted); margin-bottom:22px }
 
 /* ---- botones ---- */

@@ -86,7 +86,7 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
           </Campo>
         </div>
 
-        <Campo id={`${id}-telefono`} label="Teléfono (clave de identificación)" error={errores.telefono}>
+        <Campo id={`${id}-telefono`} label="Teléfono" error={errores.telefono}>
           <input
             className="in"
             type="tel"
@@ -95,6 +95,9 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
             autoComplete="off"
             {...input('telefono')}
           />
+          {!errores.telefono && (
+            <p className="hint campo__ayuda">Con el teléfono reconocemos si ya alquiló antes y te traemos sus observaciones.</p>
+          )}
         </Campo>
 
         <div className="alq-fila">
@@ -107,7 +110,7 @@ function NewRentalRequestModal({ abierto, inicial, precioPorDia = null, onClose,
         </div>
 
         <Campo id={`${id}-monto`} label="Monto" error={errores.monto}>
-          <input className="in" inputMode="numeric" placeholder="0" {...input('monto', { value: monto })} />
+          <input className="in in--num" inputMode="numeric" placeholder="0" {...input('monto', { value: monto })} />
           {sugerido && !errores.monto && <p className="hint campo__ayuda">{sugerido.detalle}</p>}
         </Campo>
 

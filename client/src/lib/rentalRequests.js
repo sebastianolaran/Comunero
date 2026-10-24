@@ -175,3 +175,11 @@ export const CAMPO_DEL_SERVER = {
   amount: 'monto',
   comments: 'comentarios',
 }
+
+// "Falta que voten Bruno y Carla." para una solicitud en votación; null si ya votaron todos.
+export function textoFaltan(votes) {
+  const faltan = votes.filter((v) => !v.value).map((v) => v.name)
+  if (faltan.length === 0) return null
+  const nombres = new Intl.ListFormat('es', { type: 'conjunction' }).format(faltan)
+  return faltan.length === 1 ? `Falta que vote ${nombres}.` : `Falta que voten ${nombres}.`
+}

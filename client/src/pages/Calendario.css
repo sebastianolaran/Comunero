@@ -9,7 +9,6 @@
   font-size: var(--fs-subtitle);
   font-weight: 600;
   letter-spacing: -0.01em;
-  text-transform: capitalize;
 }
 
 .cal-preview {
@@ -39,7 +38,12 @@
   margin-bottom: 4px;
   font-size: var(--fs-body);
   font-weight: 600;
-  text-transform: capitalize;
+}
+
+/* "sábado, 24 de octubre" -> "Sábado, 24 de octubre": capitalize subía también el mes. */
+.cal-head__t::first-letter,
+.cal-detail__t::first-letter {
+  text-transform: uppercase;
 }
 
 .cal-detail__d {

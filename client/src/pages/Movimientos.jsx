@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import MovementModal from '../components/MovementModal'
@@ -33,7 +34,15 @@ const SALDO_TEXTO = { pos: 'te deben', neg: 'debés', muted: 'estás al día' }
 // Lo principal es tu saldo del período; el flujo del grupo va de contexto. Si el
 // server todavía no manda `mine` (client y server se despliegan aparte), se
 // muestra el neto del grupo como antes.
-function Resumen({ summary, titulo }) {
+// Lo que cobraste vos y les toca a los demás (un alquiler, por ejemplo) suma
+// a "debés": se aclara para que no parezca un gasto tuyo.
+function cobradoParaElGrupo(movements, meId) {
+  return movements
+    .filter((m) => m.type === 'INCOME' && m.paidBy.id === meId && m.myPart?.kind === 'YOU_OWE')
+    .reduce((suma, m) => suma + m.myPart.amount, 0)
+}
+
+function Resumen({ summary, titulo, cobrado }) {
   const grupo = `Ingresos ${fmtMoney(summary.income)} · Egresos ${fmtMoney(summary.expense)}`
 
   if (summary.mine === undefined) {
@@ -56,8 +65,13 @@ function Resumen({ summary, titulo }) {
         <span className={`sum__v mov-tone-${tono}`}>{fmtSigned(summary.mine)}</span>
         <span className="sum__l">{SALDO_TEXTO[tono]}</span>
       </div>
+      {cobrado > 0 && (
+        <p className="sum__nota">
+          Incluye {fmtMoney(cobrado)} de ingresos que cobraste vos y les tocan a los demás.
+        </p>
+      )}
       <p className="sum__s">
-        Grupo: {grupo} · Neto {fmtSigned(summary.net)}
+        Grupo: {grupo} · Neto {fmtSigned(summary.net)} · <Link to="/balance">Ver lo que debés en total en Balance</Link>
       </p>
     </>
   )
@@ -177,7 +191,11 @@ function Movimientos() {
         )
       ) : (
         <>
-          <Resumen summary={data.summary} titulo={period === periods.current ? 'Este mes' : periodLabel(period)} />
+          <Resumen
+            summary={data.summary}
+            titulo={period === periods.current ? 'Este mes' : periodLabel(period)}
+            cobrado={cobradoParaElGrupo(data.movements, quien.userId)}
+          />
 
           <div className="mov-toolbar">
             <div className="mov-pills" role="group" aria-label="Filtrar por tipo">

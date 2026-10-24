@@ -226,6 +226,17 @@ async function vote({ reservationId, userId, value, reason }) {
   }, TX_OPTIONS);
 }
 
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+// "21 nov – 23 nov 2026", igual que muestra las fechas el client (lib/format.js).
+function rangoTexto(startDate, endDate) {
+  const dia = (d) => `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}`;
+  const conAnio = (d) => `${dia(d)} ${d.getUTCFullYear()}`;
+  if (toDateOnly(startDate) === toDateOnly(endDate)) return conAnio(startDate);
+  if (startDate.getUTCFullYear() !== endDate.getUTCFullYear()) return `${conAnio(startDate)} – ${conAnio(endDate)}`;
+  return `${dia(startDate)} – ${conAnio(endDate)}`;
+}
+
 // percents: los del bien (null = partes iguales), igual que un ingreso cargado a mano.
 function incomeFor(reservation, coowners, collectedById, now, percents) {
   const { renter, startDate, endDate } = reservation;
@@ -234,7 +245,7 @@ function incomeFor(reservation, coowners, collectedById, now, percents) {
     reservationId: reservation.id,
     type: 'INCOME',
     amount: reservation.amount,
-    description: `Alquiler a ${renter?.name ?? 'inquilino'} del ${toDateOnly(startDate)} al ${toDateOnly(endDate)}`,
+    description: `Alquiler a ${renter?.name ?? 'inquilino'} · ${rangoTexto(startDate, endDate)}`,
     date: now,
     // Lo cobra quien recibio la plata (elegido al marcar el pago); el ingreso es de todos.
     paidById: collectedById,

@@ -6,6 +6,7 @@ import Modal, { ModalAcciones } from '../components/ui/Modal'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
+import { descripcionLegible } from '../lib/format'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
 import './Balance.css'
@@ -19,7 +20,7 @@ function EntryList({ entries }) {
           <span className="bal-entry-date">{dayLabel(entry.date)}</span>
           <span className="bal-entry-desc">
             <span className="bal-entry-title">
-              {entry.description}
+              {descripcionLegible(entry.description)}
               {entry.isRental && <span className="tag bal-tag-rental">Alquiler</span>}
             </span>
             <span className="bal-entry-who">
@@ -321,9 +322,10 @@ function Balance() {
       {data && (
         <>
           <div className="bal-summary">
-            <p className="bal-summary-label">Balance neto</p>
+            <p className="bal-summary-label">Tu saldo, sumando todos los meses</p>
             <p className={`bal-net bal-tone-${balanceStatus(data.net).tone}`}>{fmtSigned(data.net)}</p>
             <p className="bal-sub">{netSummary(data.net)}</p>
+            <p className="hint">Movimientos muestra mes por mes; acá se suma todo y se descuentan los pagos entre ustedes.</p>
           </div>
 
           {data.coowners.length === 0 ? (

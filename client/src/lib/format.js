@@ -77,3 +77,11 @@ export function fmtFechaHora(iso) {
   const p = partesInstante(iso)
   return `${fmtDiaDeInstante(iso)}, ${p.hour}:${p.minute}`
 }
+
+// Los ingresos de alquiler cargados antes guardaban "del 2026-11-21 al
+// 2026-11-23" en la descripción; se muestran con el formato de la app.
+const RANGO_ISO = / del (\d{4}-\d{2}-\d{2}) al (\d{4}-\d{2}-\d{2})$/
+
+export function descripcionLegible(descripcion) {
+  return descripcion.replace(RANGO_ISO, (_, desde, hasta) => ` · ${fmtRango(desde, hasta)}`)
+}

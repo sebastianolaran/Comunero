@@ -45,7 +45,7 @@ function RentalPreparationTask({ tarea, coowners, ocupada, onTildar, onReasignar
 
       <button
         type="button"
-        className="btn btn--sm btn--bare prep__eliminar"
+        className="btn btn--link"
         aria-label={`Eliminar tarea ${name}`}
         onClick={() => onEliminar(tarea)}
       >

@@ -58,10 +58,6 @@
   cursor: progress;
 }
 
-.prep__eliminar {
-  color: var(--neg);
-}
-
 .prep__errores {
   padding: 8px 18px 0;
 }

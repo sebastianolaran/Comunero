@@ -191,6 +191,10 @@
   margin-bottom: 7px;
 }
 
+.alq-det__faltan {
+  margin: -4px 0 12px;
+}
+
 .alq-det .chips-voto {
   margin-bottom: 12px;
 }

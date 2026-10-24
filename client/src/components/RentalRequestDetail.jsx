@@ -10,6 +10,7 @@ import {
   puedeVotar as admiteVoto,
   textoEstado,
   VOTO_TEXTO,
+  textoFaltan,
   votosLabel,
 } from '../lib/rentalRequests'
 import PagoTag from './PagoTag'
@@ -104,6 +105,11 @@ function RentalRequestDetail({
 
       <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>
       <ChipsVoto votes={solicitud.votes} />
+      {pendiente && textoFaltan(solicitud.votes) && (
+        <p className="hint alq-det__faltan" aria-live="polite">
+          {textoFaltan(solicitud.votes)}
+        </p>
+      )}
 
       {(rejections.length > 0 || rejectionReason) && (
         <ul className="alq-det__objeciones">

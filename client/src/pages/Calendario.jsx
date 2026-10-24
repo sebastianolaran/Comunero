@@ -576,7 +576,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
             <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
               <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
                 <span className="cal-pending__title">
-                  <strong>{nombre}{propia && ' (Tú)'}</strong>
+                  <strong>{nombre}{propia && ' (vos)'}</strong>
                   <span>{fmtAprobaron(peticion.approvalCount ?? 0, peticion.coownerCount ?? 0)}</span>
                 </span>
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>

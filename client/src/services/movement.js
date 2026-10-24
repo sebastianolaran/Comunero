@@ -1,4 +1,5 @@
 import { API_URL } from '../lib/api'
+import { descripcionLegible } from '../lib/format'
 import { mensajeHttp, pedir as pedirHttp } from '../lib/http'
 
 // Movimientos del bien. Todos los pedidos llevan assetId y userId: el bien que
@@ -33,8 +34,9 @@ export function fetchPeriods(quien, { signal } = {}) {
 
 // { period, summary, counts, movements }. type filtra la lista, pero no los
 // contadores, que siempre son del período entero.
-export function fetchMovements(quien, { period, type }, { signal } = {}) {
-  return pedir(`/api/movements?${query(quien, { period, ...(type && { type }) })}`, { signal })
+export async function fetchMovements(quien, { period, type }, { signal } = {}) {
+  const data = await pedir(`/api/movements?${query(quien, { period, ...(type && { type }) })}`, { signal })
+  return { ...data, movements: data.movements.map((m) => ({ ...m, description: descripcionLegible(m.description) })) }
 }
 
 export function createMovement(quien, movimiento) {

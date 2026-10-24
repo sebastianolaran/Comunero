@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
+import PagoTag from '../components/PagoTag'
 import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { formatMoney, formatPhone, formatRange } from '../lib/rentalRequests'
@@ -82,9 +83,7 @@ function RentalHistory({ assetId = assetIdActual() }) {
                   <h3 className="alq-rq__name">{alquiler.renter?.name ?? 'Inquilino no disponible'}</h3>
                   <p className="meta">{formatRange(alquiler.startDate, alquiler.endDate)}</p>
                 </div>
-                <span className={alquiler.paidAt ? 'tag tag--solid' : 'tag tag--dash'}>
-                  {alquiler.paidAt ? 'Pago registrado' : 'Pendiente de pago'}
-                </span>
+                <PagoTag solicitud={{ status: 'APPROVED', paid: Boolean(alquiler.paidAt) }} />
               </div>
               <div className="alq-hist__meta">
                 {alquiler.renter?.phone && <span>{formatPhone(alquiler.renter.phone)}</span>}
