@@ -115,7 +115,15 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
           <h3 className="sect alq-det__sect">Alquileres anteriores</h3>
           <ul className="alq-det__estadias">
             {stays.map((s) => (
-              <li key={s.startDate}>{formatRange(s.startDate, s.endDate)}</li>
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className="btn--link alq-det__estadia"
+                  onClick={() => navigate('/alquiler/historial-alquileres', { state: { reservationId: s.id } })}
+                >
+                  {formatRange(s.startDate, s.endDate)}
+                </button>
+              </li>
             ))}
           </ul>
         </>

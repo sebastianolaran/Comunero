@@ -83,6 +83,36 @@ async function listPendingUse(assetId) {
   }));
 }
 
+async function listRentalHistory(assetId, hoy) {
+  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { id: true } });
+  if (!asset) return null;
+
+  const rentals = await prisma.reservation.findMany({
+    where: {
+      assetId,
+      type: 'RENTAL',
+      status: 'ACTIVE',
+      endDate: { lt: hoy },
+    },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      amount: true,
+      paidAt: true,
+      renter: { select: { name: true, phone: true } },
+    },
+    orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
+  });
+
+  return rentals.map((rental) => ({
+    ...rental,
+    startDate: rental.startDate.toISOString().slice(0, 10),
+    endDate: rental.endDate.toISOString().slice(0, 10),
+    paidAt: rental.paidAt?.toISOString() ?? null,
+  }));
+}
+
 // Historia "Solicitar turno de uso propio", regla 3: no se puede solicitar
 // un turno que incluya dias ya ocupados por otra reserva ACTIVE o PENDING
 // (una reserva REJECTED o CANCELLED no ocupa el dia, no bloquea).
@@ -180,4 +210,4 @@ async function cancelUse({ reservationId, userId }) {
   return { reservation: updated };
 }
 
-module.exports = { listForRange, listPendingUse, hasOverlap, requestUse, voteUse, cancelUse };
+module.exports = { listForRange, listPendingUse, listRentalHistory, hasOverlap, requestUse, voteUse, cancelUse };

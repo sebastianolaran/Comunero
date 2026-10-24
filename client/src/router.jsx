@@ -9,6 +9,7 @@ import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
 import ProntoADesarrollar from './pages/ProntoADesarrollar'
 import Rental from './pages/Rental'
+import RentalHistory from './pages/RentalHistory'
 import RentalPreparations from './pages/RentalPreparations'
 import RentalRequests from './pages/RentalRequests'
 import TenantHistory from './pages/TenantHistory'
@@ -24,6 +25,7 @@ const PANTALLAS = {
     children: [
       { index: true, element: <Navigate to="solicitudes" replace /> },
       { path: 'solicitudes', element: <RentalRequests /> },
+      { path: 'historial-alquileres', element: <RentalHistory /> },
       { path: 'historial-inquilinos', element: <TenantHistory /> },
       { path: 'tareas-preparacion', element: <RentalPreparations /> },
     ],
