@@ -29,29 +29,29 @@ colors:
 typography:
   figure:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    fontSize: "26px"
+    fontSize: "28px"
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: "-0.022em"
   headline:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    fontSize: "18px"
+    fontSize: "19px"
     fontWeight: 600
     letterSpacing: "-0.012em"
   title:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    fontSize: "17px"
+    fontSize: "16px"
     fontWeight: 600
     letterSpacing: "-0.01em"
   body:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
     fontFeature: "tnum"
   meta:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    fontSize: "12px"
+    fontSize: "12.5px"
     fontWeight: 400
     lineHeight: 1.5
   label:
@@ -60,8 +60,8 @@ typography:
     fontWeight: 600
     letterSpacing: "0.06em"
 rounded:
-  sm: "4px"
-  md: "8px"
+  sm: "6px"
+  md: "10px"
   pill: "999px"
 spacing:
   xs: "4px"
@@ -203,7 +203,9 @@ Una escala de grises acromáticos en OKLCH, con dos acentos semánticos para la 
 - **Label** (600, 11px, 0.06em, mayúsculas): encabezados de sección ("PENDIENTES DE APROBACIÓN"), encabezados de tabla, días de la semana y tags.
 
 ### Named Rules
-**La regla de los seis tamaños.** La escala es 11, 12, 13, 17, 18 y 26px. Los tamaños intermedios que aparecen hoy en las hojas de cada pantalla (11,5, 12,5, 13,5, 14, 14,5, 15, 19, 22, 24px) son deuda a consolidar, no variantes.
+**La regla de los seis tamaños.** La escala son los tokens `--fs-label` (11px), `--fs-meta` (12,5px), `--fs-body` (14px), `--fs-subtitle` (16px, títulos de tarjeta), `--fs-title` (19px, sección y modal) y `--fs-figure` (28px). Ninguna hoja usa tamaños en px sueltos.
+
+**La regla de las mayúsculas justas.** Solo van en mayúscula los encabezados de tabla y los días de la semana; títulos de sección y etiquetas de estado van en minúscula.
 
 ## Layout
 
@@ -227,7 +229,7 @@ Plano con bordes. La jerarquía sale de superficies blancas con un borde de 1px 
 
 ## Shapes
 
-Esquinas apenas redondeadas: 4px en controles (botones, campos, selects, tags, controles segmentados) y 8px en contenedores (tarjetas, paneles, calendario, modales, popovers). La forma de píldora (999px) queda para lo que se elige o filtra en el lugar: filtros, chips de voto y badges. Los bordes son siempre de 1px; el borde punteado significa "provisorio o en contra" (un voto que rechaza, un pago pendiente, una acción de agregar).
+Esquinas suaves: 6px en controles (botones, campos, selects, tags, controles segmentados) y 10px en contenedores (tarjetas, paneles, calendario, modales, popovers). La forma de píldora (999px) queda para lo que se elige o filtra en el lugar: filtros, chips de voto y badges. Los bordes son siempre de 1px; el borde punteado significa "provisorio o en contra" (un voto que rechaza, un pago pendiente, una acción de agregar).
 
 ## Components
 
@@ -265,6 +267,15 @@ La pieza propia del producto: una grilla de siete columnas separadas por líneas
 ### Modales
 Superficie blanca de 392px de ancho, 24px de relleno, título de 17px y la sombra modal sobre un velo gris desenfocado. Entran con un desplazamiento corto y una leve escala (280ms); el velo aparece en 220ms. Las confirmaciones de algo irreversible usan el botón de peligro y dicen qué se pierde.
 
+### Kit compartido (`client/src/components/ui`)
+- **Modal / ModalAcciones:** todo diálogo; 440px, título de sección, Cancelar a la izquierda y la acción a la derecha del mismo ancho.
+- **FieldError:** error de campo o formulario, enlazado con `aria-describedby`.
+- **Cargando / ErrorCarga / Vacio:** los tres estados de una carga; el error siempre ofrece Reintentar.
+- **Filtros:** píldoras para filtrar una lista; el control segmentado queda para alternar modos.
+- **ChipsVoto:** quién votó y quién falta, con el color de cada integrante.
+- **MemberName:** nombre con su punto de color; se usa donde se nombra a una persona en un reparto o una votación.
+- Fechas, plata y "X de N aprobaron" salen de `lib/format.js`.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -280,5 +291,5 @@ Superficie blanca de 392px de ancho, 24px de relleno, título de 17px y la sombr
 - **Don't** usar verde o rojo para estados que no son plata ni acciones irreversibles.
 - **Don't** pintar botones, fondos o títulos con los tonos de integrante.
 - **Don't** agregar sombras a tarjetas o paneles en reposo.
-- **Don't** sumar tamaños de letra fuera de la escala de 11, 12, 13, 17, 18 y 26px.
+- **Don't** escribir tamaños de letra en px: usar los tokens `--fs-*`.
 - **Don't** escribir "Compartido" en ningún texto de marca.
