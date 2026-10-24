@@ -1,6 +1,6 @@
 // Reglas de Movimientos que no tocan la base: validacion del alta y la
-// edicion, reparto por persona, "cuanto te toca", resumen del periodo, copia
-// de los recurrentes y manejo de fechas. Viven aparte de Prisma para
+// edicion, reparto por persona, "cuanto te toca", resumen del periodo y
+// manejo de fechas. Viven aparte de Prisma para
 // testearlas sin base.
 
 const { badRequest, notFound } = require('../lib/httpError');
@@ -34,12 +34,6 @@ function toDateOnly(day) {
 
 function fromDateOnly(date) {
   return date.toISOString().slice(0, 10);
-}
-
-// Primer dia del mes siguiente, como AAAA-MM-DD: '2026-07-15' -> '2026-08-01'.
-function firstDayOfNextMonth(day) {
-  const [year, month] = day.split('-').map(Number);
-  return fromDateOnly(new Date(Date.UTC(year, month, 1)));
 }
 
 function periodRange(period) {
@@ -114,7 +108,7 @@ function validateShareIds(value, userIds, prefix) {
 // Valida el body de alta/edicion contra los copropietarios del bien y lo
 // devuelve normalizado. Un movimiento desglosado trae `items` (dos o mas, cada
 // uno con su reparto) y su monto es la suma; si no, trae `amount` y `shareIds`.
-// Quien pago o cobro es obligatorio siempre, tambien en los recurrentes.
+// Quien pago o cobro es obligatorio siempre.
 function validateMovementInput(body, userIds) {
   const input = body && typeof body === 'object' ? body : {};
 
@@ -151,9 +145,7 @@ function validateMovementInput(body, userIds) {
     shareIds = validateShareIds(input.shareIds, userIds, '');
   }
 
-  const recurring = input.recurring === true;
-
-  return { type: input.type, description, date: input.date, paidById, amount, shareIds, items, recurring };
+  return { type: input.type, description, date: input.date, paidById, amount, shareIds, items };
 }
 
 // ---------------------------------------------------------------------------
@@ -259,37 +251,6 @@ function countByType(movements) {
 }
 
 // ---------------------------------------------------------------------------
-// Recurrentes
-// ---------------------------------------------------------------------------
-
-// Copia de un movimiento recurrente para el mes siguiente al suyo: identica
-// (tipo, monto, descripcion, quien pago, reparto e items, con los valores que
-// tenga hoy) salvo la fecha, que es el 1 de ese mes. La copia tambien es
-// recurrente, asi la cadena sigue desde ella.
-function buildRecurrenceCopy(record) {
-  const copyShares = (shares) => shares.map(({ userId, amount }) => ({ userId, amount }));
-  return {
-    input: {
-      type: record.type,
-      amount: record.amount,
-      description: record.description,
-      date: firstDayOfNextMonth(fromDateOnly(record.date)),
-      paidById: record.paidById,
-      recurring: true,
-    },
-    built: {
-      shares: copyShares(record.shares),
-      items: record.items.map((item, position) => ({
-        position,
-        description: item.description,
-        amount: item.amount,
-        shares: copyShares(item.shares),
-      })),
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Respuesta de la API
 // ---------------------------------------------------------------------------
 
@@ -306,7 +267,6 @@ function serializeMovement(record, meId) {
     description: record.description,
     date: fromDateOnly(record.date),
     paidBy: { id: record.paidBy.id, name: record.paidBy.name },
-    recurring: record.recurring,
     shares,
     items: record.items.map((item) => ({
       id: item.id,
@@ -325,7 +285,6 @@ module.exports = {
   isValidPeriod,
   toDateOnly,
   fromDateOnly,
-  firstDayOfNextMonth,
   periodRange,
   currentPeriod,
   buildPeriodList,
@@ -336,6 +295,5 @@ module.exports = {
   computeMyPart,
   summarizePeriod,
   countByType,
-  buildRecurrenceCopy,
   serializeMovement,
 };

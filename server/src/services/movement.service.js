@@ -11,10 +11,6 @@ const { badRequest, forbidden, notFound } = require('../lib/httpError');
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const settingsService = require('./assetSettings.service');
 
-// Tope de meses que se ponen al dia en una sola pasada (una cadena parada hace
-// diez anios no deberia colgar el pedido).
-const MAX_CATCH_UP_MONTHS = 120;
-
 // Copropietarios del bien. Falla si el bien no existe o si quien pide no es
 // uno de ellos.
 async function coownersFor({ assetId, userId }) {
@@ -27,31 +23,6 @@ async function coownersFor({ assetId, userId }) {
 }
 
 const idsOf = (coowners) => coowners.map((coowner) => coowner.id);
-
-// Genera las copias de los recurrentes que ya corresponden: cada recurrente de
-// un mes anterior al actual que todavia no se copio genera la del mes siguiente,
-// fechada el 1. Se repite hasta ponerse al dia (si nadie entro durante un par
-// de meses, se generan todas las que faltan) y nunca genera un mes futuro.
-// Devuelve cuantas copias creo.
-async function generateDueRecurrences(assetId, period = rules.currentPeriod()) {
-  const before = rules.periodRange(period).gte;
-  let created = 0;
-  for (let round = 0; round < MAX_CATCH_UP_MONTHS; round += 1) {
-    const pending = await repo.findPendingRecurrences(assetId, before);
-    if (pending.length === 0) break;
-    for (const source of pending) {
-      const { input, built } = rules.buildRecurrenceCopy(source);
-      if (await repo.cloneRecurrence(source.id, assetId, input, built)) created += 1;
-    }
-  }
-  return created;
-}
-
-async function generateAllDueRecurrences() {
-  for (const assetId of await repo.listAssetIds()) {
-    await generateDueRecurrences(assetId);
-  }
-}
 
 // Con el color y el porcentaje de cada uno (null: partes iguales), para el
 // reparto del modal.
@@ -73,7 +44,6 @@ async function listMovements(viewer, query = {}) {
     throw badRequest('el filtro de tipo tiene que ser EXPENSE o INCOME');
   }
 
-  await generateDueRecurrences(viewer.assetId);
   const records = await repo.findMovementsInRange(viewer.assetId, rules.periodRange(period));
   const movements = records.map((record) => rules.serializeMovement(record, viewer.userId));
 
@@ -88,7 +58,6 @@ async function listMovements(viewer, query = {}) {
 async function listPeriods(viewer) {
   await coownersFor(viewer);
   const current = rules.currentPeriod();
-  await generateDueRecurrences(viewer.assetId, current);
   const periods = await repo.findDistinctPeriods(viewer.assetId);
   return { current, periods: rules.buildPeriodList(periods, current) };
 }
@@ -109,8 +78,6 @@ async function createMovement(viewer, body) {
 }
 
 // Mismas validaciones y reparto que el alta, con los porcentajes de hoy.
-// Sacarle el tilde de recurrente corta la cadena (no se genera el mes
-// siguiente); ponerselo la arranca desde este movimiento.
 async function updateMovement(viewer, rawId, body) {
   const coowners = await coownersFor(viewer);
   const id = rules.parseId(rawId);
@@ -123,9 +90,6 @@ async function updateMovement(viewer, rawId, body) {
   return rules.serializeMovement(record, viewer.userId);
 }
 
-// Borrar la ultima copia de un recurrente corta la cadena: la anterior ya
-// genero la suya, asi que nadie vuelve a generar el mes siguiente. Las de los
-// meses anteriores quedan como estan.
 async function deleteMovement(viewer, rawId) {
   await coownersFor(viewer);
   const removed = await repo.removeMovement(viewer.assetId, rules.parseId(rawId));
@@ -133,8 +97,6 @@ async function deleteMovement(viewer, rawId) {
 }
 
 module.exports = {
-  generateDueRecurrences,
-  generateAllDueRecurrences,
   listCoowners,
   listMovements,
   listPeriods,

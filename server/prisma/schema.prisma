@@ -232,10 +232,7 @@ model RentalTask {
 }
 
 // Gasto o ingreso del bien. amount es la suma de los items cuando esta
-// desglosado. date es el dia, guardado como medianoche UTC. Un movimiento
-// recurrente se copia solo el 1 de cada mes siguiente; generatedNext queda en
-// true cuando ya genero su copia, asi la cadena sigue desde la copia y borrar
-// la del mes corta la repeticion.
+// desglosado. date es el dia, guardado como medianoche UTC.
 model Movement {
   id            String       @id @default(cuid())
   assetId       String
@@ -245,8 +242,6 @@ model Movement {
   description   String
   date          DateTime
   paidById      String
-  recurring     Boolean      @default(false)
-  generatedNext Boolean      @default(false)
 
   asset       Asset                @relation(fields: [assetId], references: [id])
   reservation Reservation?         @relation(fields: [reservationId], references: [id])

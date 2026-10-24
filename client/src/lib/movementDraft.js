@@ -23,7 +23,6 @@ export function emptyDraft({ meId, coownerIds, today }) {
     date: today,
     paidById: meId ?? null,
     items: [newItem(coownerIds)],
-    recurring: false,
   }
 }
 
@@ -37,7 +36,6 @@ export function draftFromMovement(movement) {
     items: hasItems
       ? movement.items.map((item) => newItem(idsOf(item.shares), item.description, String(item.amount)))
       : [newItem(idsOf(movement.shares), movement.description, String(movement.amount))],
-    recurring: movement.recurring,
   }
 }
 
@@ -169,7 +167,6 @@ export function draftToPayload(draft) {
     type: draft.type,
     date: draft.date,
     paidById: draft.paidById,
-    recurring: draft.recurring,
   }
   if (draft.items.length === 1) {
     const [item] = draft.items

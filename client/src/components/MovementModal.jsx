@@ -23,7 +23,6 @@ const LABELS = {
     add: '+ Agregar gasto',
     one: 'gasto',
     payer: 'Pagado por',
-    recurring: 'Es un gasto recurrente',
   },
   INCOME: {
     item: 'Concepto',
@@ -31,7 +30,6 @@ const LABELS = {
     add: '+ Agregar concepto',
     one: 'concepto',
     payer: 'Cobrado por',
-    recurring: 'Es un ingreso recurrente',
   },
 }
 
@@ -118,13 +116,6 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
       setServerError(err.message)
       setSaving(false)
     }
-  }
-
-  let recurringHint = null
-  if (draft.recurring) {
-    recurringHint = 'Se genera solo el 1° de cada mes siguiente, con el mismo monto y reparto.'
-  } else if (isEdit && initialDraft.recurring) {
-    recurringHint = 'Este movimiento se mantiene, pero ya no se va a generar en los próximos meses.'
   }
 
   return (
@@ -273,18 +264,6 @@ function MovementModal({ quien, movementId, initialDraft, coowners, onCancel, on
               ))}
             </select>
           </Field>
-        </div>
-
-        <div className="mov-campo">
-          <label className="chk">
-            <input
-              type="checkbox"
-              checked={draft.recurring}
-              onChange={(event) => set({ recurring: event.target.checked })}
-            />
-            {labels.recurring}
-          </label>
-          {recurringHint && <p className="hint mov-hint">{recurringHint}</p>}
         </div>
 
         {(serverError || hasErrors) && (

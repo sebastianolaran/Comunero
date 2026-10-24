@@ -1,7 +1,6 @@
 require('dotenv').config({ quiet: true });
 const prisma = require('../src/prisma');
 const movementRepo = require('../src/services/movement.repo');
-const movementService = require('../src/services/movement.service');
 const { validateMovementInput, buildShares } = require('../src/services/movement.rules');
 const { hashPassword } = require('../src/lib/password');
 const balanceRepo = require('../src/services/balance.repo');
@@ -71,14 +70,12 @@ const tareas = (lista) =>
 
 // Movimientos de julio a septiembre 2026 que cubren las historias de
 // Movimientos: gastos e ingresos, un desglose con reparto por item, repartos
-// parciales y dos recurrentes. Internet (julio) es recurrente: sus copias de
-// agosto y septiembre no se cargan aca, las genera el server al arrancar o al
-// abrir Movimientos.
+// parciales y un gasto que se repite todos los meses (Internet).
 async function cargarMovimientos({ ana, bruno, carla, flor }) {
   const todos = [ana, bruno, carla, flor].map((u) => u.id);
   const ids = (...usuarios) => usuarios.map((u) => u.id);
-  const gasto = (description, amount, date, pagador, shareIds = todos, extra = {}) => ({
-    type: 'EXPENSE', description, amount, date, paidById: pagador.id, shareIds, ...extra,
+  const gasto = (description, amount, date, pagador, shareIds = todos) => ({
+    type: 'EXPENSE', description, amount, date, paidById: pagador.id, shareIds,
   });
   const ingreso = (description, amount, date, cobrador, shareIds = todos) => ({
     type: 'INCOME', description, amount, date, paidById: cobrador.id, shareIds,
@@ -86,9 +83,10 @@ async function cargarMovimientos({ ana, bruno, carla, flor }) {
 
   const movimientos = [
     // Julio
-    gasto('Internet', 15000, '2026-07-10', ana, todos, { recurring: true }),
+    gasto('Internet', 15000, '2026-07-10', ana),
     gasto('Corte de pasto', 15000, '2026-07-15', carla),
-    // Agosto: 1 alquiler y 5 gastos (contando la copia de Internet del 01/08)
+    // Agosto: 1 alquiler y 5 gastos
+    gasto('Internet', 15000, '2026-08-01', ana),
     gasto('Gas envasado', 18000, '2026-08-05', bruno),
     {
       type: 'EXPENSE',
@@ -105,7 +103,8 @@ async function cargarMovimientos({ ana, bruno, carla, flor }) {
     gasto('Compra de carbón', 9000, '2026-08-23', ana),
     gasto('Compra de carbón', 9000, '2026-08-23', ana),
     // Septiembre
-    gasto('Expensas', 48000, '2026-09-05', flor, todos, { recurring: true }),
+    gasto('Internet', 15000, '2026-09-01', ana),
+    gasto('Expensas', 48000, '2026-09-05', flor),
     ingreso('Venta de herramientas viejas', 5000, '2026-09-12', ana, ids(ana)),
     ingreso('Alquiler finde', 10000, '2026-09-14', carla, ids(flor, bruno, carla)),
     gasto('Jardinero', 20000, '2026-09-18', carla),
@@ -143,9 +142,6 @@ async function cerrarEntre(a, b, date) {
 //  Bruno: saldo cerrado el 20/08 -> solo cuenta lo posterior.
 //  Carla: saldo cerrado despues de todo -> "Al día".
 async function cargarPagos({ ana, bruno, carla, flor }) {
-  // Las copias de los recurrentes (Internet de agosto) tienen que existir
-  // antes de cerrar, para que el cierre se las lleve.
-  await movementService.generateDueRecurrences(CASA_ID);
   await prisma.settlement.create({
     data: {
       assetId: CASA_ID, fromUserId: flor.id, toUserId: ana.id, amount: 1000,

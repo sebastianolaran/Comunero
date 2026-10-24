@@ -93,14 +93,10 @@ export function splitHint(preview, { type, payerName }) {
 // Texto del modal de confirmación para eliminar un movimiento.
 export function deleteMessage(movement) {
   const month = periodLabel(movement.date.slice(0, 7))
-  const lines = [
+  return [
     `¿Eliminar "${movement.description}" por ${fmtMoney(movement.amount)}?`,
     `Se descuenta del balance de ${month}. No se puede deshacer.`,
   ]
-  if (movement.recurring) {
-    lines.push('Es recurrente: ya no se va a generar en los próximos meses. Los de meses anteriores quedan como están.')
-  }
-  return lines
 }
 
 // Hoy en la zona horaria del navegador, como AAAA-MM-DD.
