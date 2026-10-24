@@ -205,7 +205,7 @@ function RentalPreparationCard({ alquiler, onTareaCreada, onTareaActualizada, on
               ))}
             </select>
 
-            <button type="submit" className="btn btn--primary" disabled={enviando}>
+            <button type="submit" className="btn" disabled={enviando}>
               Agregar
             </button>
           </div>

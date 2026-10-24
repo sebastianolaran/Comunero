@@ -37,9 +37,9 @@ export function monthOptions(periods, current) {
 export function myPartLabel({ kind, amount }) {
   switch (kind) {
     case 'OWED_TO_YOU':
-      return { text: `+ ${fmtMoney(amount)}`, sub: 'a favor', tone: 'pos' }
+      return { text: `+ ${fmtMoney(amount)}`, sub: 'a cobrar', tone: 'pos' }
     case 'YOU_OWE':
-      return { text: `- ${fmtMoney(amount)}`, sub: 'en contra', tone: 'neg' }
+      return { text: `- ${fmtMoney(amount)}`, sub: 'por pagar', tone: 'neg' }
     case 'NO_DEBT':
       return { text: '—', sub: 'sin deudas', tone: 'muted' }
     default:

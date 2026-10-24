@@ -4,14 +4,21 @@ import { dayLabel, fmtMoney } from './movements.js'
 // positivo = saldo a favor de quien mira, negativo = en contra.
 
 export function balanceStatus(balance) {
-  if (balance > 0) return { text: 'Saldo a favor', tone: 'pos' }
-  if (balance < 0) return { text: 'Saldo en contra', tone: 'neg' }
+  if (balance > 0) return { text: 'A cobrar', tone: 'pos' }
+  if (balance < 0) return { text: 'Por pagar', tone: 'neg' }
   return { text: 'Al día', tone: 'muted' }
 }
 
+// Con quién es el saldo, para que el monto diga hacia dónde va.
+export function textoSaldoCon(balance, nombre) {
+  if (balance > 0) return `A cobrar de ${nombre}`
+  if (balance < 0) return `Por pagar a ${nombre}`
+  return 'Al día'
+}
+
 export function netSummary(net) {
-  if (net > 0) return 'Saldo total a favor'
-  if (net < 0) return 'Saldo total en contra'
+  if (net > 0) return 'En total, a cobrar'
+  if (net < 0) return 'En total, por pagar'
   return 'Al día con todo el grupo'
 }
 

@@ -176,7 +176,7 @@ function Calendario() {
         }
       })
       .catch((err) => {
-        if (vivo && err.name !== 'AbortError') setErrorPendientes('No se pudieron cargar las peticiones pendientes.')
+        if (vivo && err.name !== 'AbortError') setErrorPendientes('No se pudieron cargar las reservas pendientes.')
       })
 
     return () => {
@@ -468,7 +468,7 @@ function Calendario() {
             <form onSubmit={handleSolicitar}>
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
-                Turno de uso propio. Para alquilar a un tercero está la sección Alquiler.
+                Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler.
                 {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
@@ -525,12 +525,12 @@ function Calendario() {
 
       {cancelacion && (
         <ConfirmDialog
-          title="Cancelar turno"
+          title="Cancelar reserva"
           lines={[
-            'Se va a cancelar el turno completo y todos sus días quedarán libres.',
+            'Se va a cancelar la reserva completa y todos sus días quedan libres.',
             `Rango: ${formatRange(fechaSolo(cancelacion.startDate), fechaSolo(cancelacion.endDate))}.`,
           ]}
-          confirmLabel="Cancelar turno"
+          confirmLabel="Cancelar reserva"
           busyLabel="Cancelando…"
           busy={cancelando}
           error={errorCancelacion}
@@ -566,7 +566,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
   const paginacion = usePaginacion(visibles, String(soloMiVoto))
 
   return (
-    <section className="panel cal-pending" aria-label="Peticiones pendientes de votación">
+    <section className="panel cal-pending" aria-label="Reservas pendientes de votación">
       <header className="cal-pending__head">
         <h2 className="cal-pending__t">Por votar ({visibles.length})</h2>
       </header>
@@ -576,7 +576,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
         Solo las que esperan el voto propio
       </label>
       <FieldError>{error}</FieldError>
-      {visibles.length === 0 && <p className="hint cal-pending__hint">No hay pedidos esperando el voto propio.</p>}
+      {visibles.length === 0 && <p className="hint cal-pending__hint">No hay reservas esperando el voto propio.</p>}
       <ul className="cal-pending__list" role="list">
         {paginacion.elementos.map((peticion) => {
           const propia = peticion.userId === userId
@@ -589,7 +589,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
             <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
               <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
                 <span className="cal-pending__title">
-                  <strong>{nombre}{propia && ' · pedido propio'}</strong>
+                  <strong>{nombre}{propia && ' · reserva propia'}</strong>
                   <span>{fmtAprobaron(peticion.approvalCount ?? 0, peticion.coownerCount ?? 0)}</span>
                 </span>
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
@@ -598,14 +598,18 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
               {pasada && <span className="tag tag--dash cal-pending__pasada">Fecha pasada: ya no se vota</span>}
               {!propia && !pasada && (
                 <div className="cal-pending__actions">
-                  <button
-                    type="button"
-                    className="btn btn--sm btn--primary"
-                    disabled={votando !== null || aceptada}
-                    onClick={() => onVote(peticion, 'APPROVE')}
-                  >
-                    {aceptada ? 'Aceptado' : 'Aceptar'}
-                  </button>
+                  {aceptada ? (
+                    <span className="tag tag--solid tag--si">Aceptada</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--primary"
+                      disabled={votando !== null}
+                      onClick={() => onVote(peticion, 'APPROVE')}
+                    >
+                      Aceptar
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn--sm"
@@ -619,7 +623,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
               {propia && (
                 <div className="cal-pending__actions">
                   <button type="button" className="btn btn--sm" onClick={() => onCancel(peticion)}>
-                    Cancelar petición
+                    Cancelar reserva
                   </button>
                 </div>
               )}
@@ -641,12 +645,12 @@ function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCanc
   } else if (dia && info.estado === 'reservado') {
     if (info.pendiente) {
       descripcion = info.userId === userId
-        ? 'Turno propio, pendiente de confirmación.'
-        : `Turno pendiente de ${info.userName ?? 'un integrante'}.`
+        ? 'Reserva propia, pendiente de confirmación.'
+        : `Reserva pendiente de ${info.userName ?? 'un integrante'}.`
     } else {
       descripcion = info.userId === userId
-        ? 'Turno propio, confirmado.'
-        : `Turno confirmado de ${info.userName ?? 'un integrante'}.`
+        ? 'Reserva propia, confirmada.'
+        : `Reserva confirmada de ${info.userName ?? 'un integrante'}.`
     }
   } else if (dia && info.estado === 'alquilado') {
     return (
@@ -659,7 +663,7 @@ function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCanc
       />
     )
   } else if (dia && info.estado === 'rechazado') {
-    descripcion = 'Turno rechazado.'
+    descripcion = 'Reserva rechazada.'
   }
 
   return (

@@ -16,7 +16,7 @@ export function textoIntegrantes(cantidad) {
 
 export function textoPendientes(cantidad) {
   if (!cantidad) return null
-  return cantidad === 1 ? '1 pedido por votar' : `${cantidad} pedidos por votar`
+  return cantidad === 1 ? '1 reserva por votar' : `${cantidad} reservas por votar`
 }
 
 // Se parsea a mano para que la zona horaria no corra el día.

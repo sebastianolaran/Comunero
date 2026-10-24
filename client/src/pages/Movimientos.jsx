@@ -29,7 +29,7 @@ const FILTERS = [
 
 const tone = (amount) => (amount > 0 ? 'pos' : amount < 0 ? 'neg' : 'muted')
 
-const SALDO_TEXTO = { pos: 'a favor', neg: 'en contra', muted: 'al día' }
+const SALDO_TEXTO = { pos: 'a cobrar', neg: 'por pagar', muted: 'al día' }
 
 // Lo principal es tu saldo del período; el flujo del grupo va de contexto. Si el
 // server todavía no manda `mine` (client y server se despliegan aparte), se

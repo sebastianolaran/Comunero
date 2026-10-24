@@ -6,7 +6,7 @@ import MemberName from '../components/ui/MemberName'
 import Modal, { ModalAcciones } from '../components/ui/Modal'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
-import { balanceStatus, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
+import { balanceStatus, textoSaldoCon, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { descripcionLegible } from '../lib/format'
 import { useTonos } from '../lib/useTonos'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
@@ -81,10 +81,15 @@ function BalanceItem({ coowner, onSettle }) {
         <div className="bal-right">
           <span className="bal-amount-wrap">
             <span className={`bal-amount bal-tone-${status.tone}`}>{fmtSigned(coowner.balance)}</span>
-            {!coowner.upToDate && <span className="bal-status">{status.text}</span>}
+            {!coowner.upToDate && <span className="bal-status">{textoSaldoCon(coowner.balance, coowner.user.name)}</span>}
           </span>
           {coowner.canSettle && (
-            <button type="button" className="btn btn--sm btn--primary" onClick={() => onSettle(coowner)}>
+            <button
+              type="button"
+              className="btn btn--sm"
+              aria-label={`Saldar deuda con ${coowner.user.name}`}
+              onClick={() => onSettle(coowner)}
+            >
               Saldar
             </button>
           )}
@@ -96,11 +101,11 @@ function BalanceItem({ coowner, onSettle }) {
 }
 
 // Primer paso de "Saldar": pago total o parcial.
-function SettleChoice({ name, onTotal, onPartial, onCancel }) {
+function SettleChoice({ name, monto, onTotal, onPartial, onCancel }) {
   const total = useRef(null)
 
   return (
-    <Modal titulo={`Saldar deuda con ${name}`} subtitulo="¿Pago de toda la deuda o de una parte?" foco={total} onClose={onCancel}>
+    <Modal titulo={`Saldar deuda con ${name}`} subtitulo={`Deuda actual: ${fmtMoney(monto)}. ¿Pago de toda la deuda o de una parte?`} foco={total} onClose={onCancel}>
       <div className="bal-choice">
         <button ref={total} type="button" className="btn btn--primary" onClick={onTotal}>
           Pago total
@@ -365,6 +370,7 @@ function Balance() {
           {settling.step === 'choice' && (
             <SettleChoice
               name={settling.user.name}
+              monto={settling.amount}
               onTotal={() => irA('confirm')}
               onPartial={() => irA('partial')}
               onCancel={() => cancelarPaso('choice')}

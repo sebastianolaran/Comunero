@@ -93,7 +93,7 @@ async function create(req, res) {
   const dias = cantidadDias(inicio, fin);
   if (maximo != null && dias > maximo) {
     return res.status(400).json({
-      error: `Un turno de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (el pedido es de ${dias})`,
+      error: `Una reserva de uso propio no puede durar más de ${maximo === 1 ? '1 día' : `${maximo} días seguidos`} (la pedida es de ${dias})`,
     });
   }
 
@@ -141,9 +141,9 @@ async function cancelUse(req, res) {
   if (!userId) return res.status(400).json({ error: 'falta userId' });
 
   const result = await reservationService.cancelUse({ reservationId: req.params.id, userId });
-  if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe el turno de uso propio' });
-  if (result.error === 'CANCELLED') return res.status(409).json({ error: 'el turno ya estaba cancelado' });
-  if (result.error === 'NOT_OWNER') return res.status(403).json({ error: 'solo quien pidio el turno puede cancelarlo' });
+  if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'No existe la reserva de uso propio' });
+  if (result.error === 'CANCELLED') return res.status(409).json({ error: 'La reserva ya estaba cancelada' });
+  if (result.error === 'NOT_OWNER') return res.status(403).json({ error: 'Solo quien pidió la reserva puede cancelarla' });
 
   res.json({ reservation: result.reservation });
 }

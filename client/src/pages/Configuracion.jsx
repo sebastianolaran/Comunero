@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { Cargando, ErrorCarga } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
 import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
@@ -46,7 +47,7 @@ const AYUDAS = {
   rentalDailyRate:
     'Al cargar una solicitud de alquiler, el monto se completa solo con los días por este precio. Se puede cambiar en cada solicitud. Vacío, el monto se escribe a mano.',
   maxConsecutiveDays:
-    'Nadie puede pedir un turno de uso propio más largo que esto. No aplica a los alquileres a terceros. Vacío, sin límite.',
+    'Nadie puede pedir una reserva de uso propio más larga que esto. No aplica a los alquileres a terceros. Vacío, sin límite.',
   responseHours:
     'Cuántas horas tienen los demás para votar un uso propio o una solicitud de alquiler, contadas desde que se pide. Si pasado ese tiempo falta algún voto, la votación se cierra sola como diga la opción de abajo. Vacío, no vence: espera a que voten todos.',
   noResponse:
@@ -463,29 +464,16 @@ function Configuracion() {
     return () => controller.abort()
   }, [intento])
 
-  if (carga.estado === 'loading') {
-    return (
-      <p className="empty" role="status">
-        Cargando configuración…
-      </p>
-    )
-  }
+  if (carga.estado === 'loading') return <Cargando panel={false}>Cargando configuración…</Cargando>
   if (carga.estado === 'error') {
     return (
-      <div className="note" role="alert">
-        <p>{carga.error}</p>
-        <p>Si el backend estuvo inactivo, el primer pedido puede tardar hasta un minuto.</p>
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => {
-            setCarga({ estado: 'loading', settings: null })
-            setIntento((n) => n + 1)
-          }}
-        >
-          Reintentar
-        </button>
-      </div>
+      <ErrorCarga
+        titulo={carga.error}
+        onReintentar={() => {
+          setCarga({ estado: 'loading', settings: null })
+          setIntento((n) => n + 1)
+        }}
+      />
     )
   }
 
