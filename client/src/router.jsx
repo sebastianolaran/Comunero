@@ -3,6 +3,7 @@ import { RequiereBien, RequiereSesion, SoloSinSesion } from './components/Sesion
 import AppLayout from './layouts/AppLayout'
 import Balance from './pages/Balance'
 import Calendario from './pages/Calendario'
+import Configuracion from './pages/Configuracion'
 import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
 import MisBienes from './pages/MisBienes'
@@ -19,6 +20,7 @@ const PANTALLAS = {
   movimientos: { element: <Movimientos /> },
   balance: { element: <Balance /> },
   decisiones: { element: <Decisiones /> },
+  configuracion: { element: <Configuracion /> },
   alquiler: {
     element: <Rental />,
     children: [

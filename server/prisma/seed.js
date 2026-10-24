@@ -45,6 +45,7 @@ async function limpiar() {
   await prisma.vote.deleteMany({ where: { decision: deLosBienes } });
   await prisma.decision.deleteMany({ where: deLosBienes });
   await prisma.activityLog.deleteMany({ where: deLosBienes });
+  await prisma.assetMemberSetting.deleteMany({ where: deLosBienes });
   await prisma.renterObservation.deleteMany({ where: { renter: deLosBienes } });
   await prisma.reservationApproval.deleteMany({ where: reservas });
   await prisma.objection.deleteMany({ where: reservas });

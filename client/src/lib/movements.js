@@ -74,11 +74,14 @@ export function shareNote(movement, share, meId) {
   return payerIsMe ? 'le debés' : `${payer.name} le debe`
 }
 
-// Aclaración del reparto de un ítem mientras se carga: "$3.333 por persona" y,
-// si la división no es exacta, para quién queda el resto.
+// Aclaración del reparto de un ítem mientras se carga: "$3.333 por persona"
+// (o "Ana $6.000 · Beto $3.000" con porcentajes) y, si la división no es
+// exacta, para quién queda el resto.
 export function splitHint(preview, { type, payerName }) {
   if (!preview) return null
-  let text = `${fmtMoney(preview.each)} por persona`
+  let text = preview.parts
+    ? preview.parts.map((part) => `${part.name} ${fmtMoney(part.amount)}`).join(' · ')
+    : `${fmtMoney(preview.each)} por persona`
   if (preview.remainder > 0 && payerName) {
     text += type === 'INCOME'
       ? ` · el resto (${fmtMoney(preview.remainder)}) queda para ${payerName}`

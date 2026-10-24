@@ -8,6 +8,8 @@
 const repo = require('./movement.repo');
 const rules = require('./movement.rules');
 const { badRequest, forbidden, notFound } = require('../lib/httpError');
+// Modulo entero (no destructuring) para poder mockearlo en los tests.
+const settingsService = require('./assetSettings.service');
 
 // Tope de meses que se ponen al dia en una sola pasada (una cadena parada hace
 // diez anios no deberia colgar el pedido).
@@ -51,8 +53,15 @@ async function generateAllDueRecurrences() {
   }
 }
 
+// Con el color y el porcentaje de cada uno (null: partes iguales), para el
+// reparto del modal.
 async function listCoowners(viewer) {
-  return coownersFor(viewer);
+  const coowners = await coownersFor(viewer);
+  const [hues, percents] = await Promise.all([
+    settingsService.huesOf(viewer.assetId),
+    settingsService.percentsOf(viewer.assetId),
+  ]);
+  return coowners.map((coowner) => ({ ...coowner, hue: hues[coowner.id], percent: percents?.[coowner.id] ?? null }));
 }
 
 async function listMovements(viewer, query = {}) {
@@ -94,20 +103,22 @@ async function getMovement(viewer, rawId) {
 async function createMovement(viewer, body) {
   const coowners = await coownersFor(viewer);
   const input = rules.validateMovementInput(body, idsOf(coowners));
-  const record = await repo.insertMovement(viewer.assetId, input, rules.buildShares(input));
+  const percents = await settingsService.percentsOf(viewer.assetId);
+  const record = await repo.insertMovement(viewer.assetId, input, rules.buildShares(input, percents));
   return rules.serializeMovement(record, viewer.userId);
 }
 
-// Mismas validaciones y reparto que el alta. Sacarle el tilde de recurrente
-// corta la cadena (no se genera el mes siguiente); ponerselo la arranca desde
-// este movimiento.
+// Mismas validaciones y reparto que el alta, con los porcentajes de hoy.
+// Sacarle el tilde de recurrente corta la cadena (no se genera el mes
+// siguiente); ponerselo la arranca desde este movimiento.
 async function updateMovement(viewer, rawId, body) {
   const coowners = await coownersFor(viewer);
   const id = rules.parseId(rawId);
   if (!(await repo.findMovement(viewer.assetId, id))) throw notFound('el movimiento no existe');
 
   const input = rules.validateMovementInput(body, idsOf(coowners));
-  const record = await repo.replaceMovement(id, input, rules.buildShares(input));
+  const percents = await settingsService.percentsOf(viewer.assetId);
+  const record = await repo.replaceMovement(id, input, rules.buildShares(input, percents));
   if (!record) throw notFound('el movimiento no existe');
   return rules.serializeMovement(record, viewer.userId);
 }

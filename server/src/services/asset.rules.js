@@ -104,7 +104,7 @@ function toCard(asset, userId, today) {
     id: asset.id,
     name: asset.name,
     inviteCode: asset.inviteCode,
-    members: asset.users.map((u) => ({ id: u.id, name: u.name })),
+    members: asset.users.map((u) => ({ id: u.id, name: u.name, hue: u.hue })),
     stay: stayLine(active, userId, today),
     pendingVotes: pendingVotes(pending, asset.decisions, userId),
   };

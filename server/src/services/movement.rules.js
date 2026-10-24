@@ -168,23 +168,39 @@ function splitEvenly(amount, count) {
   return { each, remainder: amount - each * count };
 }
 
+// Por porcentaje (Configuración del bien): a cada uno su parte redondeada para
+// abajo, en proporción a los porcentajes de los que están en el reparto (si se
+// divide entre algunos, se reparte entre ellos según sus porcentajes). Si no hay
+// porcentajes o ninguno de los incluidos tiene, partes iguales.
+function splitByPercent(amount, userIds, percents) {
+  const weights = userIds.map((userId) => percents?.[userId] ?? 0);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (!percents || total === 0) {
+    const { each } = splitEvenly(amount, userIds.length);
+    return userIds.map(() => each);
+  }
+  return weights.map((weight) => Math.floor((amount * weight) / total));
+}
+
 // Si quien pago o cobro esta en el reparto, el resto se suma a su parte y el
 // reparto da justo el total. Si no esta, el resto no se reparte: lo pone el
 // (gasto) o se lo queda (ingreso).
-function sharesFor(amount, userIds, paidById) {
-  const { each, remainder } = splitEvenly(amount, userIds.length);
-  return userIds.map((userId) => ({
+function sharesFor(amount, userIds, paidById, percents = null) {
+  const parts = splitByPercent(amount, userIds, percents);
+  const remainder = amount - parts.reduce((sum, part) => sum + part, 0);
+  return userIds.map((userId, i) => ({
     userId,
-    amount: userId === paidById ? each + remainder : each,
+    amount: userId === paidById ? parts[i] + remainder : parts[i],
   }));
 }
 
-function buildShares(input) {
-  if (!input.items) return { shares: sharesFor(input.amount, input.shareIds, input.paidById), items: [] };
+// percents: userId -> porcentaje del bien, o null para partes iguales.
+function buildShares(input, percents = null) {
+  if (!input.items) return { shares: sharesFor(input.amount, input.shareIds, input.paidById, percents), items: [] };
 
   const totals = new Map();
   const items = input.items.map((item, position) => {
-    const shares = sharesFor(item.amount, item.shareIds, input.paidById);
+    const shares = sharesFor(item.amount, item.shareIds, input.paidById, percents);
     for (const share of shares) {
       totals.set(share.userId, (totals.get(share.userId) ?? 0) + share.amount);
     }

@@ -1,6 +1,8 @@
 const prisma = require('../prisma');
 const { memberOf } = require('./membership');
 const { buildShares } = require('./movement.rules');
+const { EXPIRED_REASON } = require('./reservationVoting.rules');
+const { percentsOf } = require('./assetSettings.service');
 
 // Se deriva de los votos (Approval = si, Objection = no) ademas del status,
 // por si el status guardado no se actualizo al votar.
@@ -57,6 +59,8 @@ function toListItem(reservation, coowners, userId, { blockedByOverlap = false } 
     rejectionReason: reservation.rejectionReason ?? null,
     blockedByOverlap,
     cancelled: reservation.status === 'CANCELLED',
+    // Vencida: nadie respondió a tiempo. Como un alquiler cancelado, no se vuelve a votar.
+    expired: reservation.rejectionReason === EXPIRED_REASON,
   };
 }
 
@@ -100,6 +104,8 @@ function sharesDays(a, b) {
 async function listByAsset(assetId, userId) {
   const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { id: true } });
   if (!asset) return null;
+  // require adentro: reservationExpiry usa este módulo (locks y solapamiento).
+  await require('./reservationExpiry.service').expireForAsset(assetId);
 
   const [coowners, reservations, approved] = await Promise.all([
     coownersOf(prisma, assetId),
@@ -117,7 +123,12 @@ async function listByAsset(assetId, userId) {
 
   return reservations.map((r) =>
     toListItem(r, coowners, userId, {
-      blockedByOverlap: r.status !== 'ACTIVE' && r.status !== 'CANCELLED' && approved.some((a) => sharesDays(a, r)),
+      // Una cancelada o vencida ya no se vota por otro motivo: el aviso de solapamiento confundiría.
+      blockedByOverlap:
+        r.status !== 'ACTIVE' &&
+        r.status !== 'CANCELLED' &&
+        r.rejectionReason !== EXPIRED_REASON &&
+        approved.some((a) => sharesDays(a, r)),
     }),
   );
 }
@@ -176,7 +187,7 @@ async function lockForVote(tx, reservationId) {
   await tx.$queryRaw`SELECT id FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
 }
 
-// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'CANCELLED' | 'RESOLVED' | 'OVERLAP' }.
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'CANCELLED' | 'EXPIRED' | 'RESOLVED' | 'OVERLAP' }.
 async function vote({ reservationId, userId, value, reason }) {
   return prisma.$transaction(async (tx) => {
     await lockForVote(tx, reservationId);
@@ -189,6 +200,7 @@ async function vote({ reservationId, userId, value, reason }) {
     if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
     // Cancelar libera los dias: para volver a alquilarlos se carga otra solicitud.
     if (reservation.status === 'CANCELLED') return { error: 'CANCELLED' };
+    if (reservation.rejectionReason === EXPIRED_REASON) return { error: 'EXPIRED' };
     if (!canVote(toListItem(reservation, coowners, userId))) return { error: 'RESOLVED' };
     if (await hasApprovedOverlap(tx, reservation)) return { error: 'OVERLAP' };
 
@@ -210,7 +222,8 @@ async function vote({ reservationId, userId, value, reason }) {
   }, TX_OPTIONS);
 }
 
-function incomeFor(reservation, coowners, collectedById, now) {
+// percents: los del bien (null = partes iguales), igual que un ingreso cargado a mano.
+function incomeFor(reservation, coowners, collectedById, now, percents) {
   const { renter, startDate, endDate } = reservation;
   return {
     assetId: reservation.assetId,
@@ -226,7 +239,7 @@ function incomeFor(reservation, coowners, collectedById, now) {
         amount: reservation.amount,
         shareIds: coowners.map((u) => u.id),
         paidById: collectedById,
-      }).shares,
+      }, percents).shares,
     },
   };
 }
@@ -254,7 +267,8 @@ async function markPaid({ reservationId, userId, collectedById = userId, now = n
     if (!coowners.some((u) => u.id === collectedById)) return { error: 'COLLECTOR_NOT_COOWNER' };
 
     const updated = await tx.reservation.update({ where: { id: reservationId }, data: { paidAt: now }, select });
-    await tx.movement.create({ data: incomeFor(reservation, coowners, collectedById, now) });
+    const percents = await percentsOf(reservation.assetId, tx);
+    await tx.movement.create({ data: incomeFor(reservation, coowners, collectedById, now, percents) });
     return { request: toListItem(updated, coowners, userId) };
   }, TX_OPTIONS);
 }
@@ -351,7 +365,10 @@ module.exports = {
   create,
   markPaid,
   cancel,
-  // Los usa tambien el voto de uso propio (reservation.service).
+  // Los usa tambien el voto de uso propio (reservation.service) y el vencimiento.
   lockForVote,
+  hasApprovedOverlap,
+  rejectOverlapping,
+  OVERLAP_REASON,
   TX_OPTIONS,
 };

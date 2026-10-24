@@ -10,9 +10,9 @@ export function agrupar(solicitudes) {
 }
 
 // Misma regla que el server: una rechazada sigue abierta para todos, salvo que se
-// pise con una reserva aprobada o que sea un alquiler cancelado.
-export function puedeVotar({ status, blockedByOverlap = false, cancelled = false }) {
-  return status !== 'APPROVED' && !blockedByOverlap && !cancelled
+// pise con una reserva aprobada, que sea un alquiler cancelado o que haya vencido.
+export function puedeVotar({ status, blockedByOverlap = false, cancelled = false, expired = false }) {
+  return status !== 'APPROVED' && !blockedByOverlap && !cancelled && !expired
 }
 
 // El motivo es opcional al rechazar.
@@ -73,6 +73,16 @@ function utc(fecha) {
 export function daysLabel(desde, hasta = desde) {
   const dias = Math.max(1, (utc(hasta) - utc(desde)) / MS_POR_DIA + 1)
   return dias === 1 ? '1 día' : `${dias} días`
+}
+
+// Monto que se completa solo con el precio por día de Configuración, o null si
+// no hay precio o las fechas no arman un rango. texto va con punto de miles,
+// como lo acepta el campo.
+export function montoSugerido(desde, hasta, precioPorDia) {
+  if (precioPorDia == null || !desde || !hasta || desde > hasta) return null
+  const dias = (utc(hasta) - utc(desde)) / MS_POR_DIA + 1
+  const monto = dias * precioPorDia
+  return { monto, texto: monto.toLocaleString('es-AR'), detalle: `${daysLabel(desde, hasta)} × ${formatMoney(precioPorDia)}` }
 }
 
 export const ESTADOS = {

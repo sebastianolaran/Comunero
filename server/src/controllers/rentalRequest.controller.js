@@ -11,6 +11,7 @@ const VOTE_ERRORS = {
   RESOLVED: [409, 'La solicitud ya fue aprobada: no se puede votar de nuevo'],
   OVERLAP: [409, 'Las fechas se pisan con una reserva aprobada: no se puede votar mientras siga'],
   CANCELLED: [409, 'El alquiler fue cancelado: para volver a alquilar esas fechas cargá otra solicitud'],
+  EXPIRED: [409, 'Venció el plazo para responder: para volver a alquilar esas fechas cargá otra solicitud'],
 };
 
 function isFilled(value) {
