@@ -8,6 +8,7 @@ import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
 import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
+import Registro from './pages/Registro'
 import Rental from './pages/Rental'
 import RentalHistory from './pages/RentalHistory'
 import RentalPreparations from './pages/RentalPreparations'
@@ -39,6 +40,14 @@ export const router = createBrowserRouter([
     element: (
       <SoloSinSesion>
         <Login />
+      </SoloSinSesion>
+    ),
+  },
+  {
+    path: '/registro',
+    element: (
+      <SoloSinSesion>
+        <Registro />
       </SoloSinSesion>
     ),
   },
