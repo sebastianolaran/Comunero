@@ -64,6 +64,41 @@ export async function login({ email, password }) {
   return body.user
 }
 
+// Campos del server -> campos del formulario de registro.
+const CAMPOS_DE_REGISTRO = { name: 'nombre', email: 'email', phone: 'telefono', password: 'password' }
+
+function errorDeRegistro(mensaje, fields = {}) {
+  const err = new Error(mensaje)
+  err.campos = {}
+  for (const [campo, texto] of Object.entries(fields)) {
+    if (CAMPOS_DE_REGISTRO[campo]) err.campos[CAMPOS_DE_REGISTRO[campo]] = texto
+  }
+  return err
+}
+
+// Crear cuenta. Devuelve la misma sesión que login, así se entra directo. Si
+// el server rechaza (400 por datos, 409 por mail o teléfono ya registrado),
+// el Error trae en `campos` el mensaje de cada campo del formulario.
+export async function registrarse({ nombre, email, telefono, password }) {
+  let res
+  try {
+    res = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: nombre, email, phone: telefono, password }),
+    })
+  } catch {
+    throw errorDeRegistro('No pudimos conectarnos. Probá de nuevo en un momento.')
+  }
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw errorDeRegistro(body.error ?? 'No pudimos crear la cuenta. Probá de nuevo en un momento.', body.fields)
+  }
+
+  return body.user
+}
+
 // Historia "Solicitar turno de uso propio". startDate/endDate: 'YYYY-MM-DD'.
 // Si el server rechaza la solicitud (400/409), tira un Error con el mensaje
 // que mandó el backend (fechas invertidas, dias ocupados, etc.).

@@ -202,6 +202,13 @@
   text-wrap: balance;
 }
 
+.login__link {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---- panel oscuro ---- */
 .login__panel {
   display: flex;

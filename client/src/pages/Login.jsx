@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { login } from '../lib/api'
 import { DIAS_SEMANA, nombreMes } from '../lib/calendar'
 import { LEYENDA_DEL_PANEL, celdasDelPanel, validarLogin } from '../lib/login'
 import { guardarSesion } from '../lib/session'
 import './Login.css'
 
-function PanelDelMes() {
+// También lo usa la pantalla de Crear cuenta.
+export function PanelDelMes() {
   const { year, month } = useMemo(() => {
     const hoy = new Date()
     return { year: hoy.getUTCFullYear(), month: hoy.getUTCMonth() + 1 }
@@ -105,7 +106,7 @@ function Login() {
 
         <form className="login__form" onSubmit={onSubmit} noValidate>
           <h1 className="login__t">Ingresá a tu cuenta</h1>
-          <p className="login__s">Con el mail y la contraseña con los que te sumaron al grupo.</p>
+          <p className="login__s">Con el mail y la contraseña de tu cuenta.</p>
 
           {alerta && (
             <p className="login__alert" role="alert">
@@ -171,7 +172,10 @@ function Login() {
         </form>
 
         <p className="login__foot">
-          ¿Todavía no tenés cuenta? Pedile a alguien del grupo que te sume.
+          ¿Todavía no tenés cuenta?{' '}
+          <Link className="login__link" to="/registro">
+            Creá una
+          </Link>
         </p>
       </main>
 
