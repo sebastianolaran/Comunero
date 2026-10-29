@@ -19,10 +19,27 @@ const limitarIntentos = rateLimit({
   message: { error: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' },
 });
 
+// El alta si dice "ese mail ya esta registrado" (la historia lo pide), asi
+// que es otra forma de averiguar quien tiene cuenta. Aca cuentan todas las
+// altas, tambien las que salen bien: nadie crea veinte cuentas en un rato.
+const ALTAS_DE_CUENTA = 20;
+
+const limitarAltas = rateLimit({
+  windowMs: VENTANA_MINUTOS * 60 * 1000,
+  limit: ALTAS_DE_CUENTA,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' },
+});
+
 const router = Router();
 
 // POST /api/auth/login  (entrar con mail y contrasena)
 router.post('/login', limitarIntentos, controller.login);
 
+// POST /api/auth/register  (crear cuenta y entrar)
+router.post('/register', limitarAltas, controller.register);
+
 module.exports = router;
 module.exports.INTENTOS_DE_LOGIN = INTENTOS_DE_LOGIN;
+module.exports.ALTAS_DE_CUENTA = ALTAS_DE_CUENTA;
