@@ -31,11 +31,11 @@ const tone = (amount) => (amount > 0 ? 'pos' : amount < 0 ? 'neg' : 'muted')
 
 const SALDO_TEXTO = { pos: 'a cobrar', neg: 'por pagar', muted: 'al día' }
 
-// Lo principal es tu saldo del período; el flujo del grupo va de contexto. Si el
-// server todavía no manda `mine` (client y server se despliegan aparte), se
-// muestra el neto del grupo como antes.
-// Lo que cobraste vos y les toca a los demás (un alquiler, por ejemplo) suma
-// a "debés": se aclara para que no parezca un gasto tuyo.
+// Lo principal es el saldo propio del período; el flujo del grupo va de
+// contexto. Si el server todavía no manda `mine` (client y server se despliegan
+// aparte), se muestra el neto del grupo como antes.
+// Lo cobrado por quien mira que les toca a los demás (un alquiler, por ejemplo)
+// suma a "por pagar": se separa para que no parezca un gasto propio.
 function cobradoParaElGrupo(movements, meId) {
   return movements
     .filter((m) => m.type === 'INCOME' && m.paidBy.id === meId && m.myPart?.kind === 'YOU_OWE')
@@ -62,16 +62,21 @@ function Resumen({ summary, titulo, cobrado }) {
     <>
       <div className="sum">
         <span className="sum__l">Saldo de {titulo.toLowerCase()}</span>
-        <span className={`sum__v mov-tone-${tono}`}>{fmtSigned(summary.mine)}</span>
+        {/* El texto ya dice el sentido: el signo sería una doble negación. */}
+        <span className={`sum__v mov-tone-${tono}`}>{fmtMoney(Math.abs(summary.mine))}</span>
         <span className="sum__l">{SALDO_TEXTO[tono]}</span>
       </div>
       {cobrado > 0 && (
         <p className="sum__nota">
-          Incluye {fmtMoney(cobrado)} de ingresos cobrados que corresponden al resto del grupo.
+          {fmtMoney(cobrado)} son ingresos cobrados que corresponden al resto del grupo; sin eso, el saldo del
+          mes queda en {fmtSigned(summary.mine + cobrado)}.
         </p>
       )}
       <p className="sum__s">
-        Grupo: {grupo} · Neto {fmtSigned(summary.net)} · <Link to="/balance">Ver el saldo total en Balance</Link>
+        Grupo: {grupo} · Neto {fmtSigned(summary.net)}
+        <br />
+        Este es el saldo de un mes. <Link to="/balance">Balance</Link> suma todos los meses desde el último saldo
+        cerrado con cada persona.
       </p>
     </>
   )

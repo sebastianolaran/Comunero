@@ -34,12 +34,13 @@ export function monthOptions(periods, current) {
 }
 
 // Texto de la columna "Te toca" a partir del myPart que calcula el server.
+// Sin signo: "a cobrar" / "por pagar" ya dicen el sentido.
 export function myPartLabel({ kind, amount }) {
   switch (kind) {
     case 'OWED_TO_YOU':
-      return { text: `+ ${fmtMoney(amount)}`, sub: 'a cobrar', tone: 'pos' }
+      return { text: fmtMoney(amount), sub: 'a cobrar', tone: 'pos' }
     case 'YOU_OWE':
-      return { text: `- ${fmtMoney(amount)}`, sub: 'por pagar', tone: 'neg' }
+      return { text: fmtMoney(amount), sub: 'por pagar', tone: 'neg' }
     case 'NO_DEBT':
       return { text: '—', sub: 'sin deudas', tone: 'muted' }
     default:

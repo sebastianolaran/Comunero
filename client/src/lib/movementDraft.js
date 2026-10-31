@@ -114,7 +114,7 @@ function isValidDay(value) {
 
 const tooLong = (text) => text.trim().length > MAX_DESCRIPTION
 const TOO_LONG = `No puede superar los ${MAX_DESCRIPTION} caracteres`
-const INVALID_AMOUNT = 'El monto tiene que ser un número entero mayor a cero'
+const INVALID_AMOUNT = 'El monto tiene que ser un número entero mayor a cero.'
 
 // Monto escrito que no se puede usar ("0", "15.00015.000", "abc"). Vacío no
 // cuenta acá: eso es "obligatorio" y se marca recién al guardar.
@@ -138,23 +138,23 @@ export function validateDraft(draft) {
 
   for (const item of draft.items) {
     if (!item.description.trim()) {
-      errors[`${item.key}.description`] = isIncome ? 'El concepto es obligatorio' : 'El nombre del gasto es obligatorio'
+      errors[`${item.key}.description`] = isIncome ? 'El concepto es obligatorio.' : 'El nombre del gasto es obligatorio.'
     } else if (tooLong(item.description)) {
       errors[`${item.key}.description`] = TOO_LONG
     }
 
-    if (!String(item.amount).trim()) errors[`${item.key}.amount`] = 'El monto es obligatorio'
+    if (!String(item.amount).trim()) errors[`${item.key}.amount`] = 'El monto es obligatorio.'
     else if (isInvalidAmount(item.amount)) errors[`${item.key}.amount`] = INVALID_AMOUNT
 
-    if (item.shareIds.length === 0) errors[`${item.key}.shareIds`] = 'Falta elegir al menos una persona para dividir'
+    if (item.shareIds.length === 0) errors[`${item.key}.shareIds`] = 'Falta elegir al menos una persona para dividir.'
   }
 
   if (draft.items.length > 1) {
     if (tooLong(draft.description)) errors.description = TOO_LONG
-    if (itemsTotal(draft.items) > MAX_AMOUNT) errors.total = 'El monto total es demasiado grande'
+    if (itemsTotal(draft.items) > MAX_AMOUNT) errors.total = 'El monto total es demasiado grande.'
   }
-  if (!isValidDay(draft.date)) errors.date = 'La fecha es obligatoria'
-  if (draft.paidById === null) errors.paidById = isIncome ? 'Falta elegir quién cobró' : 'Falta elegir quién pagó'
+  if (!isValidDay(draft.date)) errors.date = 'La fecha es obligatoria.'
+  if (draft.paidById === null) errors.paidById = isIncome ? 'Falta elegir quién cobró.' : 'Falta elegir quién pagó.'
 
   return errors
 }

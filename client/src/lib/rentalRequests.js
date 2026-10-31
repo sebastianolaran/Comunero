@@ -1,4 +1,4 @@
-import { fmtAprobaron, fmtMoney, fmtRango } from './format.js'
+import { fmtAprobaron, fmtFechaHora, fmtMoney, fmtRango } from './format.js'
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000
 
@@ -39,6 +39,17 @@ export function votosLabel({ yesCount, coownerCount, status, votes = [] }) {
   const sinVoto = votes.filter((v) => !v.value).length
   if (status === 'PENDING' || sinVoto === 0) return base
   return `${base} · ${sinVoto} sin votar`
+}
+
+const MS_POR_HORA = 60 * 60 * 1000
+
+// "Vence el 2 nov 2026, 14:00" mientras se vota y hay tiempo para responder.
+// Sin plazo cargado no vence: se dice para que nadie espere un cierre solo.
+export function textoPlazo({ status, requestedAt }, plazoHoras) {
+  if (status !== 'PENDING' || !requestedAt || plazoHoras === undefined) return null
+  if (plazoHoras == null) return 'Sin plazo: sigue abierta hasta que voten todos'
+  const vence = new Date(new Date(requestedAt).getTime() + plazoHoras * MS_POR_HORA)
+  return `Vence el ${fmtFechaHora(vence.toISOString())}`
 }
 
 export function textoSinVoto(votes) {

@@ -131,9 +131,9 @@ function DecisionAbierta({ decision, onVotar }) {
     <article className="card card--pad dec-card">
       <div className="dec-card__top">
         <h3 className="dec-card__t">{decision.title}</h3>
-        <span className="badge">{ESTADOS[decision.status] ?? decision.status}</span>
       </div>
-      <p className="dec-meta">{textoFecha(decision.createdAt)}</p>
+      {/* El tiempo para responder de Configuración no aplica a las decisiones. */}
+      <p className="dec-meta">{textoFecha(decision.createdAt)} · Sin plazo: sigue abierta hasta que voten todos</p>
       {monto && <p className="dec-meta">{monto}</p>}
       <p className="dec-votos">{textoVotos(decision)}</p>
       {decision.votes?.length > 0 && <ChipsVoto votes={decision.votes} />}

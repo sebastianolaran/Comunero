@@ -32,10 +32,10 @@ const MONTO_MAXIMO = 2_147_483_647
 function parsearMontoEstimado(texto) {
   const limpio = texto.replace(/[\s$.]/g, '')
   if (limpio === '') return { monto: null }
-  if (!MONTO.test(limpio)) return { error: 'El monto estimado tiene que ser un número entero' }
+  if (!MONTO.test(limpio)) return { error: 'El monto estimado tiene que ser un número entero.' }
   const monto = Number(limpio)
-  if (monto <= 0) return { error: 'El monto estimado tiene que ser mayor a cero' }
-  if (monto > MONTO_MAXIMO) return { error: 'El monto estimado es demasiado grande' }
+  if (monto <= 0) return { error: 'El monto estimado tiene que ser mayor a cero.' }
+  if (monto > MONTO_MAXIMO) return { error: 'El monto estimado es demasiado grande.' }
   return { monto }
 }
 
@@ -45,7 +45,7 @@ export function validarDecision({ titulo, monto }) {
   const montoEstimado = parsearMontoEstimado(monto)
 
   const errores = {}
-  if (!title) errores.titulo = 'El título es obligatorio'
+  if (!title) errores.titulo = 'El título es obligatorio.'
   if (montoEstimado.error) errores.monto = montoEstimado.error
   if (Object.keys(errores).length > 0) return { errores }
 

@@ -12,6 +12,7 @@ import {
   textoEstado,
   VOTO_TEXTO,
   textoFaltan,
+  textoPlazo,
   textoSinVoto,
   votosLabel,
 } from '../lib/rentalRequests'
@@ -39,6 +40,7 @@ const ACCIONES = {
 function RentalRequestDetail({
   ref,
   solicitud,
+  plazoHoras,
   userId,
   modo,
   envio,
@@ -110,6 +112,7 @@ function RentalRequestDetail({
       {pendiente && textoFaltan(solicitud.votes) && (
         <p className="hint alq-det__faltan" aria-live="polite">
           {textoFaltan(solicitud.votes)}
+          {textoPlazo(solicitud, plazoHoras) && ` ${textoPlazo(solicitud, plazoHoras)}.`}
         </p>
       )}
 

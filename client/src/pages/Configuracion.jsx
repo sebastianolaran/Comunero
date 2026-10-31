@@ -49,7 +49,7 @@ const AYUDAS = {
   maxConsecutiveDays:
     'Nadie puede pedir una reserva de uso propio más larga que esto. No aplica a los alquileres a terceros. Vacío, sin límite.',
   responseHours:
-    'Cuántas horas tienen los demás para votar un uso propio o una solicitud de alquiler, contadas desde que se pide. Si pasado ese tiempo falta algún voto, la votación se cierra sola como diga la opción de abajo. Vacío, no vence: espera a que voten todos.',
+    'Cuántas horas tienen los demás para votar un uso propio o una solicitud de alquiler, contadas desde que se pide. Si pasado ese tiempo falta algún voto, la votación se cierra sola como diga la opción de abajo. Vacío, no vence: espera a que voten todos. Las decisiones grupales no vencen nunca.',
   noResponse:
     'Cómo se cierra la votación cuando vence el tiempo y alguien no votó. Rechazado: se rechaza. Aprobado: quien no votó cuenta como un Sí; si alguien votó que no, se rechaza igual. Solo aplica si hay un tiempo máximo cargado.',
 }
@@ -60,7 +60,8 @@ const AYUDAS = {
 // texto queda siempre en el DOM para que aria-describedby lo lea cerrado.
 const MARGEN_PANTALLA = 16
 
-function Ayuda({ texto }) {
+// sobre: de qué es la ayuda, para que el lector de pantalla distinga cada botón.
+function Ayuda({ texto, sobre }) {
   const id = useId()
   const [abierta, setAbierta] = useState(false)
   const pop = useRef(null)
@@ -79,7 +80,7 @@ function Ayuda({ texto }) {
       <button
         type="button"
         className="idot"
-        aria-label="Qué hace"
+        aria-label={`Qué hace: ${sobre}`}
         aria-describedby={id}
         aria-expanded={abierta}
         onClick={() => setAbierta(true)}
@@ -105,7 +106,7 @@ function Panel({ titulo, ayuda, hint, children, pie }) {
           <h2 id={id} className="sect">
             {titulo}
           </h2>
-          {ayuda && <Ayuda texto={ayuda} />}
+          {ayuda && <Ayuda texto={ayuda} sobre={titulo} />}
         </div>
         {hint && <p className="hint">{hint}</p>}
       </div>
@@ -146,7 +147,7 @@ function CampoNumero({ label, ayuda, unidad, value, onChange, placeholder = 'Sin
     <div className="cfg__row">
       <div className="cfg__lbl">
         <label htmlFor={id}>{label}</label>
-        <Ayuda texto={ayuda} />
+        <Ayuda texto={ayuda} sobre={label} />
       </div>
       <div className="cfg__ctl">
         <input
@@ -169,7 +170,7 @@ const textoMonto = (valor) => texto(valor).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
 // Para que el error diga cuál campo está mal: un panel tiene varios.
 const ETIQUETAS = {
-  rentalDailyRate: 'Costo por día',
+  rentalDailyRate: 'Precio por día',
   maxConsecutiveDays: 'Días consecutivos',
   responseHours: 'Tiempo para responder',
 }
@@ -212,7 +213,11 @@ function PanelPorcentajes({ settings, onGuardado }) {
     <Panel
       titulo="Porcentaje de gastos"
       ayuda={AYUDAS.percents}
-      hint="Cómo se reparten los gastos y los ingresos entre los integrantes. Vacío, en partes iguales."
+      hint={
+        vacio
+          ? `Hoy en partes iguales: ${porcentajeIgual(members.length)}% cada uno (en gris). Escribir un número cambia el reparto.`
+          : 'Cómo se reparten los gastos y los ingresos entre los integrantes. Vacío, en partes iguales.'
+      }
       pie={
         <Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios}>
           {!iguales && (
@@ -269,11 +274,11 @@ function PanelAlquiler({ settings, onGuardado }) {
   return (
     <Panel
       titulo="Alquiler a terceros"
-      hint="Usado para pre-completar el monto al crear una solicitud."
+      hint="Con este precio se completa solo el monto de cada solicitud nueva."
       pie={<Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios} />}
     >
       <CampoNumero
-        label="Costo de alquilar un día"
+        label="Precio por día del alquiler"
         ayuda={AYUDAS.rentalDailyRate}
         unidad="$ / día"
         placeholder="Sin precio"
@@ -327,7 +332,7 @@ function PanelReglas({ settings, onGuardado }) {
         <div className="cfg__row">
           <div className="cfg__lbl">
             <label htmlFor={idNoResponde}>Si un integrante no responde a tiempo</label>
-            <Ayuda texto={AYUDAS.noResponse} />
+            <Ayuda texto={AYUDAS.noResponse} sobre="Si un integrante no responde a tiempo" />
           </div>
           <select
             id={idNoResponde}

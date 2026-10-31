@@ -6,6 +6,7 @@ import {
   formatPhone,
   formatRange,
   textoEstado,
+  textoPlazo,
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
@@ -22,6 +23,7 @@ function RentalRequestCard({
   solicitud,
   seleccionada,
   puedeVotar,
+  plazoHoras,
   enviando,
   onSelect,
   onApprove,
@@ -50,9 +52,9 @@ function RentalRequestCard({
           </button>
         </h3>
         <span className="alq-badges">
+          <span className="badge">{textoEstado(solicitud)}</span>
           <PagoTag solicitud={solicitud} />
           {fechaPasada(solicitud) && <span className="tag tag--dash">Fecha pasada</span>}
-          <span className="badge">{textoEstado(solicitud)}</span>
         </span>
       </div>
 
@@ -63,7 +65,9 @@ function RentalRequestCard({
           </p>
           {comments && <p className="alq-rq__com">{comments}</p>}
           <div className="alq-rq__votos">
-            <span className="meta">{votosLabel(solicitud)}</span>
+            <span className="meta">
+              {[votosLabel(solicitud), plazoHoras != null && textoPlazo(solicitud, plazoHoras)].filter(Boolean).join(' · ')}
+            </span>
             <ChipsVoto votes={solicitud.votes} cerrada={solicitud.status !== 'PENDING'} />
           </div>
 

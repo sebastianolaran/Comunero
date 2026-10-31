@@ -43,6 +43,8 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     setNuevaAbierta(true)
   }
   const [precioPorDia, setPrecioPorDia] = useState(null)
+  // undefined mientras no llega: no se anuncia ni plazo ni "sin plazo".
+  const [plazoHoras, setPlazoHoras] = useState(undefined)
   const [detalleRef, mostrarDetalle] = useDetalleEnMobile()
   const idPendientes = useId()
   const idResueltas = useId()
@@ -57,7 +59,10 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     if (!assetId || !userId) return
     const controller = new AbortController()
     fetchSettings(assetId, userId, { signal: controller.signal })
-      .then((settings) => setPrecioPorDia(settings.rentalDailyRate))
+      .then((settings) => {
+        setPrecioPorDia(settings.rentalDailyRate)
+        setPlazoHoras(settings.responseHours)
+      })
       .catch(() => setPrecioPorDia(null))
     return () => controller.abort()
   }, [assetId, userId])
@@ -204,6 +209,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       solicitud={s}
       seleccionada={s.id === seleccion}
       puedeVotar={puedeVotar}
+      plazoHoras={plazoHoras}
       enviando={envio.enviando}
       onSelect={() => {
         seleccionar(s.id)
@@ -251,6 +257,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
           ref={detalleRef}
           key={seleccion ?? 'ninguna'}
           solicitud={seleccionada}
+          plazoHoras={plazoHoras}
           userId={userId}
           modo={modo}
           envio={envio}

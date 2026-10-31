@@ -30,11 +30,11 @@ export function validarTarea({ nombre, responsableId }) {
   const errores = []
   const limpio = nombre.trim()
 
-  if (limpio === '') errores.push('Falta el nombre de la tarea')
+  if (limpio === '') errores.push('Falta el nombre de la tarea.')
   else if (Array.from(limpio).length > NOMBRE_MAX) {
     errores.push(`El nombre no puede superar los ${NOMBRE_MAX} caracteres`)
   }
-  if (!responsableId) errores.push('Falta elegir un responsable')
+  if (!responsableId) errores.push('Falta elegir un responsable.')
 
   return errores
 }

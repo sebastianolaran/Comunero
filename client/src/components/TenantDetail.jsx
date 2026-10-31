@@ -150,7 +150,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
             onChange={(e) => setBorrador(e.target.value)}
           />
           <FieldError id={idError}>{envio.error}</FieldError>
-          <button type="submit" className="btn btn--block btn--primary" disabled={envio.enviando}>
+          <button type="submit" className="btn btn--block" disabled={envio.enviando}>
             Agregar observación
           </button>
         </form>

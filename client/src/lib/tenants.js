@@ -3,7 +3,7 @@ import { formatRange, hoyLocal } from './rentalRequests.js'
 export const MENSAJE_SIN_INQUILINOS = 'Todavía no hay inquilinos con alquileres terminados'
 export const MENSAJE_SIN_COINCIDENCIAS = 'No hay inquilinos que coincidan con la búsqueda'
 export const MENSAJE_SIN_OBSERVACIONES = 'Todavía no hay observaciones sobre este inquilino'
-const OBSERVACION_VACIA = 'La observación no puede estar vacía'
+const OBSERVACION_VACIA = 'La observación no puede estar vacía.'
 
 const CLASIFICACIONES = {
   RECOMMENDED: { label: 'Recomendado', variante: 'solida' },
