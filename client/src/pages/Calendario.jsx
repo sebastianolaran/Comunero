@@ -9,6 +9,7 @@ import {
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ExportarCalendario from '../components/ExportarCalendario'
 import Pagination from '../components/Pagination'
 import { daysLabel, formatRange } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
@@ -505,6 +506,8 @@ function Calendario() {
             votando={votando}
           />
         )}
+
+        <ExportarCalendario assetId={assetId} userId={userId} />
       </aside>
 
       {cancelacion && (
