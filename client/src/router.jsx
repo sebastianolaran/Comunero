@@ -8,7 +8,7 @@ import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
 import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
-import ProntoADesarrollar from './pages/ProntoADesarrollar'
+import Registro from './pages/Registro'
 import Rental from './pages/Rental'
 import RentalHistory from './pages/RentalHistory'
 import RentalPreparations from './pages/RentalPreparations'
@@ -44,6 +44,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/registro',
+    element: (
+      <SoloSinSesion>
+        <Registro />
+      </SoloSinSesion>
+    ),
+  },
+  {
     // Tus bienes compartidos: elegir, crear o sumarse a un bien.
     path: '/bienes',
     element: (
@@ -64,7 +72,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="calendario" replace /> },
       ...SECCIONES.map(({ path }) => ({
         path,
-        ...(PANTALLAS[path] ?? { element: <ProntoADesarrollar /> }),
+        ...PANTALLAS[path],
       })),
       { path: '*', element: <Navigate to="/calendario" replace /> },
     ],

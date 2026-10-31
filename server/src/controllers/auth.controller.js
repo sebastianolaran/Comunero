@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const { validarRegistro } = require('../services/auth.rules');
 
 // Un solo texto para "ese mail no existe" y para "esa contrasena no es":
 // dos mensajes distintos dejarian averiguar quien esta registrado probando
@@ -33,4 +34,36 @@ async function login(req, res) {
   }
 }
 
-module.exports = { login };
+const DUPLICADOS = {
+  EMAIL_TAKEN: { email: 'Ese mail ya está registrado.' },
+  PHONE_TAKEN: { phone: 'Ese teléfono ya está registrado.' },
+};
+
+// POST /api/auth/register
+// body: { name, email, phone, password }
+//
+// Crea la cuenta y devuelve la misma sesión que el login, así quien se
+// registra entra directo sin loguearse aparte. Los errores van por campo
+// (fields) para que el formulario los muestre al lado de cada uno.
+async function register(req, res) {
+  const { errores, datos } = validarRegistro(req.body ?? {});
+  if (errores) {
+    return res.status(400).json({ error: 'Revisá los datos marcados.', fields: errores });
+  }
+
+  try {
+    const result = await authService.register(datos);
+    if (result.error) {
+      const fields = DUPLICADOS[result.error];
+      return res.status(409).json({ error: Object.values(fields)[0], fields });
+    }
+    res.status(201).json({ user: result.user });
+  } catch (err) {
+    // Solo el código: el error de Prisma trae los datos del create (con el
+    // passwordHash y el teléfono), y eso no tiene que quedar en el log.
+    console.error('auth: fallo el alta de cuenta', err?.code ?? err?.name);
+    res.status(500).json({ error: 'No pudimos crear la cuenta. Probá de nuevo en un momento.' });
+  }
+}
+
+module.exports = { login, register };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { login } from '../lib/api'
 import { DIAS_SEMANA, nombreMes } from '../lib/calendar'
 import { LEYENDA_DEL_PANEL, celdasDelPanel, validarLogin } from '../lib/login'
@@ -7,7 +7,8 @@ import { guardarSesion } from '../lib/session'
 import './Login.css'
 import FieldError from '../components/ui/FieldError'
 
-function PanelDelMes() {
+// También lo usa la pantalla de Crear cuenta.
+export function PanelDelMes() {
   const { year, month } = useMemo(() => {
     const hoy = new Date()
     return { year: hoy.getUTCFullYear(), month: hoy.getUTCMonth() + 1 }
@@ -107,7 +108,7 @@ function Login() {
 
         <form className="login__form" onSubmit={onSubmit} noValidate>
           <h1 className="login__t">Ingresar a Comunero</h1>
-          <p className="login__s">Con el mail y la contraseña asignados al sumarse al grupo.</p>
+          <p className="login__s">Con el mail y la contraseña de la cuenta.</p>
 
           {alerta && (
             <p className="login__alert" role="alert">
@@ -177,7 +178,10 @@ function Login() {
         </form>
 
         <p className="login__foot">
-          Las cuentas las crea alguien del grupo con el mail de cada integrante.
+          ¿Sin cuenta todavía?{' '}
+          <Link className="login__link" to="/registro">
+            Crear una
+          </Link>
         </p>
       </main>
 
