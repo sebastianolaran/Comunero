@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate, useOutletContext } from 'react-router'
 import RentalRequestCard from '../components/RentalRequestCard'
 import NewRentalRequestModal from '../components/NewRentalRequestModal'
 import RentalRequestDetail from '../components/RentalRequestDetail'
@@ -29,7 +29,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   const [envio, setEnvio] = useState({ enviando: false, error: null })
   const location = useLocation()
   const navigate = useNavigate()
-  // El alta se abre con este state: lo mandan "+ Nueva solicitud" de la barra de
+  // El alta se abre con este state: lo mandan "Pedir alquiler" de la barra de
   // Alquiler y el historial de inquilinos (con nombre y teléfono para precargar).
   // Si la página ya estaba montada, el state llega en una navegación nueva
   // (otro location.key) y se atiende durante el render.
@@ -61,6 +61,13 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       .catch(() => setPrecioPorDia(null))
     return () => controller.abort()
   }, [assetId, userId])
+
+  const setDetalleAbierto = useOutletContext()?.setDetalleAbierto
+  const hayDetalle = carga.solicitudes.some((s) => s.id === seleccion)
+  useEffect(() => {
+    setDetalleAbierto?.(hayDetalle)
+    return () => setDetalleAbierto?.(false)
+  }, [hayDetalle, setDetalleAbierto])
 
   const cerrarNueva = () => {
     setNuevaAbierta(false)

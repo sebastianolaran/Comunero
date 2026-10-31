@@ -131,6 +131,21 @@
   margin-left: 10px;
 }
 
+/* Con mouse, Editar y Eliminar aparecen en la fila que se señala o se enfoca:
+   la tabla se lee sin repetirlos en cada renglón. Sin hover quedan siempre. */
+@media (hover: hover) {
+  .mov-row-actions .btn {
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+  }
+
+  .tbl__r:hover .mov-row-actions .btn,
+  .tbl__r:focus-within .mov-row-actions .btn,
+  .tbl__r.is-open .mov-row-actions .btn {
+    opacity: 1;
+  }
+}
+
 /* ---- reparto desplegado bajo la fila ---- */
 .mov-table tr.is-open {
   border-bottom-color: transparent;

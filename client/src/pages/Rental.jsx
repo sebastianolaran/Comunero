@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { userIdActual } from '../lib/currentUser'
 import './Rental.css'
@@ -13,6 +14,9 @@ const claseTab = ({ isActive }) => (isActive ? 'seg__b seg__b--on' : 'seg__b')
 
 function Rental() {
   const navigate = useNavigate()
+  // Con una solicitud abierta, su acción es la principal de la vista y el alta
+  // pasa a secundaria: nunca dos botones de tinta a la vez.
+  const [detalleAbierto, setDetalleAbierto] = useState(false)
 
   // Solicitudes abre el alta cuando llega este state (lo usa también el historial de inquilinos).
   const nuevaSolicitud = () => navigate('solicitudes', { state: { nuevaSolicitud: {} } })
@@ -28,13 +32,13 @@ function Rental() {
           ))}
         </nav>
         {userIdActual() && (
-          <button type="button" className="btn btn--primary" onClick={nuevaSolicitud}>
-            + Nueva solicitud
+          <button type="button" className={detalleAbierto ? 'btn' : 'btn btn--primary'} onClick={nuevaSolicitud}>
+            Pedir alquiler
           </button>
         )}
       </div>
 
-      <Outlet />
+      <Outlet context={{ setDetalleAbierto }} />
     </section>
   )
 }

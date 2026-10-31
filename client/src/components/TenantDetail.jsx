@@ -164,7 +164,7 @@ function TenantDetail({ ref, tenantId, assetId, userId, onRated }) {
             navigate('/alquiler/solicitudes', { state: { nuevaSolicitud: solicitudPrecargada({ name, phone }) } })
           }
         >
-          + Nueva solicitud para este inquilino
+          Pedir alquiler para este inquilino
         </button>
       )}
     </aside>

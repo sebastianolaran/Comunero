@@ -252,7 +252,7 @@ function Movimientos() {
                 </button>
               </div>
               <button type="button" className="btn btn--primary" onClick={openCreate}>
-                + Nuevo movimiento
+                Cargar movimiento
               </button>
             </div>
           </div>

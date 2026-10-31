@@ -116,7 +116,8 @@ function Panel({ titulo, ayuda, hint, children, pie }) {
 }
 
 // Guardar solo se activa con cambios sin guardar, y "Guardado" se ve mientras
-// lo que está en pantalla es lo guardado: editar de nuevo lo saca.
+// lo que está en pantalla es lo guardado: editar de nuevo lo saca. Solo el
+// panel con cambios lleva el botón en tinta: en reposo ninguno compite.
 function Pie({ estado, onGuardar, sinCambios, children }) {
   return (
     <div className="cfg__pie">
@@ -129,7 +130,7 @@ function Pie({ estado, onGuardar, sinCambios, children }) {
       {children}
       <button
         type="button"
-        className="btn btn--sm btn--primary"
+        className={sinCambios ? 'btn btn--sm' : 'btn btn--sm btn--primary'}
         disabled={estado.guardando || sinCambios}
         onClick={onGuardar}
       >

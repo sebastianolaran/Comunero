@@ -199,7 +199,7 @@ function EnVotacion({ assetId, onCerrada }) {
           En votación
         </h2>
         <button type="button" className="btn btn--primary" onClick={() => setModalAbierto(true)}>
-          + Nueva decisión
+          Proponer decisión
         </button>
       </div>
 
