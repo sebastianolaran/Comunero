@@ -50,6 +50,8 @@ function toListItem(reservation, coowners, userId, { blockedByOverlap = false } 
     amount: reservation.amount ?? null,
     startDate: toDateOnly(reservation.startDate),
     endDate: toDateOnly(reservation.endDate),
+    // El plazo para votar se cuenta desde acá (Configuración > Tiempo para responder).
+    requestedAt: reservation.createdAt?.toISOString() ?? null,
     yesCount: approvals.length,
     coownerCount: coowners.length,
     status: deriveStatus(
@@ -77,6 +79,7 @@ const LIST_SELECT = {
   amount: true,
   paidAt: true,
   rejectionReason: true,
+  createdAt: true,
   renter: { select: { name: true, phone: true } },
   approvals: { select: { userId: true } },
   objections: { select: { userId: true, reason: true }, orderBy: { createdAt: 'asc' } },
