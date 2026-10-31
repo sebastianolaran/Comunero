@@ -32,8 +32,19 @@ export function motivoRechazo(reason) {
   return reason || 'Sin motivo especificado'
 }
 
-export function votosLabel({ yesCount, coownerCount }) {
-  return fmtAprobaron(yesCount, coownerCount)
+// Una solicitud cerrada puede tener integrantes sin voto (se sumaron después o
+// el plazo venció): ya no "faltan", así que se dice sin dejarlo pendiente.
+export function votosLabel({ yesCount, coownerCount, status, votes = [] }) {
+  const base = fmtAprobaron(yesCount, coownerCount)
+  const sinVoto = votes.filter((v) => !v.value).length
+  if (status === 'PENDING' || sinVoto === 0) return base
+  return `${base} · ${sinVoto} sin votar`
+}
+
+export function textoSinVoto(votes) {
+  const sinVoto = votes.filter((v) => !v.value).map((v) => v.name)
+  if (sinVoto.length === 0) return null
+  return new Intl.ListFormat('es', { type: 'conjunction' }).format(sinVoto)
 }
 
 const CHIPS = {
@@ -41,9 +52,10 @@ const CHIPS = {
   REJECT: { simbolo: '✕', verbo: 'rechazó', variante: 'rechazo' },
 }
 const CHIP_PENDIENTE = { simbolo: '·', verbo: 'todavía no votó', variante: 'pendiente' }
+const CHIP_SIN_VOTO = { simbolo: '·', verbo: 'no votó', variante: 'pendiente' }
 
-export function chipVoto({ name, value }) {
-  const { simbolo, verbo, variante } = CHIPS[value] ?? CHIP_PENDIENTE
+export function chipVoto({ name, value }, cerrada = false) {
+  const { simbolo, verbo, variante } = CHIPS[value] ?? (cerrada ? CHIP_SIN_VOTO : CHIP_PENDIENTE)
   return { label: `${name} ${simbolo}`, descripcion: `${name} ${verbo}`, variante }
 }
 

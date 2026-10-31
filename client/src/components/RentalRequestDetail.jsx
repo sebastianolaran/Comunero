@@ -12,6 +12,7 @@ import {
   textoEstado,
   VOTO_TEXTO,
   textoFaltan,
+  textoSinVoto,
   votosLabel,
 } from '../lib/rentalRequests'
 import PagoTag from './PagoTag'
@@ -105,7 +106,7 @@ function RentalRequestDetail({
       {comments && <p className="note alq-det__bloque">{comments}</p>}
 
       <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>
-      <ChipsVoto votes={solicitud.votes} />
+      <ChipsVoto votes={solicitud.votes} cerrada={!pendiente} />
       {pendiente && textoFaltan(solicitud.votes) && (
         <p className="hint alq-det__faltan" aria-live="polite">
           {textoFaltan(solicitud.votes)}
@@ -134,7 +135,11 @@ function RentalRequestDetail({
       )}
 
       {status === 'APPROVED' && (
-        <p className="hint alq-det__bloque">Aprobada por unanimidad: ya quedó reservada en el calendario.</p>
+        <p className="hint alq-det__bloque">
+          {textoSinVoto(solicitud.votes)
+            ? `Aprobada sin el voto de ${textoSinVoto(solicitud.votes)}: ya quedó reservada en el calendario.`
+            : 'Aprobada por unanimidad: ya quedó reservada en el calendario.'}
+        </p>
       )}
 
       {puedeVotar && !confirmando && botones.length > 0 && (

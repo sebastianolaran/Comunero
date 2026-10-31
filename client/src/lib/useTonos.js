@@ -5,7 +5,7 @@ import { userIdActual } from './currentUser'
 
 // userId -> tono del integrante en el bien actual, el mismo que se elige en
 // Configuración. Se pide una vez por bien y queda en memoria; mientras no
-// llega (o si falla), MemberName calcula el tono por id.
+// llega (o si falla), los puntos quedan en gris (colorConfirmado).
 const porBien = new Map()
 
 export function useTonos() {

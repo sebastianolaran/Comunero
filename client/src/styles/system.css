@@ -84,7 +84,7 @@ input[type=date]{ cursor:text }
 .who{ display:flex; align-items:center; gap:8px; font-size:var(--fs-body); color:var(--ink-2) }
 .who__a{ width:26px; height:26px; border-radius:50%; background:var(--ink); color:#fff; font-size:var(--fs-label);
          font-weight:600; display:flex; align-items:center; justify-content:center }
-.view{ flex:1; overflow:auto; padding:26px 32px 40px; display:flex; flex-direction:column }
+.view{ flex:1; overflow:auto; scrollbar-gutter:stable; padding:26px 32px 40px; display:flex; flex-direction:column }
 .page{ max-width:var(--page-w); width:100%; margin-inline:auto; flex:1; min-height:0; display:flex; flex-direction:column }
 .split{ display:flex; gap:28px; align-items:flex-start }
 .split--fill{ flex:1; min-height:340px; align-items:stretch }
@@ -229,6 +229,12 @@ input[type=date]{ cursor:text }
       grid-auto-rows:minmax(76px,1fr); gap:1px; background:var(--line); border:1px solid var(--line);
       border-radius:var(--r-md); overflow:hidden }
 .split--fill .cal{ flex:1; min-height:0 }
+.cal{ position:relative }
+/* Mientras carga, la grilla vacía no puede leerse como "todo libre". */
+.cal[aria-busy="true"] .cal__c{ opacity:.45; pointer-events:none }
+.cal__cargando{ position:absolute; inset:0; z-index:1; display:grid; place-items:center; pointer-events:none }
+.cal__cargando .estado{ padding:8px 14px; background:var(--surface); border:1px solid var(--line);
+                        border-radius:var(--r-pill); box-shadow:var(--shadow-pop) }
 .cal__wd{ background:var(--surface); padding:9px 0; text-align:center; font-size:var(--fs-label); font-weight:600;
           color:var(--muted); text-transform:uppercase; letter-spacing:.06em }
 .cal__c{ min-height:78px; min-width:0; overflow:hidden; padding:8px; display:flex; flex-direction:column;

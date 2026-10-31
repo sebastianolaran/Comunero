@@ -137,6 +137,13 @@ export function colorDeIntegrante(userId, hue = null) {
   return `oklch(56% 0.12 ${tonoDeIntegrante(userId, hue)})`;
 }
 
+// Para los tonos que llegan aparte (useTonos): mientras no llegan, gris con la
+// misma luminosidad. El tono calculado por id puede no ser el elegido y el
+// color saltaría o repetiría el de otro integrante.
+export function colorConfirmado(userId, hue) {
+  return hue == null ? 'var(--faint)' : colorDeIntegrante(userId, hue);
+}
+
 // Arma la leyenda de integrantes a partir de las reservas del mes visible:
 // un integrante aparece si tiene al menos una reserva de uso propio
 // (ACTIVE o PENDING) en el rango cargado. No es la lista completa de

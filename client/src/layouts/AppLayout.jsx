@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import Navbar from '../components/Navbar'
-import { colorDeIntegrante } from '../lib/calendar'
+import { colorConfirmado } from '../lib/calendar'
 import { userIdActual, userNameActual } from '../lib/currentUser'
 import { useTonos } from '../lib/useTonos'
 import { cerrarSesion } from '../lib/session'
@@ -41,7 +41,7 @@ function AppLayout() {
             <h1 className="top__t">{tituloDe(pathname)}</h1>
             {nombreUsuario && (
               <div className="who">
-                <span className="who__a" style={{ background: colorDeIntegrante(userId, tonos[userId]) }} aria-hidden="true">
+                <span className="who__a" style={{ background: colorConfirmado(userId, tonos[userId]) }} aria-hidden="true">
                   {iniciales(nombreUsuario)}
                 </span>
                 <span className="who__n">{nombreUsuario}</span>

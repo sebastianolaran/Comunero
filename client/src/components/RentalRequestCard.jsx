@@ -64,7 +64,7 @@ function RentalRequestCard({
           {comments && <p className="alq-rq__com">{comments}</p>}
           <div className="alq-rq__votos">
             <span className="meta">{votosLabel(solicitud)}</span>
-            <ChipsVoto votes={solicitud.votes} />
+            <ChipsVoto votes={solicitud.votes} cerrada={solicitud.status !== 'PENDING'} />
           </div>
 
           {fechaPasada(solicitud) && (

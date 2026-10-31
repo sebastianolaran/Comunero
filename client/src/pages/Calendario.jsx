@@ -10,7 +10,7 @@ import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Pagination from '../components/Pagination'
-import { ErrorCarga, Vacio } from '../components/ui/Estado'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
 import { fmtAprobaron } from '../lib/format'
 import { daysLabel, formatRange, hoyLocal } from '../lib/rentalRequests'
@@ -391,6 +391,11 @@ function Calendario() {
         )}
 
         <div className="cal" aria-busy={estadoCarga === 'loading'}>
+          {estadoCarga === 'loading' && (
+            <div className="cal__cargando">
+              <Cargando panel={false}>Cargando las reservas del mes…</Cargando>
+            </div>
+          )}
           {DIAS_SEMANA.map((nombreDia) => (
             <div key={nombreDia} className="cal__wd">
               {nombreDia}

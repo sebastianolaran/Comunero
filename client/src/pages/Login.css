@@ -64,6 +64,17 @@
   margin-top: 14px;
 }
 
+.login__ayuda {
+  margin: 6px 0 0;
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.login__ayuda + .field-err {
+  margin-top: 4px;
+}
+
 .login__lbl {
   display: block;
   font-size: var(--fs-meta);
@@ -256,7 +267,7 @@
   border-radius: var(--r-sm);
   background: oklch(27% 0 0);
   font-size: var(--fs-label);
-  color: oklch(62% 0 0);
+  color: oklch(67% 0 0);
 }
 
 .login__d--out {
