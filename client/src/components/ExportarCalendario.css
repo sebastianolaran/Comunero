@@ -1,0 +1,20 @@
+.exportar-cal__hint {
+  margin-bottom: 14px;
+}
+
+.exportar-cal__sel {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.exportar-cal__err {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--neg);
+}
+
+.exportar-cal__acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
