@@ -68,6 +68,14 @@ function fechaInput(dia) {
   return dia.toISOString().slice(0, 10)
 }
 
+// Con el formulario abierto, la grilla arma el rango: un clic empieza, el
+// siguiente lo cierra (en cualquier orden) y Shift+clic estira desde el inicio.
+function rangoAlElegir(previo, fecha, extender) {
+  const empezado = previo.inicio && fecha !== previo.inicio
+  if (!empezado || (!extender && previo.inicio !== previo.fin)) return { inicio: fecha, fin: fecha }
+  return previo.inicio < fecha ? { inicio: previo.inicio, fin: fecha } : { inicio: fecha, fin: previo.inicio }
+}
+
 function etiquetaReserva(dia) {
   return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
 }
@@ -228,14 +236,20 @@ function Calendario() {
     setForm(FORM_INICIAL)
   }
 
-  const seleccionarDia = (dia) => {
+  const seleccionarDia = (dia, extender = false) => {
     setErrorTarea(null)
     setDiaSeleccionado(dia.toISOString())
-    // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
-    const fecha = fechaInput(dia)
-    setForm(estadoDelDia(dia, reservas).estado === 'libre' ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
-    setFormAbierto(false)
     setFormError(null)
+    const fecha = fechaInput(dia)
+    const libre = estadoDelDia(dia, reservas).estado === 'libre'
+    // Con el formulario abierto, un día ocupado solo muestra su detalle: el
+    // rango que se venía armando no se pierde.
+    if (formAbierto) {
+      if (libre) setForm((previo) => rangoAlElegir(previo, fecha, extender))
+      return
+    }
+    // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
+    setForm(libre ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
   }
 
   // Un pedido de otro mes lleva el calendario a ese mes para que se vea.
@@ -329,6 +343,17 @@ function Calendario() {
     setMonth(m)
   }
 
+  const [anioHoy, mesHoy, diaHoy] = hoyLocal().split('-').map(Number)
+  const hoyIso = new Date(Date.UTC(anioHoy, mesHoy - 1, diaHoy)).toISOString()
+  const irAHoy = () => {
+    if (year !== anioHoy || month !== mesHoy) {
+      setEstadoCarga('loading')
+      setYear(anioHoy)
+      setMonth(mesHoy)
+    }
+    setDiaSeleccionado(hoyIso)
+  }
+
   const irMesSiguiente = () => {
     const { year: y, month: m } = mesSiguiente(year, month)
     setEstadoCarga('loading')
@@ -364,16 +389,21 @@ function Calendario() {
             </svg>
           </button>
           <h2 className="cal-head__t">{nombreMes(year, month).replace(' de ', ' ')}</h2>
-          <button
-            type="button"
-            className="btn btn--icon"
-            onClick={irMesSiguiente}
-            aria-label="Mes siguiente"
-          >
-            <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
+          <div className="cal-head__der">
+            <button type="button" className="btn btn--sm" onClick={irAHoy} disabled={diaSeleccionado === hoyIso}>
+              Hoy
+            </button>
+            <button
+              type="button"
+              className="btn btn--icon"
+              onClick={irMesSiguiente}
+              aria-label="Mes siguiente"
+            >
+              <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         {peticionVisibleActual && (
@@ -414,7 +444,8 @@ function Calendario() {
               seleccionado={diaSeleccionado === dia.toISOString()}
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
               cargando={estadoCarga === 'loading'}
-              onSelect={() => seleccionarDia(dia)}
+              enRango={formAbierto && Boolean(form.inicio) && fechaInput(dia) >= form.inicio && fechaInput(dia) <= (form.fin || form.inicio)}
+              onSelect={(extender) => seleccionarDia(dia, extender)}
             />
           ))}
 
@@ -473,7 +504,8 @@ function Calendario() {
             <form onSubmit={handleSolicitar}>
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
-                Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler.
+                Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler. En el calendario, un
+                clic marca el primer día y otro el último; Shift+clic estira el rango.
                 {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
@@ -736,11 +768,12 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, cargando, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, cargando, enRango, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
   if (hoy) clases.push('cal__c--hoy')
+  if (enRango) clases.push('cal__c--rango')
   let etiqueta = ''
   let estilo
 
@@ -770,10 +803,10 @@ function Dia({ dia, info, seleccionado, hoy, cargando, onSelect }) {
       className={clases.join(' ')}
       style={estilo}
       title={titulo}
-      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}`}
+      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}${enRango ? '. En el rango a reservar' : ''}`}
       aria-pressed={seleccionado}
       aria-current={hoy ? 'date' : undefined}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e.shiftKey)}
     >
       <span className="cal__n">
         {dia.getUTCDate()}

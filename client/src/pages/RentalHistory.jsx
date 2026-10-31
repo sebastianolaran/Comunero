@@ -50,7 +50,7 @@ function RentalHistory({ assetId = assetIdActual() }) {
 
   if (carga.estado === 'loading') {
     return (
-      <Cargando>Cargando historial de alquileres…</Cargando>
+      <Cargando filas={5}>Cargando historial de alquileres…</Cargando>
     )
   }
 

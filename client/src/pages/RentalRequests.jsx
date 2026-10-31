@@ -163,7 +163,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
 
   if (carga.estado === 'loading') {
     return (
-      <Cargando>Cargando solicitudes…</Cargando>
+      <Cargando filas={4}>Cargando solicitudes…</Cargando>
     )
   }
 

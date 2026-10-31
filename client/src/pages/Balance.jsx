@@ -331,7 +331,7 @@ function Balance() {
         </p>
       )}
 
-      {!data && !error && <Cargando>Cargando balance…</Cargando>}
+      {!data && !error && <Cargando filas={4}>Cargando balance…</Cargando>}
 
       {data && (
         <>

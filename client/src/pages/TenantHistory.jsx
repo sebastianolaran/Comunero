@@ -80,7 +80,7 @@ function TenantHistory({ assetId = assetIdActual(), userId = userIdActual() }) {
         />
 
         {carga.estado === 'loading' && (
-          <Cargando>Cargando inquilinos…</Cargando>
+          <Cargando filas={4}>Cargando inquilinos…</Cargando>
         )}
 
         {carga.estado === 'error' && (

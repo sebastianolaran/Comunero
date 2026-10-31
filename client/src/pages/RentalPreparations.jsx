@@ -68,7 +68,7 @@ function RentalPreparations({ assetId = assetIdActual() }) {
 
   if (carga.estado === 'loading') {
     return (
-      <Cargando>Cargando tareas de preparación…</Cargando>
+      <Cargando filas={3}>Cargando tareas de preparación…</Cargando>
     )
   }
 

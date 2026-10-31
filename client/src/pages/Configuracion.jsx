@@ -470,7 +470,7 @@ function Configuracion() {
     return () => controller.abort()
   }, [intento])
 
-  if (carga.estado === 'loading') return <Cargando panel={false}>Cargando configuración…</Cargando>
+  if (carga.estado === 'loading') return <Cargando filas={4}>Cargando configuración…</Cargando>
   if (carga.estado === 'error') {
     return (
       <ErrorCarga

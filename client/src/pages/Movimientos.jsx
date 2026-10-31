@@ -192,7 +192,7 @@ function Movimientos() {
         error ? (
           <ErrorCarga titulo="No se pudieron cargar los movimientos." onReintentar={reload} />
         ) : (
-          <Cargando>Cargando movimientos…</Cargando>
+          <Cargando filas={5}>Cargando movimientos…</Cargando>
         )
       ) : (
         <>

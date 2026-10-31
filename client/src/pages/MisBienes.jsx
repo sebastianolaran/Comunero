@@ -81,7 +81,7 @@ function MisBienes() {
         </div>
 
         {carga.estado === 'cargando' && carga.bienes.length === 0 && (
-          <Cargando panel={false}>Cargando bienes…</Cargando>
+          <Cargando filas={2}>Cargando bienes…</Cargando>
         )}
 
         {carga.estado === 'error' && (

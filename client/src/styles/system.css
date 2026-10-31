@@ -244,6 +244,8 @@ input[type=date]{ cursor:text }
 .cal__c:hover{ box-shadow:inset 0 0 0 1px var(--line-loud) }
 .cal__c--on,.cal__c--on:hover{ box-shadow:inset 0 0 0 2px var(--ink) }
 .cal__c--out{ background:var(--sunken); cursor:default }
+/* Rango que se está armando para reservar: punteado = todavía no pedido. */
+.cal__c--rango{ background:var(--inset); outline:1.5px dashed var(--ink-2); outline-offset:-4px }
 .cal__c--out:hover{ box-shadow:none }
 .cal__n{ font-size:var(--fs-body); font-weight:600 }
 .cal__t{ font-size:var(--fs-label); font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
@@ -328,6 +330,15 @@ h1,h2,h3,.brand__s,.estado__t,.modal__s{ overflow-wrap:anywhere }
 .estado{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; font-size:var(--fs-body); color:var(--muted); line-height:1.55 }
 .estado.panel{ padding:20px 22px }
 .estado__t{ color:var(--ink-2); font-weight:500 }
+.esqueleto{ display:flex; flex-direction:column; padding:6px 18px }
+.esqueleto__fila{ display:flex; flex-direction:column; gap:8px; padding:14px 0; border-bottom:1px solid var(--line-soft) }
+.esqueleto__fila:last-child{ border-bottom:none }
+.esqueleto__b{ display:block; height:10px; border-radius:var(--r-pill); background:var(--inset);
+               animation:esqueleto 1.4s var(--ease) infinite alternate }
+.esqueleto__b--t{ width:38% }
+.esqueleto__b--m{ width:62%; height:8px; animation-delay:.2s }
+.esqueleto__fila:nth-child(odd) .esqueleto__b--t{ width:30% }
+.esqueleto__fila:nth-child(odd) .esqueleto__b--m{ width:54% }
 .estado--error .estado__t{ color:var(--ink) }
 .estado--error .btn{ margin-top:4px }
 
@@ -358,6 +369,7 @@ h1,h2,h3,.brand__s,.estado__t,.modal__s{ overflow-wrap:anywhere }
 @keyframes card-flash{ 0%,40%{ background:var(--flash) } 100%{ background:var(--surface) } }
 @keyframes scrim-in{ from{ opacity:0 } to{ opacity:1 } }
 @keyframes modal-in{ from{ opacity:0; transform:translateY(10px) scale(.985) } to{ opacity:1; transform:none } }
+@keyframes esqueleto{ from{ opacity:1 } to{ opacity:.45 } }
 @keyframes pop-in{ from{ opacity:0; transform:translateY(-4px) scale(.98) } to{ opacity:1; transform:none } }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important }

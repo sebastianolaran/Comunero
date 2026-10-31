@@ -64,7 +64,7 @@ function useDecisiones(fetcher, assetId, version = 0) {
 }
 
 function Aviso({ carga, reintentar, texto, vacio }) {
-  if (carga.estado === 'loading') return <Cargando panel={false}>Cargando decisiones…</Cargando>
+  if (carga.estado === 'loading') return <Cargando filas={3}>Cargando decisiones…</Cargando>
   if (carga.estado === 'error') return <ErrorCarga panel={false} titulo={texto} onReintentar={reintentar} />
   return <Vacio titulo={vacio} />
 }

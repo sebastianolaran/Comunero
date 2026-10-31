@@ -5,6 +5,12 @@
   margin-bottom: 18px;
 }
 
+.cal-head__der {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .cal-head__t {
   font-size: var(--fs-subtitle);
   font-weight: 600;
