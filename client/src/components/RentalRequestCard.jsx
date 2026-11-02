@@ -53,7 +53,7 @@ function RentalRequestCard({
           </button>
         </h3>
         <span className="alq-badges">
-          {solicitud.fromListing && <span className="badge badge--dash">Ficha pública</span>}
+          {solicitud.fromListing && <span className="badge badge--line">Ficha pública</span>}
           <span className="badge">{textoEstado(solicitud)}</span>
           <PagoTag solicitud={solicitud} />
           {fechaPasada(solicitud) && <span className="tag tag--dash">Fecha pasada</span>}

@@ -26,6 +26,8 @@ import {
 import ConfirmDialog from './ConfirmDialog'
 import Icono from './Iconos'
 import { Panel, Pie } from './ConfigPanel'
+import { Cargando, ErrorCarga, Vacio } from './ui/Estado'
+import FieldError from './ui/FieldError'
 import './PanelFicha.css'
 
 const MAX_FOTOS = 6
@@ -145,11 +147,7 @@ function LinkPublico({ ficha, onCambio }) {
           </a>
         )}
       </div>
-      {estado.error && !confirmando && (
-        <p className="cfg__error" role="alert">
-          {estado.error}
-        </p>
-      )}
+      {!confirmando && <FieldError>{estado.error}</FieldError>}
       {confirmando && (
         <ConfirmDialog
           title="¿Generar un link nuevo?"
@@ -172,6 +170,7 @@ function LinkPublico({ ficha, onCambio }) {
 function Fotos({ ficha, onCambio }) {
   const input = useRef(null)
   const [estado, setEstado] = useState({ ocupado: false, error: null })
+  const [eliminando, setEliminando] = useState(null)
   const lleno = ficha.photos.length >= MAX_FOTOS
   const ids = ficha.photos.map((f) => f.id)
   const ordenar = (nuevos) => correr(() => reorderListingPhotos(assetIdActual(), userIdActual(), nuevos))
@@ -269,21 +268,34 @@ function Fotos({ ficha, onCambio }) {
                   type="button"
                   className="ficha__mini ficha__mini--texto"
                   disabled={estado.ocupado}
-                  onClick={() => correr(() => deleteListingPhoto(assetIdActual(), userIdActual(), foto.id))}
+                  onClick={() => {
+                    setEstado({ ocupado: false, error: null })
+                    setEliminando({ id: foto.id, numero: i + 1 })
+                  }}
                 >
-                  Sacar
+                  Eliminar
                 </button>
               </div>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="empty">Sin fotos todavía. JPG, PNG o WebP; se achican solas antes de subirse.</p>
+        <Vacio titulo="Sin fotos todavía">JPG, PNG o WebP; se achican solas antes de subirse. La primera es la portada.</Vacio>
       )}
-      {estado.error && (
-        <p className="cfg__error" role="alert">
-          {estado.error}
-        </p>
+      {!eliminando && <FieldError>{estado.error}</FieldError>}
+      {eliminando && (
+        <ConfirmDialog
+          title={`¿Eliminar la foto ${eliminando.numero}?`}
+          lines={['Deja de verse en la ficha pública. Para recuperarla hay que volver a subirla.']}
+          confirmLabel="Eliminar foto"
+          busyLabel="Eliminando…"
+          busy={estado.ocupado}
+          error={estado.error}
+          onConfirm={async () => {
+            if (await correr(() => deleteListingPhoto(assetIdActual(), userIdActual(), eliminando.id))) setEliminando(null)
+          }}
+          onCancel={() => setEliminando(null)}
+        />
       )}
     </div>
   )
@@ -355,6 +367,7 @@ function FormularioFicha({ ficha, precioPorDia, onCambio }) {
 // onCambio: para refrescar "Cambios recientes", donde queda quién la modificó.
 function PanelFicha({ precioPorDia, onCambio }) {
   const [carga, setCarga] = useState({ estado: 'loading', ficha: null })
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -364,7 +377,7 @@ function PanelFicha({ precioPorDia, onCambio }) {
         if (err.name !== 'AbortError') setCarga({ estado: 'error', ficha: null, error: err.message })
       })
     return () => controller.abort()
-  }, [])
+  }, [intento])
 
   const actualizar = (ficha) => {
     setCarga({ estado: 'ok', ficha })
@@ -377,15 +390,16 @@ function PanelFicha({ precioPorDia, onCambio }) {
       ayuda={AYUDA}
       hint="Para compartir con posibles inquilinos. Cualquier integrante la puede editar."
     >
-      {carga.estado === 'loading' && (
-        <p className="empty" role="status">
-          Cargando ficha…
-        </p>
-      )}
+      {carga.estado === 'loading' && <Cargando panel={false}>Cargando ficha…</Cargando>}
       {carga.estado === 'error' && (
-        <p className="cfg__error" role="alert">
-          {carga.error}
-        </p>
+        <ErrorCarga
+          panel={false}
+          titulo={carga.error}
+          onReintentar={() => {
+            setCarga({ estado: 'loading', ficha: null })
+            setIntento((n) => n + 1)
+          }}
+        />
       )}
       {carga.estado === 'ok' && (
         <div className="ficha">

@@ -215,11 +215,10 @@ function RentalRequestDetail({
           {[formatPhone(renterPhone), solicitud.renterEmail].filter(Boolean).join(' · ')}
         </p>
       )}
-      <BotonesWhatsApp solicitud={solicitud} />
       <div className="alq-badges alq-det__badges">
-        {solicitud.fromListing && <span className="badge badge--dash">Desde la ficha pública</span>}
-        <PagoTag solicitud={solicitud} />
+        {solicitud.fromListing && <span className="badge badge--line">Ficha pública</span>}
         <span className="badge">{textoEstado(solicitud)}</span>
+        <PagoTag solicitud={solicitud} />
       </div>
       <p className="alq-det__fechas">
         {[formatRange(startDate, endDate), daysLabel(startDate, endDate), personasLabel(solicitud.guests)]
@@ -231,6 +230,7 @@ function RentalRequestDetail({
         editable={puedeVotar && puedeEditarMonto(solicitud, userId) && Boolean(onUpdateAmount)}
         onGuardar={onUpdateAmount}
       />
+      <BotonesWhatsApp solicitud={solicitud} />
       {comments && <p className="note alq-det__bloque">{comments}</p>}
 
       <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>

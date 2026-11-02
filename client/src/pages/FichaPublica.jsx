@@ -1,7 +1,9 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 import CalendarioDisponibilidad from '../components/CalendarioDisponibilidad'
 import Icono from '../components/Iconos'
+import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
+import FieldError from '../components/ui/FieldError'
 import { validarSolicitudPublica } from '../lib/listing'
 import { daysLabel, formatMoney, formatRange, hoyLocal, montoSugerido } from '../lib/rentalRequests'
 import { fetchAvailability, fetchPublicListing, photoUrl, sendPublicRequest } from '../services/listing'
@@ -131,23 +133,32 @@ function Campo({ id, label, error, opcional = false, className = '', children })
         {opcional && <span className="fp-campo__opc">opcional</span>}
       </label>
       {children}
-      {error && (
-        <p className="fp-form__error" id={`${id}-error`}>
-          {error}
-        </p>
-      )}
+      <FieldError id={`${id}-error`}>{error}</FieldError>
     </div>
   )
 }
 
-function Enviada({ pedido }) {
+// En el teléfono el formulario queda abajo y la confirmación es más corta: se
+// lleva el foco y la vista al título para que no quede fuera de pantalla.
+function Enviada({ pedido, lugar, estimado }) {
+  const titulo = useRef(null)
+  useEffect(() => {
+    titulo.current?.focus({ preventScroll: true })
+    titulo.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [])
   return (
     <div className="fp-ok" role="status">
       <span className="fp-ok__marca" aria-hidden="true">
         <Icono nombre="check" className="fp-i" />
       </span>
-      <h2 className="fp-ok__t">Solicitud enviada</h2>
+      <h2 ref={titulo} tabIndex={-1} className="fp-ok__t">
+        Solicitud enviada
+      </h2>
       <dl className="fp-ok__resumen">
+        <div>
+          <dt>Lugar</dt>
+          <dd>{lugar}</dd>
+        </div>
         <div>
           <dt>Fechas</dt>
           <dd>
@@ -158,10 +169,16 @@ function Enviada({ pedido }) {
           <dt>Personas</dt>
           <dd>{pedido.guests}</dd>
         </div>
+        {estimado && (
+          <div>
+            <dt>Estimado</dt>
+            <dd>{formatMoney(estimado.monto)}</dd>
+          </div>
+        )}
       </dl>
       <p className="fp-ok__texto">
-        Las personas a cargo del lugar la revisan entre todas y se comunican al teléfono indicado. Enviarla no confirma la
-        reserva.
+        Las personas a cargo del lugar la revisan entre todas y responden por WhatsApp o por teléfono al número indicado.
+        Enviarla no confirma la reserva ni cobra nada.
       </p>
     </div>
   )
@@ -216,7 +233,7 @@ function Formulario({ slug, ficha, hoy, ocupados, fechas, onFechas, onOcupadas }
     }
   }
 
-  if (envio.estado === 'enviada') return <Enviada pedido={envio.pedido} />
+  if (envio.estado === 'enviada') return <Enviada pedido={envio.pedido} lugar={ficha.name} estimado={estimado} />
 
   return (
     <form className="fp-form" onSubmit={enviar} noValidate>
@@ -231,7 +248,7 @@ function Formulario({ slug, ficha, hoy, ocupados, fechas, onFechas, onOcupadas }
       </div>
 
       <fieldset className="fp-estadia">
-        <legend className="fp-sr">Estadía</legend>
+        <legend className="solo-lector">Estadía</legend>
         <div className="fp-fechas">
           <Campo id={id('startDate')} label="Llegada" error={visibles.startDate}>
             <input className="fp-in" type="date" min={hoy} {...props('startDate')} />
@@ -287,11 +304,7 @@ function Formulario({ slug, ficha, hoy, ocupados, fechas, onFechas, onOcupadas }
         </label>
       </div>
 
-      {envio.error && (
-        <p className="fp-form__error" role="alert">
-          {envio.error}
-        </p>
-      )}
+      <FieldError>{envio.error}</FieldError>
       <button type="submit" className="btn btn--primary btn--block fp-form__enviar" disabled={envio.estado === 'enviando'}>
         {envio.estado === 'enviando' ? 'Enviando…' : 'Enviar solicitud'}
       </button>
@@ -299,15 +312,6 @@ function Formulario({ slug, ficha, hoy, ocupados, fechas, onFechas, onOcupadas }
         Todavía no se cobra nada. Los datos solo los ven las personas a cargo del lugar.
       </p>
     </form>
-  )
-}
-
-function Estado({ titulo, children, alerta = false }) {
-  return (
-    <div className="fp__aviso" role={alerta ? 'alert' : 'status'}>
-      {titulo && <h1 className="fp-nombre fp-nombre--chico">{titulo}</h1>}
-      {children}
-    </div>
   )
 }
 
@@ -328,6 +332,7 @@ function useOcupados(slug) {
 function FichaPublica() {
   const { slug } = useParams()
   const [carga, setCarga] = useState({ estado: 'loading', ficha: null })
+  const [intento, setIntento] = useState(0)
   const [ocupados, recargarOcupados] = useOcupados(slug)
   const [fechas, setFechas] = useState({ startDate: '', endDate: '' })
   const hoy = hoyLocal()
@@ -341,7 +346,7 @@ function FichaPublica() {
         setCarga({ estado: err.status === 404 ? 'no-existe' : 'error', ficha: null, error: err.message })
       })
     return () => controller.abort()
-  }, [slug])
+  }, [slug, intento])
 
   useEffect(() => {
     if (carga.ficha) document.title = `${carga.ficha.name} · Comunero`
@@ -360,19 +365,28 @@ function FichaPublica() {
 
       <main className="fp__in fp__main">
         {carga.estado === 'loading' && (
-          <Estado>
-            <p className="hint">Cargando ficha… La primera visita puede tardar hasta un minuto.</p>
-          </Estado>
+          <div className="fp__aviso">
+            <Cargando>Cargando la ficha… Si nadie entró en un rato, puede tardar hasta un minuto.</Cargando>
+          </div>
         )}
         {carga.estado === 'no-existe' && (
-          <Estado titulo="Ficha no encontrada">
-            <p className="hint">El link no corresponde a ninguna ficha publicada: puede estar pausada o haber cambiado. Conviene consultarlo con quien lo compartió.</p>
-          </Estado>
+          <div className="fp__aviso">
+            <h1 className="fp-nombre fp-nombre--chico">Esta ficha no recibe pedidos</h1>
+            <Vacio panel titulo="El link no corresponde a una ficha publicada.">
+              Puede estar pausada por ahora o haber cambiado de link. Conviene consultarlo con quien lo compartió.
+            </Vacio>
+          </div>
         )}
         {carga.estado === 'error' && (
-          <Estado titulo="No se pudo cargar la ficha" alerta>
-            <p className="hint">{carga.error}</p>
-          </Estado>
+          <div className="fp__aviso">
+            <ErrorCarga
+              titulo="No se pudo cargar la ficha."
+              onReintentar={() => {
+                setCarga({ estado: 'loading', ficha: null })
+                setIntento((n) => n + 1)
+              }}
+            />
+          </div>
         )}
         {carga.estado === 'ok' && (
           <>
@@ -393,7 +407,7 @@ function FichaPublica() {
                   />
                 </Seccion>
               </Detalle>
-              <aside className="fp-panel" aria-label="Pedir fechas">
+              <aside id="pedir" className="fp-panel" aria-label="Pedir fechas">
                 <Formulario
                   slug={slug}
                   ficha={ficha}
@@ -404,6 +418,17 @@ function FichaPublica() {
                   onOcupadas={recargarOcupados}
                 />
               </aside>
+            </div>
+            {/* En el teléfono el formulario queda al final: un atajo fijo lleva hasta él. */}
+            <div className="fp-atajo">
+              {ficha.rentalDailyRate != null && (
+                <p className="fp-atajo__precio">
+                  <strong>{formatMoney(ficha.rentalDailyRate)}</strong> <span className="meta">por día</span>
+                </p>
+              )}
+              <a className="btn btn--primary" href="#pedir">
+                Pedir fechas
+              </a>
             </div>
           </>
         )}

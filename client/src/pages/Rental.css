@@ -177,7 +177,7 @@
   align-items: baseline;
   gap: 10px;
   margin-bottom: 12px;
-  font-size: 15px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
 }
 
