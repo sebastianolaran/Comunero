@@ -1,4 +1,5 @@
 import { API_URL } from '../lib/api'
+import { pedir as pedirHttp } from '../lib/http'
 
 const SIN_CONEXION = 'No se pudo conectar. Probar de nuevo en un momento.'
 
@@ -6,8 +7,10 @@ const SIN_CONEXION = 'No se pudo conectar. Probar de nuevo en un momento.'
 // server marca un campo.
 async function pedir(ruta, { method = 'GET', body, signal, fallo }) {
   let res
+  // Por el pedir compartido: las lecturas usan el caché y cada cambio de la
+  // ficha lo vacía (también aparece en "Cambios recientes" de Configuración).
   try {
-    res = await fetch(`${API_URL}${ruta}`, {
+    res = await pedirHttp(`${API_URL}${ruta}`, {
       method,
       signal,
       ...(body !== undefined && { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),

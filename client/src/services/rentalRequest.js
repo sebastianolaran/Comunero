@@ -1,5 +1,5 @@
 import { API_URL } from '../lib/api'
-import { pedir, mensajeHttp } from '../lib/http'
+import { pedir, mensajeHttp, vaciarCache } from '../lib/http'
 
 export async function fetchRentalRequests(assetId, { userId, signal } = {}) {
   const params = new URLSearchParams({ assetId })
@@ -62,6 +62,7 @@ export async function createRentalRequest(solicitud) {
 
 // Tira un Error con el mensaje del server (ej. 409 si ya se aprobó).
 export async function updateRentalAmount(id, { userId, amount }) {
+  vaciarCache()
   const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/amount`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
