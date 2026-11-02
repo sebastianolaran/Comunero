@@ -31,8 +31,10 @@ function expiryLimit(responseHours, now) {
 
 // Qué pasa con una pendiente vencida: quien no votó cuenta según lo elegido en
 // Configuración. Un No ya cargado la rechaza aunque el silencio cuente como Sí.
-function expiredOutcome({ objections, action }) {
-  if (objections > 0 || action !== 'APPROVE') return 'REJECTED';
+// Sin ningún Sí tampoco se aprueba: una solicitud de la ficha pública nace sin
+// votos y no puede quedar confirmada sin que ningún copropietario la haya visto.
+function expiredOutcome({ approvals, objections, action }) {
+  if (objections > 0 || approvals === 0 || action !== 'APPROVE') return 'REJECTED';
   return 'ACTIVE';
 }
 

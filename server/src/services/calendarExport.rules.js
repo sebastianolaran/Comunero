@@ -39,7 +39,7 @@ function diaSiguiente(fecha) {
 }
 
 function escapar(texto) {
-  return texto.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  return texto.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
 }
 
 // Las líneas no pueden pasar de 75 bytes: se cortan y la continuación arranca
@@ -98,4 +98,4 @@ function nombreArchivo(nombreBien) {
   return slug ? `comunero-${slug}.ics` : 'comunero.ics';
 }
 
-module.exports = { ALCANCES, filtroDeAlcance, tituloEvento, armarIcs, nombreArchivo };
+module.exports = { ALCANCES, filtroDeAlcance, tituloEvento, armarIcs, nombreArchivo, escapar };

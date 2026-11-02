@@ -1,6 +1,6 @@
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const rentalRequestService = require('../services/rentalRequest.service');
-const { parseNewRequest } = require('../validation/newRentalRequest');
+const { parseNewRequest, MAX_AMOUNT } = require('../validation/newRentalRequest');
 
 const VOTE_VALUES = ['APPROVE', 'REJECT'];
 const MAX_REASON_LENGTH = 500;
@@ -158,4 +158,24 @@ const cancel = userAction({
   failure: 'cancelar el alquiler',
 });
 
-module.exports = { list, vote, create, markPaid, cancel };
+const AMOUNT_ERRORS = {
+  NOT_FOUND: [404, 'No existe la solicitud de alquiler'],
+  NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden cambiar el monto'],
+  NOT_EDITABLE: [409, 'El monto solo se puede cambiar mientras la solicitud no esté aprobada'],
+  HAS_VOTES: [409, 'Otros copropietarios ya votaron con el monto actual: para cambiarlo hay que cargar otra solicitud'],
+};
+
+const updateAmount = userAction({
+  run: (args) => rentalRequestService.updateAmount(args),
+  errors: AMOUNT_ERRORS,
+  missingUser: 'Falta el copropietario que cambia el monto',
+  failure: 'cambiar el monto',
+  parseExtra: ({ amount }) => {
+    if (!Number.isSafeInteger(amount) || amount < 0 || amount > MAX_AMOUNT) {
+      return { error: 'El monto tiene que ser un número entero, sin decimales ni signo' };
+    }
+    return { amount };
+  },
+});
+
+module.exports = { list, vote, create, markPaid, cancel, updateAmount };

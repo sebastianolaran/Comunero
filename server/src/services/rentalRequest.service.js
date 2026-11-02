@@ -46,6 +46,10 @@ function toListItem(reservation, coowners, userId, { blockedByOverlap = false } 
     id: reservation.id,
     renterName: reservation.renter?.name ?? null,
     renterPhone: reservation.renter?.phone ?? null,
+    renterEmail: reservation.renter?.email ?? null,
+    guests: reservation.guests ?? null,
+    // Llegó desde la ficha pública: no la cargó ningún copropietario.
+    fromListing: reservation.userId === null,
     comments: reservation.note ?? null,
     amount: reservation.amount ?? null,
     startDate: toDateOnly(reservation.startDate),
@@ -70,14 +74,16 @@ function toListItem(reservation, coowners, userId, { blockedByOverlap = false } 
 
 const LIST_SELECT = {
   id: true,
+  userId: true,
   status: true,
   startDate: true,
   endDate: true,
   note: true,
+  guests: true,
   amount: true,
   paidAt: true,
   rejectionReason: true,
-  renter: { select: { name: true, phone: true } },
+  renter: { select: { name: true, phone: true, email: true } },
   approvals: { select: { userId: true } },
   objections: { select: { userId: true, reason: true }, orderBy: { createdAt: 'asc' } },
 };
@@ -307,22 +313,41 @@ async function cancel({ reservationId, userId }) {
 
 // El telefono identifica al inquilino dentro del bien: si ya existe se reutiliza
 // (con su nombre y su historial) en vez de crear un duplicado.
-async function findOrCreateRenter(tx, { assetId, renterName, phone }) {
+// Un email nuevo completa el de un inquilino conocido, pero no pisa uno ya cargado.
+// fromListing: lo manda un anónimo, que con un teléfono ajeno podría ponerle su
+// email a otro inquilino; ahí solo se guarda si el inquilino es nuevo.
+async function findOrCreateRenter(tx, { assetId, renterName, phone, email = null, fromListing = false }) {
   const existing = await tx.renter.findFirst({
     where: { assetId, phone },
     orderBy: { id: 'asc' },
-    select: { id: true },
+    select: { id: true, email: true },
   });
-  if (existing) return existing;
-  return tx.renter.create({ data: { assetId, name: renterName, phone }, select: { id: true } });
+  if (!existing) {
+    return tx.renter.create({ data: { assetId, name: renterName, phone, email }, select: { id: true } });
+  }
+  if (email && !existing.email && !fromListing) await tx.renter.update({ where: { id: existing.id }, data: { email } });
+  return existing;
 }
 
 function toUtcDate(dateOnly) {
   return new Date(`${dateOnly}T00:00:00.000Z`);
 }
 
+// userId null = llegó desde la ficha pública: nace pendiente y sin votos, así
+// que la tienen que aprobar todos los copropietarios.
 // Devuelve { request } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' }.
-async function create({ assetId, userId, renterName, phone, startDate, endDate, amount, comments }) {
+async function create({
+  assetId,
+  userId = null,
+  renterName,
+  phone,
+  email = null,
+  startDate,
+  endDate,
+  amount,
+  comments,
+  guests = null,
+}) {
   return prisma.$transaction(async (tx) => {
     const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { id: true } });
     if (!asset) return { error: 'ASSET_NOT_FOUND' };
@@ -330,15 +355,16 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
     await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
 
     const coowners = await coownersOf(tx, assetId);
-    if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    if (userId !== null && !coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
 
     const dates = { id: null, assetId, startDate: toUtcDate(startDate), endDate: toUtcDate(endDate) };
     // Se puede cargar aunque se pise con otras reservas, pero si choca con una
     // aprobada nace rechazada, igual que si hubiera existido antes de aprobarla.
     const blocked = await hasApprovedOverlap(tx, dates);
-    const renter = await findOrCreateRenter(tx, { assetId, renterName, phone });
+    const renter = await findOrCreateRenter(tx, { assetId, renterName, phone, email, fromListing: userId === null });
     // Quien la carga ya vota que si.
-    const status = blocked ? 'REJECTED' : nextStatus('APPROVE', 1, coowners.length);
+    const approvals = userId === null ? 0 : 1;
+    const status = blocked ? 'REJECTED' : nextStatus('APPROVE', approvals, coowners.length);
     const created = await tx.reservation.create({
       data: {
         assetId,
@@ -351,7 +377,8 @@ async function create({ assetId, userId, renterName, phone, startDate, endDate, 
         endDate: dates.endDate,
         amount,
         note: comments,
-        approvals: { create: { userId } },
+        guests,
+        ...(userId !== null && { approvals: { create: { userId } } }),
       },
       select: LIST_SELECT,
     });
@@ -397,6 +424,31 @@ async function releaseVotesOf(tx, { assetId, userId }) {
   }
 }
 
+// Mientras no esté aprobada, cualquier copropietario puede corregir el monto
+// (las de la ficha llegan con precio por día × días, o sin monto). Solo antes de
+// que voten los demás: si no, la aprobarían con un monto que no vieron.
+// Devuelve { request } o { error: 'NOT_FOUND' | 'NOT_COOWNER' | 'NOT_EDITABLE' | 'HAS_VOTES' }.
+async function updateAmount({ reservationId, userId, amount }) {
+  return prisma.$transaction(async (tx) => {
+    await lockForVote(tx, reservationId);
+
+    const select = { ...LIST_SELECT, assetId: true, type: true };
+    const reservation = await tx.reservation.findUnique({ where: { id: reservationId }, select });
+    if (!reservation || reservation.type !== 'RENTAL') return { error: 'NOT_FOUND' };
+
+    const coowners = await coownersOf(tx, reservation.assetId);
+    if (!coowners.some((u) => u.id === userId)) return { error: 'NOT_COOWNER' };
+    const item = toListItem(reservation, coowners, userId);
+    if (item.cancelled || item.expired || item.status === 'APPROVED') {
+      return { error: 'NOT_EDITABLE' };
+    }
+    if (item.votes.some((v) => v.userId !== userId && v.value !== null)) return { error: 'HAS_VOTES' };
+
+    const updated = await tx.reservation.update({ where: { id: reservationId }, data: { amount }, select });
+    return { request: toListItem(updated, coowners, userId) };
+  }, TX_OPTIONS);
+}
+
 module.exports = {
   deriveStatus,
   toListItem,
@@ -404,6 +456,7 @@ module.exports = {
   nextStatus,
   vote,
   create,
+  updateAmount,
   markPaid,
   cancel,
   // Los usa tambien el voto de uso propio (reservation.service) y el vencimiento.

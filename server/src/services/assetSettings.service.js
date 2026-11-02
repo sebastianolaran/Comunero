@@ -6,6 +6,8 @@ const prisma = require('../prisma');
 const rules = require('./assetSettings.rules');
 
 const LOG_TYPE = 'SETTINGS_CHANGED';
+// Mismo valor que listing.service (no se importa: ese módulo no depende de este).
+const LISTING_LOG_TYPE = 'LISTING_CHANGED';
 const RECENT_CHANGES = 20;
 // Los defaults de Prisma (2s / 5s) se quedan cortos si Neon esta despertando.
 const TX_OPTIONS = { maxWait: 10_000, timeout: 15_000 };
@@ -18,7 +20,8 @@ const SELECT = {
   users: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
   memberSettings: { select: { userId: true, percent: true } },
   activityLogs: {
-    where: { type: LOG_TYPE },
+    // Los de la ficha pública también: es el Historial de quién la modificó.
+    where: { type: { in: [LOG_TYPE, LISTING_LOG_TYPE] } },
     // id desempata dos cambios en el mismo instante, para un orden estable.
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: RECENT_CHANGES,

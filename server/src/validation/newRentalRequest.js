@@ -112,4 +112,15 @@ function parseNewRequest(body = {}, today = todayInArgentina()) {
   };
 }
 
-module.exports = { normalizePhone, parseNewRequest, todayInArgentina };
+module.exports = {
+  normalizePhone,
+  parseNewRequest,
+  todayInArgentina,
+  // Los reusa el formulario de la ficha pública.
+  parseName,
+  parsePhone,
+  parseDates,
+  parseComments,
+  fail,
+  MAX_AMOUNT,
+};
