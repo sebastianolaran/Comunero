@@ -775,6 +775,9 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
   )
 }
 
+const ABREVIATURAS = { Alquiler: 'Alq.', Rechazado: 'Rech.' }
+const abreviar = (etiqueta) => ABREVIATURAS[etiqueta] ?? etiqueta.slice(0, 2)
+
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
 function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect }) {
@@ -822,7 +825,15 @@ function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect
         {dia.getUTCDate()}
         {hoy && <span className="cal__hoy">Hoy</span>}
       </span>
-      {etiqueta && <span className="cal__t">{etiqueta}</span>}
+      {etiqueta && (
+        <span className="cal__t">
+          <span className="cal__t-largo">{etiqueta}</span>
+          {/* En mobile la celda mide ~47px: va la abreviatura; el nombre completo está en el detalle del día. */}
+          <span className="cal__t-corto" aria-hidden="true">
+            {abreviar(etiqueta)}
+          </span>
+        </span>
+      )}
     </button>
   )
 }

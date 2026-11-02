@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, NavLink } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router'
 import { assetNameActual, inviteCodeActual } from '../lib/currentAsset'
 import { useCopiado } from '../lib/useCopiado'
 import { SECCIONES } from '../sections'
@@ -50,6 +50,14 @@ function CodigoDelBien({ codigo }) {
 function Navbar() {
   const codigo = inviteCodeActual()
 
+  // En mobile la navegación es una franja con scroll: la sección activa
+  // tiene que quedar a la vista aunque esté al final.
+  const nav = useRef(null)
+  const { pathname } = useLocation()
+  useEffect(() => {
+    nav.current?.querySelector('.nav__b--on')?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [pathname])
+
   return (
     <aside className="side">
       <Link to="/bienes" className="side__volver">
@@ -63,7 +71,7 @@ function Navbar() {
         {codigo && <CodigoDelBien codigo={codigo} />}
       </div>
 
-      <nav className="nav" aria-label="Secciones">
+      <nav ref={nav} className="nav" aria-label="Secciones">
         {SECCIONES.map(({ path, label }) => (
           <NavLink key={path} to={`/${path}`} className={claseLink}>
             {label}

@@ -289,3 +289,48 @@
 .mov-personas legend {
   padding: 0;
 }
+
+/* En el teléfono cada movimiento es una tarjeta: descripción y monto arriba,
+   fecha y saldo propio abajo, quién gestionó y las acciones al final. */
+@media (max-width: 640px) {
+  .mov-table-wrap {
+    overflow-x: visible;
+  }
+
+  .mov-table,
+  .mov-table tbody {
+    display: block;
+  }
+
+  .mov-table thead {
+    display: none;
+  }
+
+  .mov-table .tbl__r {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "desc monto"
+      "fecha saldo"
+      "quien acciones";
+    gap: 4px 12px;
+    padding: 12px 16px;
+  }
+
+  .mov-table .tbl__r td {
+    padding: 0;
+  }
+
+  .mov-table .tbl__r td:nth-child(1) { grid-area: fecha; color: var(--muted); font-size: var(--fs-meta) }
+  .mov-table .tbl__r td:nth-child(2) { grid-area: desc; min-width: 0 }
+  .mov-table .tbl__r td:nth-child(3) { grid-area: monto }
+  .mov-table .tbl__r td:nth-child(4) { grid-area: quien; font-size: var(--fs-meta) }
+  .mov-table .tbl__r td:nth-child(5) { grid-area: saldo }
+  .mov-table .tbl__r td:nth-child(6) { grid-area: acciones; justify-self: end }
+
+  .mov-detail-row,
+  .mov-detail-row td {
+    display: block;
+    padding: 0 16px 12px;
+  }
+}

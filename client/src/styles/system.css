@@ -397,3 +397,20 @@ h1,h2,h3,.brand__s,.estado__t,.modal__s{ overflow-wrap:anywhere }
 
 /* En el diseño vive junto al login, pero es de la barra superior. */
 .who__out{ margin-left:6px }
+
+/* ---- mobile ---- */
+.cal__t-corto{ display:none }
+@media (max-width:760px){
+  /* La franja de secciones se corta en el borde: el fundido avisa que hay más. */
+  .nav{ scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right:24px }
+  .nav::-webkit-scrollbar{ display:none }
+}
+@media (max-width:640px){
+  .cal__t-largo{ display:none }
+  .cal__t-corto{ display:inline }
+  /* "Hoy" no entra como píldora: el número va en un círculo de tinta. */
+  .cal__hoy{ display:none }
+  .cal__c--hoy .cal__n{ justify-content:center; width:24px; height:24px; margin:-3px 0 0 -4px; border-radius:50%;
+                        background:var(--ink); color:var(--surface) }
+}

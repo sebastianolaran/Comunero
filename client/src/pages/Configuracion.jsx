@@ -242,7 +242,7 @@ function PanelReglas({ settings, onGuardado }) {
   return (
     <Panel
       titulo="Reglas de reserva"
-      hint="A nivel de todos los integrantes. Vacío, sin límite."
+      hint="Valen para todo el grupo. Un campo vacío es sin límite."
       pie={<Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios} />}
     >
       <div className="cfg__rows">
@@ -270,6 +270,8 @@ function PanelReglas({ settings, onGuardado }) {
             className="sel cfg__sel"
             value={noResponde}
             onChange={(e) => setNoResponde(e.target.value)}
+            disabled={borrador.responseHours.trim() === ''}
+            title={borrador.responseHours.trim() === '' ? 'Aplica solo con un tiempo máximo para responder.' : undefined}
           >
             <option value="REJECT">Se considera rechazado</option>
             <option value="APPROVE">Se considera aprobado</option>

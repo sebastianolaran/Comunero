@@ -61,9 +61,10 @@ export function textoFecha(createdAt) {
 
 const VOTOS = { YES: 'Sí', NO: 'No' }
 
+// Mismos verbos que Alquiler y Reservas; el voto ya dado se lee como Sí/No.
 export const OPCIONES_VOTO = [
-  { value: 'YES', label: VOTOS.YES },
-  { value: 'NO', label: VOTOS.NO },
+  { value: 'YES', label: 'Aprobar' },
+  { value: 'NO', label: 'Rechazar' },
 ]
 
 // Sí/No para quien no votó o tocó el lápiz; si no, "Tu voto".

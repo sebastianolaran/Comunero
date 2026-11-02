@@ -33,7 +33,7 @@ function Rental() {
         </nav>
         {userIdActual() && (
           <button type="button" className={detalleAbierto ? 'btn' : 'btn btn--primary'} onClick={nuevaSolicitud}>
-            Pedir alquiler
+            Cargar solicitud
           </button>
         )}
       </div>

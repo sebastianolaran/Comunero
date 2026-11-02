@@ -32,7 +32,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   const [aprobada, setAprobada] = useState(null) // { id, texto }
   const location = useLocation()
   const navigate = useNavigate()
-  // El alta se abre con este state: lo mandan "Pedir alquiler" de la barra de
+  // El alta se abre con este state: lo mandan "Cargar solicitud" de la barra de
   // Alquiler y el historial de inquilinos (con nombre y teléfono para precargar).
   // Si la página ya estaba montada, el state llega en una navegación nueva
   // (otro location.key) y se atiende durante el render.
@@ -204,7 +204,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       <>
         {cabecera}
         <Vacio panel titulo="Todavía no hay solicitudes de alquiler para este bien.">
-          Llegan solas desde la ficha pública, o se cargan a mano con «Pedir alquiler».
+          Llegan solas desde la ficha pública, o se cargan a mano con «Cargar solicitud».
         </Vacio>
       </>
     )
