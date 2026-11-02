@@ -203,7 +203,7 @@ Una escala de grises acromáticos en OKLCH, con dos acentos semánticos para la 
 - **Label** (600, 11px, 0.06em, mayúsculas): encabezados de sección ("PENDIENTES DE APROBACIÓN"), encabezados de tabla, días de la semana y tags.
 
 ### Named Rules
-**La regla de los seis tamaños.** La escala son los tokens `--fs-label` (11px), `--fs-meta` (12,5px), `--fs-body` (14px), `--fs-subtitle` (16px, títulos de tarjeta), `--fs-title` (19px, sección y modal) y `--fs-figure` (28px). Ninguna hoja usa tamaños en px sueltos.
+**La regla de los seis tamaños.** La escala son los tokens `--fs-label` (11px), `--fs-meta` (12,5px), `--fs-body` (14px), `--fs-subtitle` (16px, títulos de tarjeta), `--fs-title` (19px, sección y modal) y `--fs-figure` (28px). Ninguna hoja usa tamaños en px sueltos. La única excepción es `--fs-display` (32 a 48px, fluido): el nombre del lugar en la ficha pública, la página que abre alguien de afuera desde WhatsApp.
 
 **La regla de las mayúsculas justas.** Solo van en mayúscula los encabezados de tabla y los días de la semana; títulos de sección y etiquetas de estado van en minúscula.
 
