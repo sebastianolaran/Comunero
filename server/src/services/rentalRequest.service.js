@@ -335,7 +335,7 @@ function toUtcDate(dateOnly) {
 
 // userId null = llegó desde la ficha pública: nace pendiente y sin votos, así
 // que la tienen que aprobar todos los copropietarios.
-// Devuelve { request } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' }.
+// Devuelve { request } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' | 'OCCUPIED' }.
 async function create({
   assetId,
   userId = null,
@@ -361,6 +361,8 @@ async function create({
     // Se puede cargar aunque se pise con otras reservas, pero si choca con una
     // aprobada nace rechazada, igual que si hubiera existido antes de aprobarla.
     const blocked = await hasApprovedOverlap(tx, dates);
+    // Desde la ficha no se crea: el visitante ve los días ocupados y elige otros.
+    if (blocked && userId === null) return { error: 'OCCUPIED' };
     const renter = await findOrCreateRenter(tx, { assetId, renterName, phone, email, fromListing: userId === null });
     // Quien la carga ya vota que si.
     const approvals = userId === null ? 0 : 1;

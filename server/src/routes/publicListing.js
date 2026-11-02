@@ -45,6 +45,7 @@ const router = Router();
 
 router.get('/:slug', limitarLecturas, controller.get);
 router.get('/:slug/photos/:photoId', limitarLecturas, controller.photo);
+router.get('/:slug/availability', limitarLecturas, controller.availability);
 router.post('/:slug/requests', limitarSolicitudes, limitarPorFicha, controller.submitRequest);
 
 module.exports = router;

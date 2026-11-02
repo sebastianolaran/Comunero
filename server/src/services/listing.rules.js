@@ -105,7 +105,37 @@ function parsePhoto(body = {}) {
   return { value: { mimeType, data: bytes } };
 }
 
+// Hasta dónde muestra la ficha los días ocupados y acepta pedidos: más allá,
+// un 409 contaría reservas que el calendario no muestra.
+const AVAILABILITY_DAYS = 365;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const toDateOnly = (date) => date.toISOString().slice(0, 10);
+
+// Rangos ocupados (fechas UTC medianoche, inclusive) unidos cuando se pisan o
+// son contiguos: la ficha muestra días ocupados, no cuántas reservas hay.
+function mergeRanges(ranges) {
+  const sorted = [...ranges].sort((a, b) => a.startDate - b.startDate);
+  const merged = [];
+  for (const { startDate, endDate } of sorted) {
+    const last = merged.at(-1);
+    if (last && startDate.getTime() <= last.endDate.getTime() + MS_PER_DAY) {
+      if (endDate > last.endDate) last.endDate = endDate;
+    } else {
+      merged.push({ startDate, endDate });
+    }
+  }
+  return merged.map((r) => ({ startDate: toDateOnly(r.startDate), endDate: toDateOnly(r.endDate) }));
+}
+
+// 'YYYY-MM-DD' del último día que se puede pedir o ver ocupado.
+function lastBookableDay(today) {
+  return toDateOnly(new Date(Date.parse(`${today}T00:00:00Z`) + AVAILABILITY_DAYS * MS_PER_DAY));
+}
+
 module.exports = {
+  AVAILABILITY_DAYS,
+  lastBookableDay,
+  mergeRanges,
   FIELDS,
   EMPTY,
   MAX_PHOTOS,

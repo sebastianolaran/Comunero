@@ -8,6 +8,7 @@ const {
   todayInArgentina,
   MAX_AMOUNT,
 } = require('./newRentalRequest');
+const { lastBookableDay } = require('../services/listing.rules');
 
 const MAX_EMAIL_LENGTH = 254;
 const MAX_GUESTS = 100;
@@ -63,6 +64,9 @@ function parsePublicRequest(body = {}, { today = todayInArgentina(), capacity = 
   };
   const failed = Object.values(parsed).find((result) => result.error);
   if (failed) return failed;
+  const limit = lastBookableDay(today);
+  if (parsed.dates.value.startDate > limit) return fail('startDate', 'Se puede pedir hasta un año para adelante');
+  if (parsed.dates.value.endDate > limit) return fail('endDate', 'Se puede pedir hasta un año para adelante');
   if (daysBetween(parsed.dates.value.startDate, parsed.dates.value.endDate) > MAX_DAYS) {
     return fail('endDate', `Se pueden pedir hasta ${MAX_DAYS} días seguidos`);
   }

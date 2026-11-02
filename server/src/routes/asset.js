@@ -28,7 +28,11 @@ router.patch('/:id/settings', settings.update);
 router.get('/:id/listing', listing.get);
 router.put('/:id/listing', listing.save);
 router.post('/:id/listing/photos', listing.addPhoto);
+router.put('/:id/listing/photos/order', listing.reorderPhotos);
+router.get('/:id/listing/photos/:photoId', listing.photo);
 router.delete('/:id/listing/photos/:photoId', listing.removePhoto);
+router.patch('/:id/listing/published', listing.setPublished);
+router.post('/:id/listing/link', listing.regenerateLink);
 
 module.exports = router;
 module.exports.INTENTOS_DE_CODIGO = INTENTOS_DE_CODIGO;

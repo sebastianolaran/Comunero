@@ -395,6 +395,8 @@ model ActivityLog {
 model AssetListing {
   assetId        String   @id
   publicSlug     String   @unique
+  // Pausada: el link muestra "no encontrada" y no recibe pedidos.
+  published      Boolean  @default(true)
   description    String?
   capacity       Int?
   services       String[]

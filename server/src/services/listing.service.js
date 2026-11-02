@@ -4,6 +4,7 @@
 
 const prisma = require('../prisma');
 const rules = require('./listing.rules');
+const { todayInArgentina } = require('../validation/newRentalRequest');
 
 const LOG_TYPE = 'LISTING_CHANGED';
 // Los defaults de Prisma (2s / 5s) se quedan cortos si Neon esta despertando.
@@ -25,6 +26,7 @@ async function viewFor(db, asset, listing) {
   const photos = await photosOf(db, asset.id);
   return {
     publicSlug: listing?.publicSlug ?? null,
+    published: listing ? listing.published !== false : true,
     ...fieldsOf(listing),
     rentalDailyRate: asset.rentalDailyRate,
     photos: photos.map((p) => ({ id: p.id })),
@@ -122,9 +124,81 @@ async function removePhoto({ assetId, userId, photoId }, db = prisma) {
   }, TX_OPTIONS);
 }
 
-function findBySlug(db, slug) {
+// ids: todas las fotos del bien, en el orden nuevo; la primera es la portada
+// (la de la vista previa en WhatsApp). Tiene que ser exactamente el mismo
+// conjunto: así una lista vieja no pisa una foto subida o borrada en el medio.
+// Devuelve { listing } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' } o { error: 'INVALID', field, message }.
+async function reorderPhotos({ assetId, userId, ids }, db = prisma) {
+  return db.$transaction(async (tx) => {
+    await lockAsset(tx, assetId);
+    const { asset, listing, error } = await loadForCoowner(tx, assetId, userId);
+    if (error) return { error };
+
+    const current = (await photosOf(tx, assetId)).map((p) => p.id);
+    const sameSet = ids.length === current.length && new Set(ids).size === ids.length && ids.every((id) => current.includes(id));
+    if (!sameSet) {
+      return { error: 'INVALID', field: 'ids', message: 'Las fotos cambiaron mientras tanto: recargar y volver a ordenar' };
+    }
+    if (ids.every((id, i) => id === current[i])) return { listing: await viewFor(tx, asset, listing) };
+
+    for (const [position, id] of ids.entries()) {
+      await tx.listingPhoto.update({ where: { id }, data: { position } });
+    }
+    await log(tx, { assetId, userId, changes: [{ field: 'listing.photos.order', from: null, to: null }] });
+    return { listing: await viewFor(tx, asset, listing) };
+  }, TX_OPTIONS);
+}
+
+// Para las miniaturas del panel: andan aunque la ficha esté pausada.
+// Devuelve { photo: { mimeType, data } } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' | 'PHOTO_NOT_FOUND' }.
+async function getPhotoForCoowner({ assetId, userId, photoId }, db = prisma) {
+  const { error } = await loadForCoowner(db, assetId, userId);
+  if (error) return { error };
+  const photo = await db.listingPhoto.findFirst({ where: { id: photoId, assetId }, select: { mimeType: true, data: true } });
+  return photo ? { photo } : { error: 'PHOTO_NOT_FOUND' };
+}
+
+// Devuelve { listing } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' }.
+async function setPublished({ assetId, userId, published }, db = prisma) {
+  return db.$transaction(async (tx) => {
+    await lockAsset(tx, assetId);
+    const { asset, listing, error } = await loadForCoowner(tx, assetId, userId);
+    if (error) return { error };
+    const before = listing ? listing.published !== false : true;
+    if (before === published && listing) return { listing: await viewFor(tx, asset, listing) };
+
+    const updated = await upsertListing(tx, assetId, { published });
+    if (before !== published) {
+      await log(tx, { assetId, userId, changes: [{ field: 'listing.published', from: before, to: published }] });
+    }
+    return { listing: await viewFor(tx, asset, updated) };
+  }, TX_OPTIONS);
+}
+
+// El link anterior deja de andar. En el registro no van los links: alcanza con
+// saber quién lo cambió y cuándo.
+// Devuelve { listing } o { error: 'ASSET_NOT_FOUND' | 'NOT_COOWNER' | 'NO_LISTING' }.
+async function regenerateLink({ assetId, userId }, db = prisma) {
+  return db.$transaction(async (tx) => {
+    await lockAsset(tx, assetId);
+    const { asset, listing, error } = await loadForCoowner(tx, assetId, userId);
+    if (error) return { error };
+    if (!listing) return { error: 'NO_LISTING' };
+
+    const updated = await upsertListing(tx, assetId, { publicSlug: rules.newSlug() });
+    await log(tx, { assetId, userId, changes: [{ field: 'listing.link', from: null, to: null }] });
+    return { listing: await viewFor(tx, asset, updated) };
+  }, TX_OPTIONS);
+}
+
+// Solo fichas publicadas: una pausada se comporta como un link que no existe.
+async function findBySlug(db, slug) {
   if (typeof slug !== 'string' || slug === '') return null;
-  return db.assetListing.findUnique({ where: { publicSlug: slug }, include: { asset: { select: ASSET_SELECT } } });
+  const listing = await db.assetListing.findUnique({
+    where: { publicSlug: slug },
+    include: { asset: { select: ASSET_SELECT } },
+  });
+  return listing && listing.published !== false ? listing : null;
 }
 
 // Lo que ve cualquiera con el link: nada de integrantes, ids de usuarios ni el
@@ -132,7 +206,7 @@ function findBySlug(db, slug) {
 async function getPublic(slug, db = prisma) {
   const listing = await findBySlug(db, slug);
   if (!listing) return null;
-  const { publicSlug, photos, ...view } = await viewFor(db, listing.asset, listing);
+  const { publicSlug, published, photos, ...view } = await viewFor(db, listing.asset, listing);
   return { name: listing.asset.name, ...view, photos };
 }
 
@@ -144,6 +218,23 @@ async function getPublicPhoto(slug, photoId, db = prisma) {
     where: { id: photoId, assetId: listing.assetId },
     select: { mimeType: true, data: true },
   });
+}
+
+// Días ocupados para la ficha: cualquier reserva aprobada (uso propio o
+// alquiler), sin decir de quién ni de qué tipo. null si el link no existe.
+async function getAvailability(slug, today = new Date(`${todayInArgentina()}T00:00:00.000Z`), db = prisma) {
+  const listing = await findBySlug(db, slug);
+  if (!listing) return null;
+  const reservations = await db.reservation.findMany({
+    where: {
+      assetId: listing.assetId,
+      status: 'ACTIVE',
+      endDate: { gte: today },
+      startDate: { lte: new Date(`${rules.lastBookableDay(today.toISOString().slice(0, 10))}T00:00:00.000Z`) },
+    },
+    select: { startDate: true, endDate: true },
+  });
+  return rules.mergeRanges(reservations);
 }
 
 // Para el formulario público: el bien sale del link, nunca de lo que mande el visitante.
@@ -160,6 +251,11 @@ module.exports = {
   removePhoto,
   getPublic,
   getPublicPhoto,
+  getAvailability,
   assetForSlug,
+  setPublished,
+  regenerateLink,
+  reorderPhotos,
+  getPhotoForCoowner,
   LOG_TYPE,
 };

@@ -11,8 +11,8 @@ const APP_URL = (process.env.PUBLIC_APP_URL ?? 'http://localhost:5173').replace(
 const SLUG = /^[\w-]{1,64}$/;
 const PREVIEW_CACHE = 'public, max-age=300';
 
-// Las fotos no cambian: si se reemplaza una, cambia el id.
-const PHOTO_CACHE = 'public, max-age=86400, immutable';
+// Corto: al pausar la ficha o cambiar el link, las fotos dejan de verse enseguida.
+const PHOTO_CACHE = 'public, max-age=600';
 
 async function get(req, res) {
   try {
@@ -55,17 +55,32 @@ async function submitRequest(req, res) {
     if (parsed.error) return res.status(400).json({ error: parsed.error, field: parsed.field });
 
     const { request } = parsed;
-    await rentalRequestService.create({
+    const result = await rentalRequestService.create({
       ...request,
       assetId: target.assetId,
       userId: null,
       amount: amountFor(request.startDate, request.endDate, target.rentalDailyRate),
     });
+    if (result.error === 'OCCUPIED') {
+      return res.status(409).json({ error: 'Esas fechas ya están ocupadas: elegir otras en el calendario', field: 'startDate' });
+    }
     // No se devuelve la solicitud: tiene votos y datos de los copropietarios.
     res.status(201).json({ ok: true });
   } catch (err) {
     console.error('public-listing: fallo el alta de la solicitud', err);
     res.status(500).json({ error: 'No se pudo enviar la solicitud. Volver a intentar en un momento.' });
+  }
+}
+
+async function availability(req, res) {
+  try {
+    const occupied = await listingService.getAvailability(req.params.slug);
+    if (!occupied) return res.status(404).json({ error: 'Este link no corresponde a ninguna ficha' });
+    res.set('Cache-Control', 'no-store');
+    res.json({ occupied });
+  } catch (err) {
+    console.error('public-listing: fallo la disponibilidad', err);
+    res.status(500).json({ error: 'No se pudo cargar la disponibilidad' });
   }
 }
 
@@ -88,4 +103,4 @@ async function preview(req, res) {
   }
 }
 
-module.exports = { get, photo, submitRequest, preview };
+module.exports = { get, photo, availability, submitRequest, preview };
