@@ -16,6 +16,8 @@ const tenantRoutes = require('./routes/tenant');
 const decisionRoutes = require('./routes/decision');
 const calendarRoutes = require('./routes/calendar');
 const publicListingRoutes = require('./routes/publicListing');
+const publicListingController = require('./controllers/publicListing.controller');
+const { startKeepAlive } = require('./lib/keepAlive');
 
 const app = express();
 // Render pone un proxy adelante: sin esto los rate limits ven una sola IP para todos.
@@ -46,6 +48,8 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/decisions', decisionRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/public/listings', publicListingRoutes);
+// Link corto que se comparte por WhatsApp: vista previa con foto y redirige a la ficha.
+app.get('/f/:slug', publicListingRoutes.limitarLecturas, publicListingController.preview);
 
 // Un JSON roto en el body lo rechaza express.json antes de llegar a un controller;
 // sin esto la respuesta seria una pagina HTML en vez de { error }.
@@ -73,6 +77,8 @@ if (require.main === module) {
     });
   expireReservations();
   setInterval(expireReservations, 60 * 60 * 1000).unref();
+
+  startKeepAlive();
 }
 
 module.exports = app;

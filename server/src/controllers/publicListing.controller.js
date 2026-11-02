@@ -3,6 +3,13 @@
 const listingService = require('../services/listing.service');
 const rentalRequestService = require('../services/rentalRequest.service');
 const { parsePublicRequest, amountFor } = require('../validation/publicRentalRequest');
+const { previewHtml, notFoundHtml } = require('../lib/listingPreview');
+
+// Adónde manda la vista previa a las personas. En Render se configura en render.yaml.
+const APP_URL = (process.env.PUBLIC_APP_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
+// Mismo formato que newSlug (base64url); cualquier otra cosa no es un link de ficha.
+const SLUG = /^[\w-]{1,64}$/;
+const PREVIEW_CACHE = 'public, max-age=300';
 
 // Las fotos no cambian: si se reemplaza una, cambia el id.
 const PHOTO_CACHE = 'public, max-age=86400, immutable';
@@ -62,4 +69,23 @@ async function submitRequest(req, res) {
   }
 }
 
-module.exports = { get, photo, submitRequest };
+// GET /f/:slug: el link que se comparte. Las apps de mensajería leen las
+// etiquetas Open Graph; las personas siguen de largo a la ficha.
+async function preview(req, res) {
+  const { slug } = req.params;
+  res.type('html');
+  if (!SLUG.test(slug)) return res.status(404).send(notFoundHtml({ appUrl: APP_URL }));
+  try {
+    const listing = await listingService.getPublic(slug);
+    if (!listing) return res.status(404).send(notFoundHtml({ appUrl: APP_URL, slug }));
+    const apiUrl = `${req.protocol}://${req.get('host')}`;
+    res.set('Cache-Control', PREVIEW_CACHE);
+    res.send(previewHtml(listing, { slug, appUrl: APP_URL, apiUrl }));
+  } catch (err) {
+    console.error('public-listing: fallo la vista previa', err);
+    // Aunque falle la base, la persona llega a la ficha (que reintenta sola).
+    res.status(500).send(notFoundHtml({ appUrl: APP_URL, slug }));
+  }
+}
+
+module.exports = { get, photo, submitRequest, preview };

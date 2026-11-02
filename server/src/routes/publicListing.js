@@ -48,5 +48,6 @@ router.get('/:slug/photos/:photoId', limitarLecturas, controller.photo);
 router.post('/:slug/requests', limitarSolicitudes, limitarPorFicha, controller.submitRequest);
 
 module.exports = router;
+module.exports.limitarLecturas = limitarLecturas;
 module.exports.SOLICITUDES_POR_IP = SOLICITUDES_POR_IP;
 module.exports.SOLICITUDES_POR_FICHA = SOLICITUDES_POR_FICHA;
