@@ -77,6 +77,8 @@ model Asset {
   settlements    Settlement[]
   decisions      Decision[]
   activityLogs   ActivityLog[]
+  listing        AssetListing?
+  listingPhotos  ListingPhoto[]
 }
 
 model User {
@@ -126,7 +128,8 @@ model AssetMemberSetting {
 model Reservation {
   id              String            @id @default(cuid())
   assetId         String
-  userId          String
+  // null = llegó desde la ficha pública: no la cargó ningún copropietario.
+  userId          String?
   // Solo se completa cuando type = RENTAL.
   renterId        String?
   startDate       DateTime
@@ -134,6 +137,8 @@ model Reservation {
   type            ReservationType
   status          ReservationStatus @default(PENDING)
   note            String?
+  // Solo las que llegan desde la ficha pública.
+  guests          Int?
   // Monto total pactado con el inquilino (solo aplica a RENTAL).
   amount          Int?
   // Solo RENTAL. null = pago pendiente; una vez cargado no se vuelve atrás.
@@ -145,7 +150,7 @@ model Reservation {
   createdAt       DateTime          @default(now())
 
   asset        Asset                 @relation(fields: [assetId], references: [id])
-  user         User                  @relation(fields: [userId], references: [id])
+  user         User?                 @relation(fields: [userId], references: [id])
   renter       Renter?               @relation(fields: [renterId], references: [id])
   objections   Objection[]
   observations RenterObservation[]
@@ -188,6 +193,7 @@ model Renter {
   assetId String
   name    String
   phone   String
+  email   String?
   // null = sin definir: todavia nadie lo clasifico.
   rating  RenterRating?
 
@@ -379,6 +385,38 @@ model ActivityLog {
 
   asset Asset @relation(fields: [assetId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
+
+  @@index([assetId])
+}
+
+// Ficha pública del bien. publicSlug es el link que se comparte: aleatorio y
+// largo para que no se pueda adivinar el de otro bien. El precio de referencia
+// es Asset.rentalDailyRate.
+model AssetListing {
+  assetId        String   @id
+  publicSlug     String   @unique
+  // Pausada: el link muestra "no encontrada" y no recibe pedidos.
+  published      Boolean  @default(true)
+  description    String?
+  capacity       Int?
+  services       String[]
+  approxLocation String?
+  conditions     String?
+  updatedAt      DateTime @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id])
+}
+
+// Ya achicada en el navegador antes de subirla.
+model ListingPhoto {
+  id        String   @id @default(cuid())
+  assetId   String
+  position  Int
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id])
 
   @@index([assetId])
 }

@@ -13,11 +13,15 @@ async function expireOne(db, reservationId, action) {
     await lockForVote(tx, reservationId);
     const reservation = await tx.reservation.findUnique({
       where: { id: reservationId },
-      select: { id: true, assetId: true, status: true, startDate: true, endDate: true, _count: { select: { objections: true } } },
+      select: { id: true, assetId: true, status: true, startDate: true, endDate: true, _count: { select: { objections: true, approvals: true } } },
     });
     if (!reservation || reservation.status !== 'PENDING') return 0;
 
-    let status = rules.expiredOutcome({ objections: reservation._count.objections, action });
+    let status = rules.expiredOutcome({
+      approvals: reservation._count.approvals,
+      objections: reservation._count.objections,
+      action,
+    });
     let rejectionReason = status === 'REJECTED' ? rules.EXPIRED_REASON : null;
     if (status === 'ACTIVE' && (await hasApprovedOverlap(tx, reservation))) {
       status = 'REJECTED';

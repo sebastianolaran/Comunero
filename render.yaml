@@ -28,6 +28,9 @@ services:
         sync: false
       - key: NODE_VERSION
         value: "22"
+      # URL del client: el link de la ficha (/f/:slug) redirige ahí. No es secreta.
+      - key: PUBLIC_APP_URL
+        value: https://comunero.onrender.com
 
   # ---------------------------------------------------------------------------
   # Frontend: static site con el build de Vite.

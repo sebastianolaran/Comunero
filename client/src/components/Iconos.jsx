@@ -28,6 +28,26 @@ const TRAZOS = {
     </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
+  siguiente: <path d="M9 18l6-6-6-6" />,
+  ubicacion: (
+    <>
+      <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
+  personas: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <path d="M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.3c1.8.8 3 2.6 3 4.7" />
+    </>
+  ),
+  precio: (
+    <>
+      <path d="M3 12V4h8l10 10-8 8L3 12Z" />
+      <circle cx="7.5" cy="8.5" r="1.3" />
+    </>
+  ),
 }
 
 function Icono({ nombre, className = 'btn__i' }) {

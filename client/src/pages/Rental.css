@@ -161,6 +161,26 @@
   margin-bottom: 12px;
 }
 
+.alq-wpp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alq-wpp a {
+  text-decoration: none;
+}
+
+.alq-det__monto {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .alq-det__sect {
   margin-bottom: 7px;
 }

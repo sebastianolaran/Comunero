@@ -8,6 +8,7 @@ import Movimientos from './pages/Movimientos'
 import Login from './pages/Login'
 import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
+import FichaPublica from './pages/FichaPublica'
 import Registro from './pages/Registro'
 import Rental from './pages/Rental'
 import RentalHistory from './pages/RentalHistory'
@@ -35,6 +36,8 @@ const PANTALLAS = {
 }
 
 export const router = createBrowserRouter([
+  // Ficha pública del bien: la abre cualquiera con el link, con o sin sesión.
+  { path: '/ficha/:slug', element: <FichaPublica /> },
   {
     path: '/login',
     element: (

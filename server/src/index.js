@@ -14,14 +14,23 @@ const balanceRoutes = require('./routes/balance');
 const reservationExpiry = require('./services/reservationExpiry.service');
 const tenantRoutes = require('./routes/tenant');
 const decisionRoutes = require('./routes/decision');
+const calendarRoutes = require('./routes/calendar');
+const publicListingRoutes = require('./routes/publicListing');
+const publicListingController = require('./controllers/publicListing.controller');
+const { startKeepAlive } = require('./lib/keepAlive');
 
 const app = express();
+// Render pone un proxy adelante: sin esto los rate limits ven una sola IP para todos.
+app.set('trust proxy', 1);
 
 // El client vive en otro origen (static site de Render), asi que habilitamos
 // CORS. Sigue abierto aun con el login: la sesion no viaja en cookies, asi que
 // un origen ajeno no puede usar credenciales del navegador contra esta API.
 // Si alguna vez se pasa a cookie httpOnly, hay que restringir origin.
 app.use(cors());
+// Las fotos de la ficha llegan en base64 (~270 KB): el resto de la API sigue con
+// el límite por defecto. express.json no vuelve a parsear un body ya leído.
+app.use(/^\/api\/assets\/[^/]+\/listing\/photos$/, express.json({ limit: '450kb' }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -37,6 +46,10 @@ app.use('/api/movements', movementRoutes);
 app.use('/api/balances', balanceRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/decisions', decisionRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/public/listings', publicListingRoutes);
+// Link corto que se comparte por WhatsApp: vista previa con foto y redirige a la ficha.
+app.get('/f/:slug', publicListingRoutes.limitarLecturas, publicListingController.preview);
 
 // Un JSON roto en el body lo rechaza express.json antes de llegar a un controller;
 // sin esto la respuesta seria una pagina HTML en vez de { error }.
@@ -64,6 +77,8 @@ if (require.main === module) {
     });
   expireReservations();
   setInterval(expireReservations, 60 * 60 * 1000).unref();
+
+  startKeepAlive();
 }
 
 module.exports = app;

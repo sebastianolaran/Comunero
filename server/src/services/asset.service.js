@@ -46,7 +46,8 @@ function toCard(asset, userId, today) {
         type: r.type,
         status: r.status,
         userId: r.userId,
-        userName: r.user.name,
+        // Las que llegan desde la ficha pública no tienen quien las cargó.
+        userName: r.user?.name ?? null,
         startDate: rules.toDay(r.startDate),
         endDate: rules.toDay(r.endDate),
         approvals: r.approvals.map((a) => a.userId),

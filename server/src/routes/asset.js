@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { rateLimit } = require('express-rate-limit');
 const controller = require('../controllers/asset.controller');
 const settings = require('../controllers/assetSettings.controller');
+const listing = require('../controllers/listing.controller');
 
 // Como en el login: tope de códigos equivocados.
 const INTENTOS_DE_CODIGO = 10;
@@ -24,6 +25,14 @@ router.post('/join', limitarIntentos, controller.join);
 router.post('/:id/leave', controller.leave);
 router.get('/:id/settings', settings.get);
 router.patch('/:id/settings', settings.update);
+router.get('/:id/listing', listing.get);
+router.put('/:id/listing', listing.save);
+router.post('/:id/listing/photos', listing.addPhoto);
+router.put('/:id/listing/photos/order', listing.reorderPhotos);
+router.get('/:id/listing/photos/:photoId', listing.photo);
+router.delete('/:id/listing/photos/:photoId', listing.removePhoto);
+router.patch('/:id/listing/published', listing.setPublished);
+router.post('/:id/listing/link', listing.regenerateLink);
 
 module.exports = router;
 module.exports.INTENTOS_DE_CODIGO = INTENTOS_DE_CODIGO;

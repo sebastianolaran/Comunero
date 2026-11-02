@@ -1,8 +1,9 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { Ayuda, Panel, Pie } from '../components/ConfigPanel'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Cargando, ErrorCarga } from '../components/ui/Estado'
-import FieldError from '../components/ui/FieldError'
+import PanelFicha from '../components/PanelFicha'
 import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { soltarBien } from '../lib/session'
@@ -52,93 +53,6 @@ const AYUDAS = {
     'Cuántas horas tienen los demás para votar un uso propio o una solicitud de alquiler, contadas desde que se pide. Si pasado ese tiempo falta algún voto, la votación se cierra sola como diga la opción de abajo. Vacío, no vence: espera a que voten todos. Las decisiones grupales no vencen nunca.',
   noResponse:
     'Cómo se cierra la votación cuando vence el tiempo y alguien no votó. Rechazado: se rechaza. Aprobado: quien no votó cuenta como un Sí; si alguien votó que no, se rechaza igual. Solo aplica si hay un tiempo máximo cargado.',
-}
-
-// Botón "i" con la explicación: se abre al pasar el mouse, con foco o con un
-// toque (mobile), y se cierra al salir, al tocar afuera o con Escape. El click
-// no alterna: el foco ya la abrió y alternar la cerraría en el mismo toque. El
-// texto queda siempre en el DOM para que aria-describedby lo lea cerrado.
-const MARGEN_PANTALLA = 16
-
-// sobre: de qué es la ayuda, para que el lector de pantalla distinga cada botón.
-function Ayuda({ texto, sobre }) {
-  const id = useId()
-  const [abierta, setAbierta] = useState(false)
-  const pop = useRef(null)
-
-  // En pantallas angostas el globo se saldría por la derecha: se corre lo justo.
-  useLayoutEffect(() => {
-    const el = pop.current
-    if (!abierta || !el) return
-    el.style.translate = ''
-    const sobra = el.getBoundingClientRect().right - (window.innerWidth - MARGEN_PANTALLA)
-    if (sobra > 0) el.style.translate = `${-sobra}px 0`
-  }, [abierta])
-
-  return (
-    <span className="cfg__ayuda" onMouseEnter={() => setAbierta(true)} onMouseLeave={() => setAbierta(false)}>
-      <button
-        type="button"
-        className="idot"
-        aria-label={`Qué hace: ${sobre}`}
-        aria-describedby={id}
-        aria-expanded={abierta}
-        onClick={() => setAbierta(true)}
-        onFocus={() => setAbierta(true)}
-        onBlur={() => setAbierta(false)}
-        onKeyDown={(e) => e.key === 'Escape' && setAbierta(false)}
-      >
-        i
-      </button>
-      <span ref={pop} id={id} role="tooltip" className="pop cfg__pop" hidden={!abierta}>
-        {texto}
-      </span>
-    </span>
-  )
-}
-
-function Panel({ titulo, ayuda, hint, children, pie }) {
-  const id = useId()
-  return (
-    <section className="panel cfg__p" aria-labelledby={id}>
-      <div className="cfg__head">
-        <div className="cfg__titulo">
-          <h2 id={id} className="sect">
-            {titulo}
-          </h2>
-          {ayuda && <Ayuda texto={ayuda} sobre={titulo} />}
-        </div>
-        {hint && <p className="hint">{hint}</p>}
-      </div>
-      {children}
-      {pie}
-    </section>
-  )
-}
-
-// Guardar solo se activa con cambios sin guardar, y "Guardado" se ve mientras
-// lo que está en pantalla es lo guardado: editar de nuevo lo saca. Solo el
-// panel con cambios lleva el botón en tinta: en reposo ninguno compite.
-function Pie({ estado, onGuardar, sinCambios, children }) {
-  return (
-    <div className="cfg__pie">
-      <FieldError>{estado.error}</FieldError>
-      {!estado.error && estado.guardado && sinCambios && (
-        <p className="cfg__estado" role="status">
-          Guardado
-        </p>
-      )}
-      {children}
-      <button
-        type="button"
-        className={sinCambios ? 'btn btn--sm' : 'btn btn--sm btn--primary'}
-        disabled={estado.guardando || sinCambios}
-        onClick={onGuardar}
-      >
-        {estado.guardando ? 'Guardando…' : 'Guardar'}
-      </button>
-    </div>
-  )
 }
 
 function CampoNumero({ label, ayuda, unidad, value, onChange, placeholder = 'Sin límite' }) {
@@ -355,7 +269,10 @@ function PanelCambios({ settings }) {
     registro.changes.map((cambio) => ({ registro, cambio })),
   )
   return (
-    <Panel titulo="Cambios recientes" hint="Cualquier integrante puede cambiar la configuración; queda registrado acá.">
+    <Panel
+      titulo="Cambios recientes"
+      hint="Cualquier integrante puede cambiar la configuración y la ficha pública; queda registrado acá."
+    >
       {lineas.length === 0 ? (
         <p className="empty">Todavía nadie cambió la configuración.</p>
       ) : (
@@ -470,6 +387,14 @@ function Configuracion() {
     return () => controller.abort()
   }, [intento])
 
+  // Un cambio en la ficha aparece en "Cambios recientes": se vuelve a traer sin
+  // pasar por "Cargando". Si falla, queda lo que había.
+  function refrescarCambios() {
+    fetchSettings(assetIdActual(), userIdActual())
+      .then((settings) => setCarga({ estado: 'ok', settings }))
+      .catch(() => {})
+  }
+
   if (carga.estado === 'loading') return <Cargando filas={4}>Cargando configuración…</Cargando>
   if (carga.estado === 'error') {
     return (
@@ -491,6 +416,7 @@ function Configuracion() {
       <div className="cfg__col">
         <PanelPorcentajes settings={settings} onGuardado={onGuardado} />
         <PanelAlquiler settings={settings} onGuardado={onGuardado} />
+        <PanelFicha precioPorDia={settings.rentalDailyRate} onCambio={refrescarCambios} />
       </div>
       <div className="cfg__col">
         <PanelReglas settings={settings} onGuardado={onGuardado} />

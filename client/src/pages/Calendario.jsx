@@ -9,6 +9,7 @@ import {
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ExportarCalendario from '../components/ExportarCalendario'
 import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
@@ -558,6 +559,8 @@ function Calendario() {
             votando={votando}
           />
         )}
+
+        <ExportarCalendario assetId={assetId} userId={userId} />
       </aside>
 
       {cancelacion && (
@@ -733,7 +736,9 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
         {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
         {monto && ` · Monto total: ${monto}`}
       </p>
-      <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
+      <p className="cal-detail__managed">
+        {alquiler.userId ? `Gestionado por ${alquiler.user?.name ?? 'un copropietario'}` : 'Llegó desde la ficha pública'}
+      </p>
 
       {/* Las tareas de preparacion son de alquileres aprobados (el server no deja crearlas antes). */}
       {!pendiente && (
