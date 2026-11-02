@@ -9,6 +9,12 @@ export function linkPublico(origen, slug) {
   return `${origen}/ficha/${slug}`
 }
 
+// El que se comparte: pasa por el server para que WhatsApp arme la tarjeta con
+// nombre y foto, y de ahí redirige a la ficha.
+export function linkParaCompartir(apiUrl, slug) {
+  return `${apiUrl}/f/${slug}`
+}
+
 export function whatsappUrl(link, nombreDelBien) {
   return `https://wa.me/?text=${encodeURIComponent(`${nombreDelBien}: ${link}`)}`
 }

@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
-import { achicarFoto, leerServicios, linkPublico, whatsappUrl } from '../lib/listing'
+import { API_URL } from '../lib/api'
+import { achicarFoto, leerServicios, linkParaCompartir, linkPublico, whatsappUrl } from '../lib/listing'
 import { formatMoney } from '../lib/rentalRequests'
 import { useCopiado } from '../lib/useCopiado'
 import { deleteListingPhoto, fetchListing, photoUrl, saveListing, uploadListingPhoto } from '../services/listing'
@@ -52,7 +53,7 @@ function LinkPublico({ slug }) {
   if (!slug) {
     return <p className="note">El link se genera al guardar la ficha por primera vez.</p>
   }
-  const link = linkPublico(window.location.origin, slug)
+  const link = linkParaCompartir(API_URL, slug)
   return (
     <div className="ficha__link">
       <input className="in ficha__url" readOnly value={link} aria-label="Link público" onFocus={(e) => e.target.select()} />
@@ -63,7 +64,7 @@ function LinkPublico({ slug }) {
         <a className="btn btn--sm" href={whatsappUrl(link, assetNameActual() ?? 'Ficha')} target="_blank" rel="noreferrer">
           Compartir por WhatsApp
         </a>
-        <a className="btn btn--sm btn--link" href={link} target="_blank" rel="noreferrer">
+        <a className="btn btn--sm btn--link" href={linkPublico(window.location.origin, slug)} target="_blank" rel="noreferrer">
           Ver ficha
         </a>
       </div>
