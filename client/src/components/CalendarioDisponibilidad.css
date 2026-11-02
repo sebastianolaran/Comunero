@@ -1,0 +1,35 @@
+.cd { position: relative }
+.cd__nav { position: absolute; top: -4px; right: 0; display: flex; gap: 4px }
+.cd__flecha {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.cd__flecha:hover:not(:disabled) { background: var(--inset); border-color: var(--line-loud) }
+.cd__flecha:disabled { opacity: .35; cursor: default }
+.cd__meses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; max-width: 640px }
+.cd-mes__t { margin: 0 0 10px; font-size: 14px; font-weight: 600 }
+.cd-mes__t::first-letter { text-transform: uppercase }
+.cd-grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px }
+.cd-dow { padding-bottom: 6px; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted) }
+.cd-dia {
+  position: relative; height: 38px; padding: 0; border: 0; background: transparent; color: var(--ink);
+  font: 500 13px/1 var(--sans); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.cd-dia:hover:not(:disabled) { background: var(--inset); border-radius: 50% }
+.cd-dia:focus-visible { outline-offset: -2px; border-radius: 50% }
+.cd-dia--pasado { color: var(--line-loud); cursor: default }
+.cd-dia--ocupado { color: var(--faint); text-decoration: line-through; text-decoration-thickness: 1.5px; cursor: not-allowed }
+.cd-dia--rango { background: var(--inset) }
+.cd-dia--elegido, .cd-dia--elegido:hover:not(:disabled) { background: var(--ink); color: #fff; border-radius: 50% }
+.cd__leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 14px 0 0; font-size: 12px; color: var(--muted) }
+.cd__muestra { display: inline-block; width: 12px; height: 12px; margin-right: -8px; border-radius: 50%; vertical-align: -1px }
+.cd__muestra--ocupado { border: 1px solid var(--line-loud); background: repeating-linear-gradient(135deg, transparent 0 3px, var(--line-loud) 3px 4px) }
+.cd__muestra--elegido { background: var(--ink) }
+.cd__ayuda { margin-left: auto }
+
+@media (max-width: 640px) {
+  .cd__meses { grid-template-columns: minmax(0, 1fr); gap: 24px }
+  .cd__ayuda { margin-left: 0; flex-basis: 100% }
+}

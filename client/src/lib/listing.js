@@ -19,6 +19,19 @@ export function whatsappUrl(link, nombreDelBien) {
   return `https://wa.me/?text=${encodeURIComponent(`${nombreDelBien}: ${link}`)}`
 }
 
+// Orden de las fotos: devuelven una lista nueva. La primera es la portada.
+export function moverFoto(ids, indice, paso) {
+  const destino = indice + paso
+  if (destino < 0 || destino >= ids.length) return ids
+  const nuevos = [...ids]
+  ;[nuevos[indice], nuevos[destino]] = [nuevos[destino], nuevos[indice]]
+  return nuevos
+}
+
+export function hacerPortada(ids, indice) {
+  return [ids[indice], ...ids.filter((_, i) => i !== indice)]
+}
+
 // Un servicio por renglón o separados por coma.
 export function leerServicios(texto) {
   return texto
@@ -31,9 +44,18 @@ function diasEntre(desde, hasta) {
   return (Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / MS_POR_DIA + 1
 }
 
+// rangos: [{ startDate, endDate }] 'YYYY-MM-DD', inclusive (se comparan como texto).
+export function diaOcupado(dia, rangos) {
+  return rangos.some((r) => dia >= r.startDate && dia <= r.endDate)
+}
+
+export function rangoOcupado(desde, hasta, rangos) {
+  return rangos.some((r) => desde <= r.endDate && hasta >= r.startDate)
+}
+
 // Mismas reglas que el server, para marcar los campos antes de enviar.
-// capacidad: la de la ficha (null = sin tope).
-export function validarSolicitudPublica(borrador, { hoy, capacidad = null }) {
+// capacidad: la de la ficha (null = sin tope). ocupados: días ya reservados.
+export function validarSolicitudPublica(borrador, { hoy, capacidad = null, ocupados = [] }) {
   const errores = {}
   if (!borrador.name.trim()) errores.name = 'Falta el nombre.'
   const digitos = borrador.phone.replace(/\D/g, '')
@@ -46,6 +68,8 @@ export function validarSolicitudPublica(borrador, { hoy, capacidad = null }) {
     errores.endDate = 'La salida no puede ser anterior a la llegada.'
   } else if (borrador.startDate && diasEntre(borrador.startDate, borrador.endDate) > MAX_DIAS) {
     errores.endDate = `Se pueden pedir hasta ${MAX_DIAS} días seguidos.`
+  } else if (!errores.startDate && rangoOcupado(borrador.startDate, borrador.endDate, ocupados)) {
+    errores.startDate = 'Esas fechas tocan días ocupados: elegir otras en el calendario.'
   }
   const personas = Number(borrador.guests)
   if (!/^\d+$/.test(borrador.guests.trim()) || personas < 1) errores.guests = 'Falta la cantidad de personas.'

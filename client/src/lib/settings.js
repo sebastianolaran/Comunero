@@ -58,6 +58,9 @@ const TEXTOS_FICHA = {
 const vacioFicha = (valor) => valor == null || (Array.isArray(valor) && valor.length === 0)
 
 function textoCambioFicha({ field, from, to }) {
+  if (field === 'listing.published') return `Ficha pública: se ${to ? 'volvió a publicar' : 'pausó'}`
+  if (field === 'listing.photos.order') return 'Ficha pública: se cambió el orden de las fotos'
+  if (field === 'listing.link') return 'Ficha pública: se generó un link nuevo (el anterior dejó de andar)'
   if (field === 'listing.photos') {
     return `Ficha pública: se ${to > from ? 'subió' : 'sacó'} una foto`
   }

@@ -14,6 +14,8 @@ import {
   VOTO_TEXTO,
   votosLabel,
 } from '../lib/rentalRequests'
+import { assetNameActual } from '../lib/currentAsset'
+import { linkWhatsApp, mensajeGrupo, mensajeInquilino, telefonoWhatsApp } from '../lib/whatsapp'
 import PagoTag from './PagoTag'
 import VoteChips from './VoteChips'
 
@@ -30,6 +32,42 @@ const ACCIONES = {
     confirmar: 'Confirmar cancelación',
     aviso: () => 'Los días quedan libres. Para volver a alquilarlos hay que cargar otra solicitud.',
   },
+}
+
+// Abren WhatsApp con el mensaje escrito; alguien toca Enviar. Al inquilino, según
+// el estado (un alquiler cancelado no tiene mensaje: se habla por otro lado). Al
+// grupo, solo las que llegan desde la ficha, que nadie cargó a mano.
+function BotonesWhatsApp({ solicitud }) {
+  const bien = assetNameActual() ?? 'el lugar'
+  const telefono = telefonoWhatsApp(solicitud.renterPhone)
+  const alInquilino = telefono && !solicitud.cancelled && !solicitud.expired
+  const alGrupo = solicitud.fromListing && solicitud.status === 'PENDING'
+  if (!alInquilino && !alGrupo) return null
+  const linkAlquiler = `${window.location.origin}/alquiler/solicitudes`
+  return (
+    <div className="alq-wpp">
+      {alInquilino && (
+        <a
+          className="btn btn--sm"
+          href={linkWhatsApp(mensajeInquilino(solicitud, bien), telefono)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Escribir por WhatsApp
+        </a>
+      )}
+      {alGrupo && (
+        <a
+          className="btn btn--sm"
+          href={linkWhatsApp(mensajeGrupo(solicitud, bien, linkAlquiler))}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Avisar a los demás
+        </a>
+      )}
+    </div>
+  )
 }
 
 // Acepta "10.000" o "$10.000".
@@ -171,6 +209,7 @@ function RentalRequestDetail({
           {[formatPhone(renterPhone), solicitud.renterEmail].filter(Boolean).join(' · ')}
         </p>
       )}
+      <BotonesWhatsApp solicitud={solicitud} />
       <div className="alq-badges alq-det__badges">
         {solicitud.fromListing && <span className="badge badge--dash">Desde la ficha pública</span>}
         <PagoTag solicitud={solicitud} />

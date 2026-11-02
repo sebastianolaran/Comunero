@@ -2,10 +2,29 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { assetIdActual, assetNameActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import { API_URL } from '../lib/api'
-import { achicarFoto, leerServicios, linkParaCompartir, linkPublico, whatsappUrl } from '../lib/listing'
+import {
+  achicarFoto,
+  hacerPortada,
+  leerServicios,
+  linkParaCompartir,
+  linkPublico,
+  moverFoto,
+  whatsappUrl,
+} from '../lib/listing'
 import { formatMoney } from '../lib/rentalRequests'
 import { useCopiado } from '../lib/useCopiado'
-import { deleteListingPhoto, fetchListing, photoUrl, saveListing, uploadListingPhoto } from '../services/listing'
+import {
+  deleteListingPhoto,
+  coownerPhotoUrl,
+  fetchListing,
+  regenerateListingLink,
+  reorderListingPhotos,
+  saveListing,
+  setListingPublished,
+  uploadListingPhoto,
+} from '../services/listing'
+import ConfirmDialog from './ConfirmDialog'
+import Icono from './Iconos'
 import { Panel, Pie } from './ConfigPanel'
 import './PanelFicha.css'
 
@@ -48,26 +67,104 @@ function Campo({ label, children, hint }) {
   )
 }
 
-function LinkPublico({ slug }) {
+function LinkPublico({ ficha, onCambio }) {
   const { copiado, copiar } = useCopiado()
+  const [estado, setEstado] = useState({ ocupado: false, error: null })
+  const [confirmando, setConfirmando] = useState(false)
+  const idSwitch = useId()
+  const slug = ficha.publicSlug
   if (!slug) {
     return <p className="note">El link se genera al guardar la ficha por primera vez.</p>
   }
+
+  async function correr(accion) {
+    setEstado({ ocupado: true, error: null })
+    try {
+      onCambio(await accion())
+      setEstado({ ocupado: false, error: null })
+      return true
+    } catch (err) {
+      setEstado({ ocupado: false, error: err.message })
+      return false
+    }
+  }
+
+  async function generarNuevo() {
+    if (await correr(() => regenerateListingLink(assetIdActual(), userIdActual()))) setConfirmando(false)
+  }
+
   const link = linkParaCompartir(API_URL, slug)
+  const pausada = !ficha.published
   return (
     <div className="ficha__link">
+      <div className="ficha__estado">
+        <label className="ficha__switch" htmlFor={idSwitch}>
+          <input
+            id={idSwitch}
+            type="checkbox"
+            role="switch"
+            checked={ficha.published}
+            disabled={estado.ocupado}
+            onChange={(e) => correr(() => setListingPublished(assetIdActual(), userIdActual(), e.target.checked))}
+          />
+          <span className="ficha__switch-pista" aria-hidden="true" />
+          {pausada ? 'Ficha pausada' : 'Ficha publicada'}
+        </label>
+        <button
+          type="button"
+          className="btn btn--link"
+          disabled={estado.ocupado}
+          onClick={() => {
+            setEstado({ ocupado: false, error: null })
+            setConfirmando(true)
+          }}
+        >
+          Generar link nuevo
+        </button>
+      </div>
+      {pausada && (
+        <p className="note">Mientras está pausada, el link muestra que la ficha no existe y no recibe pedidos.</p>
+      )}
       <input className="in ficha__url" readOnly value={link} aria-label="Link público" onFocus={(e) => e.target.select()} />
       <div className="ficha__link-acciones">
-        <button type="button" className="btn btn--sm" onClick={() => copiar(link)}>
+        <button type="button" className="btn btn--sm" disabled={pausada} onClick={() => copiar(link)}>
           {copiado ? 'Link copiado' : 'Copiar link'}
         </button>
-        <a className="btn btn--sm" href={whatsappUrl(link, assetNameActual() ?? 'Ficha')} target="_blank" rel="noreferrer">
+        <a
+          className={pausada ? 'btn btn--sm is-off' : 'btn btn--sm'}
+          aria-disabled={pausada || undefined}
+          href={pausada ? undefined : whatsappUrl(link, assetNameActual() ?? 'Ficha')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Compartir por WhatsApp
         </a>
-        <a className="btn btn--sm btn--link" href={linkPublico(window.location.origin, slug)} target="_blank" rel="noreferrer">
-          Ver ficha
-        </a>
+        {!pausada && (
+          <a className="btn btn--sm btn--link" href={linkPublico(window.location.origin, slug)} target="_blank" rel="noopener noreferrer">
+            Ver ficha
+          </a>
+        )}
       </div>
+      {estado.error && !confirmando && (
+        <p className="cfg__error" role="alert">
+          {estado.error}
+        </p>
+      )}
+      {confirmando && (
+        <ConfirmDialog
+          title="¿Generar un link nuevo?"
+          lines={[
+            'El link actual deja de andar: quien lo tenga va a ver que la ficha no existe.',
+            'Después hay que volver a compartir el link nuevo.',
+          ]}
+          confirmLabel="Generar link nuevo"
+          busyLabel="Generando…"
+          busy={estado.ocupado}
+          error={estado.error}
+          onConfirm={generarNuevo}
+          onCancel={() => setConfirmando(false)}
+        />
+      )}
     </div>
   )
 }
@@ -76,6 +173,8 @@ function Fotos({ ficha, onCambio }) {
   const input = useRef(null)
   const [estado, setEstado] = useState({ ocupado: false, error: null })
   const lleno = ficha.photos.length >= MAX_FOTOS
+  const ids = ficha.photos.map((f) => f.id)
+  const ordenar = (nuevos) => correr(() => reorderListingPhotos(assetIdActual(), userIdActual(), nuevos))
 
   // Devuelve si salió bien, para cortar una subida de varias en el primer error.
   async function correr(accion) {
@@ -134,15 +233,47 @@ function Fotos({ ficha, onCambio }) {
         <ul className="ficha__grilla">
           {ficha.photos.map((foto, i) => (
             <li key={foto.id} className="ficha__foto">
-              <img src={photoUrl(ficha.publicSlug, foto.id)} alt={`Foto ${i + 1} del bien`} loading="lazy" />
-              <button
-                type="button"
-                className="btn btn--sm ficha__sacar"
-                disabled={estado.ocupado}
-                onClick={() => correr(() => deleteListingPhoto(assetIdActual(), userIdActual(), foto.id))}
-              >
-                Sacar
-              </button>
+              <img src={coownerPhotoUrl(assetIdActual(), userIdActual(), foto.id)} alt={`Foto ${i + 1} del bien`} loading="lazy" />
+              {i === 0 ? (
+                <span className="ficha__portada">Portada</span>
+              ) : (
+                <button
+                  type="button"
+                  className="ficha__chip"
+                  disabled={estado.ocupado}
+                  onClick={() => ordenar(hacerPortada(ids, i))}
+                >
+                  Usar de portada
+                </button>
+              )}
+              <div className="ficha__foto-acciones">
+                <button
+                  type="button"
+                  className="ficha__mini"
+                  aria-label={`Mover la foto ${i + 1} antes`}
+                  disabled={estado.ocupado || i === 0}
+                  onClick={() => ordenar(moverFoto(ids, i, -1))}
+                >
+                  <Icono nombre="atras" className="btn__i" />
+                </button>
+                <button
+                  type="button"
+                  className="ficha__mini"
+                  aria-label={`Mover la foto ${i + 1} después`}
+                  disabled={estado.ocupado || i === ficha.photos.length - 1}
+                  onClick={() => ordenar(moverFoto(ids, i, 1))}
+                >
+                  <Icono nombre="siguiente" className="btn__i" />
+                </button>
+                <button
+                  type="button"
+                  className="ficha__mini ficha__mini--texto"
+                  disabled={estado.ocupado}
+                  onClick={() => correr(() => deleteListingPhoto(assetIdActual(), userIdActual(), foto.id))}
+                >
+                  Sacar
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -258,7 +389,7 @@ function PanelFicha({ precioPorDia, onCambio }) {
       )}
       {carga.estado === 'ok' && (
         <div className="ficha">
-          <LinkPublico slug={carga.ficha.publicSlug} />
+          <LinkPublico ficha={carga.ficha} onCambio={actualizar} />
           <Fotos ficha={carga.ficha} onCambio={actualizar} />
           <FormularioFicha ficha={carga.ficha} precioPorDia={precioPorDia} onCambio={actualizar} />
         </div>

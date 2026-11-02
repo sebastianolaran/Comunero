@@ -74,3 +74,42 @@ export async function sendPublicRequest(slug, pedido) {
     fallo: 'No se pudo enviar la solicitud.',
   })
 }
+
+// Días ocupados de la ficha: [{ startDate, endDate }] 'YYYY-MM-DD'.
+export async function fetchAvailability(slug, { signal } = {}) {
+  const datos = await pedir(`${rutaPublica(slug)}/availability`, { signal, fallo: 'No se pudo cargar la disponibilidad.' })
+  return datos.occupied
+}
+
+export async function setListingPublished(assetId, userId, published) {
+  const datos = await pedir(`${rutaFicha(assetId)}/published`, {
+    method: 'PATCH',
+    body: { userId, published },
+    fallo: 'No se pudo cambiar la publicación de la ficha.',
+  })
+  return datos.listing
+}
+
+export async function regenerateListingLink(assetId, userId) {
+  const datos = await pedir(`${rutaFicha(assetId)}/link`, {
+    method: 'POST',
+    body: { userId },
+    fallo: 'No se pudo generar el link nuevo.',
+  })
+  return datos.listing
+}
+
+export async function reorderListingPhotos(assetId, userId, ids) {
+  const datos = await pedir(`${rutaFicha(assetId)}/photos/order`, {
+    method: 'PUT',
+    body: { userId, ids },
+    fallo: 'No se pudo ordenar las fotos.',
+  })
+  return datos.listing
+}
+
+// Miniaturas del panel: andan aunque la ficha esté pausada.
+export function coownerPhotoUrl(assetId, userId, photoId) {
+  const params = new URLSearchParams({ userId })
+  return `${API_URL}${rutaFicha(assetId)}/photos/${encodeURIComponent(photoId)}?${params}`
+}

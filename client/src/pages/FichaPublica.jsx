@@ -1,12 +1,13 @@
 import { useEffect, useId, useState } from 'react'
 import { useParams } from 'react-router'
+import CalendarioDisponibilidad from '../components/CalendarioDisponibilidad'
 import Icono from '../components/Iconos'
 import { validarSolicitudPublica } from '../lib/listing'
 import { daysLabel, formatMoney, formatRange, hoyLocal, montoSugerido } from '../lib/rentalRequests'
-import { fetchPublicListing, photoUrl, sendPublicRequest } from '../services/listing'
+import { fetchAvailability, fetchPublicListing, photoUrl, sendPublicRequest } from '../services/listing'
 import './FichaPublica.css'
 
-const VACIO = { name: '', phone: '', email: '', startDate: '', endDate: '', guests: '', comments: '', website: '' }
+const VACIO = { name: '', phone: '', email: '', guests: '', comments: '', website: '' }
 const MINIATURAS = 4
 
 const personas = (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`
@@ -90,7 +91,7 @@ function Seccion({ titulo, children }) {
   )
 }
 
-function Detalle({ ficha }) {
+function Detalle({ ficha, children }) {
   const vacia = !ficha.description && ficha.services.length === 0 && !ficha.conditions
   return (
     <div className="fp-det">
@@ -117,6 +118,7 @@ function Detalle({ ficha }) {
         </Seccion>
       )}
       {vacia && <p className="hint">Los detalles del lugar se pueden consultar en el comentario de la solicitud.</p>}
+      {children}
     </div>
   )
 }
@@ -165,37 +167,50 @@ function Enviada({ pedido }) {
   )
 }
 
-function Formulario({ slug, ficha }) {
+// fechas: { startDate, endDate }, compartidas con el calendario de disponibilidad.
+function Formulario({ slug, ficha, hoy, ocupados, fechas, onFechas, onOcupadas }) {
   const [borrador, setBorrador] = useState(VACIO)
   const [errores, setErrores] = useState({})
+  // Los errores de fecha valen para las fechas con que se validó: si después se
+  // eligen otras (por ejemplo tocando el calendario), dejan de mostrarse.
+  const [fechasValidadas, setFechasValidadas] = useState(fechas)
   const [envio, setEnvio] = useState({ estado: 'editando', error: null, pedido: null })
   const base = useId()
-  const hoy = hoyLocal()
   const id = (campo) => `${base}-${campo}`
-  const estimado = montoSugerido(borrador.startDate, borrador.endDate, ficha.rentalDailyRate)
+  const mismasFechas = fechasValidadas.startDate === fechas.startDate && fechasValidadas.endDate === fechas.endDate
+  const visibles = mismasFechas ? errores : { ...errores, startDate: undefined, endDate: undefined }
+  const estimado = montoSugerido(fechas.startDate, fechas.endDate, ficha.rentalDailyRate)
 
   const cambiar = (campo) => (e) => {
-    setBorrador((prev) => ({ ...prev, [campo]: e.target.value }))
+    const valor = e.target.value
+    if (campo in fechas) onFechas({ ...fechas, [campo]: valor })
+    else setBorrador((prev) => ({ ...prev, [campo]: valor }))
     setErrores((prev) => ({ ...prev, [campo]: undefined }))
   }
   const props = (campo) => ({
     id: id(campo),
-    value: borrador[campo],
+    value: campo in fechas ? fechas[campo] : borrador[campo],
     onChange: cambiar(campo),
-    'aria-invalid': errores[campo] ? true : undefined,
-    'aria-describedby': errores[campo] ? `${id(campo)}-error` : undefined,
+    'aria-invalid': visibles[campo] ? true : undefined,
+    'aria-describedby': visibles[campo] ? `${id(campo)}-error` : undefined,
   })
 
   async function enviar(e) {
     e.preventDefault()
-    const { errores: encontrados, pedido } = validarSolicitudPublica(borrador, { hoy, capacidad: ficha.capacity })
+    const { errores: encontrados, pedido } = validarSolicitudPublica(
+      { ...borrador, ...fechas },
+      { hoy, capacidad: ficha.capacity, ocupados },
+    )
     setErrores(encontrados)
+    setFechasValidadas(fechas)
     if (!pedido) return
     setEnvio({ estado: 'enviando', error: null, pedido: null })
     try {
       await sendPublicRequest(slug, pedido)
       setEnvio({ estado: 'enviada', error: null, pedido })
     } catch (err) {
+      // Alguien aprobó esas fechas mientras tanto: se actualiza el calendario.
+      if (err.status === 409) onOcupadas()
       if (err.field) setErrores({ [err.field]: err.message })
       setEnvio({ estado: 'editando', error: err.field ? null : err.message, pedido: null })
     }
@@ -218,14 +233,14 @@ function Formulario({ slug, ficha }) {
       <fieldset className="fp-estadia">
         <legend className="fp-sr">Estadía</legend>
         <div className="fp-fechas">
-          <Campo id={id('startDate')} label="Llegada" error={errores.startDate}>
+          <Campo id={id('startDate')} label="Llegada" error={visibles.startDate}>
             <input className="fp-in" type="date" min={hoy} {...props('startDate')} />
           </Campo>
-          <Campo id={id('endDate')} label="Salida" error={errores.endDate}>
-            <input className="fp-in" type="date" min={borrador.startDate || hoy} {...props('endDate')} />
+          <Campo id={id('endDate')} label="Salida" error={visibles.endDate}>
+            <input className="fp-in" type="date" min={fechas.startDate || hoy} {...props('endDate')} />
           </Campo>
         </div>
-        <Campo id={id('guests')} label="Personas" error={errores.guests} className="fp-campo--borde">
+        <Campo id={id('guests')} label="Personas" error={visibles.guests} className="fp-campo--borde">
           <input
             className="fp-in"
             inputMode="numeric"
@@ -250,16 +265,16 @@ function Formulario({ slug, ficha }) {
 
       <fieldset className="fp-contacto">
         <legend className="fp-form__sub">Datos de contacto</legend>
-        <Campo id={id('name')} label="Nombre y apellido" error={errores.name}>
+        <Campo id={id('name')} label="Nombre y apellido" error={visibles.name}>
           <input className="in" autoComplete="name" maxLength={100} {...props('name')} />
         </Campo>
-        <Campo id={id('phone')} label="Teléfono" error={errores.phone}>
+        <Campo id={id('phone')} label="Teléfono" error={visibles.phone}>
           <input className="in" type="tel" autoComplete="tel" maxLength={30} {...props('phone')} />
         </Campo>
-        <Campo id={id('email')} label="Email" opcional error={errores.email}>
+        <Campo id={id('email')} label="Email" opcional error={visibles.email}>
           <input className="in" type="email" autoComplete="email" maxLength={254} {...props('email')} />
         </Campo>
-        <Campo id={id('comments')} label="Comentario" opcional error={errores.comments}>
+        <Campo id={id('comments')} label="Comentario" opcional error={visibles.comments}>
           <textarea className="ta" rows={3} maxLength={500} placeholder="Horario de llegada, mascotas, consultas…" {...props('comments')} />
         </Campo>
       </fieldset>
@@ -296,9 +311,26 @@ function Estado({ titulo, children, alerta = false }) {
   )
 }
 
+// Si no carga, la ficha sigue andando: el server igual rechaza fechas ocupadas.
+function useOcupados(slug) {
+  const [ocupados, setOcupados] = useState([])
+  const [intento, setIntento] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchAvailability(slug, { signal: controller.signal })
+      .then(setOcupados)
+      .catch(() => {})
+    return () => controller.abort()
+  }, [slug, intento])
+  return [ocupados, () => setIntento((n) => n + 1)]
+}
+
 function FichaPublica() {
   const { slug } = useParams()
   const [carga, setCarga] = useState({ estado: 'loading', ficha: null })
+  const [ocupados, recargarOcupados] = useOcupados(slug)
+  const [fechas, setFechas] = useState({ startDate: '', endDate: '' })
+  const hoy = hoyLocal()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -334,7 +366,7 @@ function FichaPublica() {
         )}
         {carga.estado === 'no-existe' && (
           <Estado titulo="Ficha no encontrada">
-            <p className="hint">El link no corresponde a ninguna ficha. Conviene revisarlo con quien lo compartió.</p>
+            <p className="hint">El link no corresponde a ninguna ficha publicada: puede estar pausada o haber cambiado. Conviene consultarlo con quien lo compartió.</p>
           </Estado>
         )}
         {carga.estado === 'error' && (
@@ -350,9 +382,27 @@ function FichaPublica() {
             </div>
             <Galeria slug={slug} fotos={ficha.photos} nombre={ficha.name} />
             <div className="fp__grid">
-              <Detalle ficha={ficha} />
+              <Detalle ficha={ficha}>
+                <Seccion titulo="Disponibilidad">
+                  <CalendarioDisponibilidad
+                    ocupados={ocupados}
+                    hoy={hoy}
+                    desde={fechas.startDate}
+                    hasta={fechas.endDate}
+                    onElegir={setFechas}
+                  />
+                </Seccion>
+              </Detalle>
               <aside className="fp-panel" aria-label="Pedir fechas">
-                <Formulario slug={slug} ficha={ficha} />
+                <Formulario
+                  slug={slug}
+                  ficha={ficha}
+                  hoy={hoy}
+                  ocupados={ocupados}
+                  fechas={fechas}
+                  onFechas={setFechas}
+                  onOcupadas={recargarOcupados}
+                />
               </aside>
             </div>
           </>

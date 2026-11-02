@@ -196,6 +196,17 @@
   margin-bottom: 12px;
 }
 
+.alq-wpp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alq-wpp a {
+  text-decoration: none;
+}
+
 .alq-det__monto {
   display: flex;
   align-items: baseline;
