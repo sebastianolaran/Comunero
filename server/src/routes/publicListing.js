@@ -12,7 +12,7 @@ const limitarSolicitudes = rateLimit({
   limit: SOLICITUDES_POR_IP,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Se enviaron demasiadas solicitudes. Probá de nuevo más tarde.' },
+  message: { error: 'Se enviaron demasiadas solicitudes. Volver a intentar más tarde.' },
 });
 
 // Por ficha, aunque cambie la IP: con el link alcanza para mandar pedidos, y
@@ -26,7 +26,7 @@ const limitarPorFicha = rateLimit({
   keyGenerator: (req) => `ficha:${req.params.slug}`,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Esta ficha recibió muchas solicitudes hoy. Probá de nuevo mañana.' },
+  message: { error: 'Esta ficha recibió muchas solicitudes hoy. Volver a intentar mañana.' },
 });
 
 // Lecturas: generoso para quien mira las fotos, pero cada foto sale de la base.
@@ -38,7 +38,7 @@ const limitarLecturas = rateLimit({
   limit: LECTURAS_POR_IP,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Demasiadas consultas. Probá de nuevo en unos minutos.' },
+  message: { error: 'Demasiadas consultas. Volver a intentar en unos minutos.' },
 });
 
 const router = Router();

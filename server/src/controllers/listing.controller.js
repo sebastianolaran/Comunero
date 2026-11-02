@@ -7,7 +7,7 @@ const MAX_ID_LENGTH = 64;
 const ERRORS = {
   ASSET_NOT_FOUND: [404, 'No existe el bien'],
   NOT_COOWNER: [403, 'Solo los copropietarios del bien pueden ver y cambiar la ficha'],
-  TOO_MANY_PHOTOS: [409, 'La ficha ya tiene el máximo de fotos: sacá alguna para subir otra'],
+  TOO_MANY_PHOTOS: [409, 'La ficha ya tiene el máximo de fotos: hay que sacar alguna para subir otra'],
   PHOTO_NOT_FOUND: [404, 'No existe la foto'],
 };
 
@@ -33,7 +33,7 @@ function handler({ userIdFrom, run, failure, okStatus }) {
       sendResult(res, await run(req, userId), okStatus);
     } catch (err) {
       console.error(`listing: fallo ${failure}`, err);
-      res.status(500).json({ error: `No se pudo ${failure}. Probá de nuevo en un momento.` });
+      res.status(500).json({ error: `No se pudo ${failure}. Volver a intentar en un momento.` });
     }
   };
 }

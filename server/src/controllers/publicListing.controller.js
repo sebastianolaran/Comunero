@@ -14,7 +14,7 @@ async function get(req, res) {
     res.json({ listing });
   } catch (err) {
     console.error('public-listing: fallo la consulta de la ficha', err);
-    res.status(500).json({ error: 'No se pudo cargar la ficha. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo cargar la ficha. Volver a intentar en un momento.' });
   }
 }
 
@@ -58,7 +58,7 @@ async function submitRequest(req, res) {
     res.status(201).json({ ok: true });
   } catch (err) {
     console.error('public-listing: fallo el alta de la solicitud', err);
-    res.status(500).json({ error: 'No se pudo enviar la solicitud. Probá de nuevo en un momento.' });
+    res.status(500).json({ error: 'No se pudo enviar la solicitud. Volver a intentar en un momento.' });
   }
 }
 
