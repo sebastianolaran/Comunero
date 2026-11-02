@@ -682,7 +682,9 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
         {alquiler.renter?.phone && ` · Tel: ${alquiler.renter.phone}`}
         {monto && ` · Monto total: ${monto}`}
       </p>
-      <p className="cal-detail__managed">Gestionado por {alquiler.user?.name ?? 'un copropietario'}</p>
+      <p className="cal-detail__managed">
+        {alquiler.userId ? `Gestionado por ${alquiler.user?.name ?? 'un copropietario'}` : 'Llegó desde la ficha pública'}
+      </p>
 
       {/* Las tareas de preparacion son de alquileres aprobados (el server no deja crearlas antes). */}
       {!pendiente && (

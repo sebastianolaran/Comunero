@@ -1,0 +1,26 @@
+.ficha { display: flex; flex-direction: column; gap: 22px }
+.ficha__link { display: flex; flex-direction: column; gap: 8px }
+.ficha__url { font-size: 12.5px; color: var(--ink-2) }
+.ficha__link-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.ficha__link-acciones a { text-decoration: none }
+
+.ficha__fotos-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px }
+.ficha__fotos-head .lbl { margin: 0 }
+.ficha__grilla {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none;
+}
+.ficha__foto { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-sm); overflow: hidden; background: var(--inset) }
+.ficha__foto img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ficha__sacar { position: absolute; right: 6px; bottom: 6px; background: var(--surface) }
+
+.ficha__campos { display: flex; flex-direction: column; gap: 14px }
+.ficha__campo { margin: 0 }
+.ficha__hint { display: block; margin-top: 4px; font-weight: 400 }
+.ficha__par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px }
+.ficha__ctl { display: grid; grid-template-columns: 88px auto; align-items: center; gap: 8px; margin-top: 5px }
+.ficha__precio { margin: 5px 0 0; font-size: 13px; font-weight: 400; color: var(--ink); line-height: 34px }
+
+@media (max-width: 520px) {
+  .ficha__grilla { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .ficha__par { grid-template-columns: minmax(0, 1fr) }
+}

@@ -5,7 +5,9 @@ import {
   formatPhone,
   formatRange,
   motivoRechazo,
+  personasLabel,
   puedeCancelar,
+  puedeEditarMonto,
   puedeMarcarPago,
   puedeVotar as admiteVoto,
   textoEstado,
@@ -30,6 +32,84 @@ const ACCIONES = {
   },
 }
 
+// Acepta "10.000" o "$10.000".
+function leerMonto(texto) {
+  const limpio = texto.replace(/[\s$.]/g, '')
+  if (!/^\d+$/.test(limpio)) return null
+  return Number(limpio)
+}
+
+// Las que llegan desde la ficha traen el precio por día × días (o nada si no
+// había precio): se corrige acá antes de aprobar.
+function Monto({ solicitud, editable, onGuardar }) {
+  const [editando, setEditando] = useState(false)
+  const [texto, setTexto] = useState('')
+  const [estado, setEstado] = useState({ guardando: false, error: null })
+  const id = useId()
+
+  if (!editando) {
+    return (
+      <p className="alq-det__monto">
+        {solicitud.amount != null ? formatMoney(solicitud.amount) : <span className="meta">Sin monto</span>}
+        {editable && (
+          <button
+            type="button"
+            className="btn btn--link"
+            onClick={() => {
+              setTexto(solicitud.amount == null ? '' : String(solicitud.amount))
+              setEstado({ guardando: false, error: null })
+              setEditando(true)
+            }}
+          >
+            {solicitud.amount == null ? 'Cargar monto' : 'Cambiar monto'}
+          </button>
+        )}
+      </p>
+    )
+  }
+
+  async function guardar() {
+    const monto = leerMonto(texto)
+    if (monto == null) return setEstado({ guardando: false, error: 'El monto tiene que ser un número entero.' })
+    setEstado({ guardando: true, error: null })
+    try {
+      await onGuardar(monto)
+      setEditando(false)
+    } catch (err) {
+      setEstado({ guardando: false, error: err.message })
+    }
+  }
+
+  return (
+    <div className="alq-det__bloque">
+      <label className="lbl" htmlFor={id}>
+        Monto total
+      </label>
+      <input
+        id={id}
+        className="in in--num"
+        inputMode="numeric"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        disabled={estado.guardando}
+      />
+      {estado.error && (
+        <p className="alq-err" role="alert">
+          {estado.error}
+        </p>
+      )}
+      <div className="alq-det__acciones">
+        <button type="button" className="btn btn--grow" onClick={() => setEditando(false)} disabled={estado.guardando}>
+          Volver
+        </button>
+        <button type="button" className="btn btn--grow btn--primary" onClick={guardar} disabled={estado.guardando}>
+          {estado.guardando ? 'Guardando…' : 'Guardar monto'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // modo: 'ver' | 'rechazar' | 'cambiar' | 'pagar' | 'cancelar' (Cambiar voto vuelve a mostrar
 // Aprobar/Rechazar; pagar y cancelar muestran su confirmación).
 function RentalRequestDetail({
@@ -47,6 +127,7 @@ function RentalRequestDetail({
   onOpenAction,
   onCancelAction,
   onConfirmAction,
+  onUpdateAmount,
 }) {
   const [motivo, setMotivo] = useState('')
   // Quien recibió la plata del alquiler: por defecto, quien marca el pago.
@@ -85,20 +166,26 @@ function RentalRequestDetail({
   return (
     <aside ref={ref} tabIndex={-1} className="panel rail alq-det" aria-label={`Detalle de la solicitud de ${nombre}`}>
       <h2 className="alq-det__name">{nombre}</h2>
-      {renterPhone && <p className="meta alq-det__contact">{formatPhone(renterPhone)}</p>}
+      {(renterPhone || solicitud.renterEmail) && (
+        <p className="meta alq-det__contact">
+          {[formatPhone(renterPhone), solicitud.renterEmail].filter(Boolean).join(' · ')}
+        </p>
+      )}
       <div className="alq-badges alq-det__badges">
+        {solicitud.fromListing && <span className="badge badge--dash">Desde la ficha pública</span>}
         <PagoTag solicitud={solicitud} />
         <span className="badge">{textoEstado(solicitud)}</span>
       </div>
       <p className="alq-det__fechas">
-        {`${formatRange(startDate, endDate)} · ${daysLabel(startDate, endDate)}`}
-        {solicitud.amount != null && (
-          <>
-            <br />
-            {formatMoney(solicitud.amount)}
-          </>
-        )}
+        {[formatRange(startDate, endDate), daysLabel(startDate, endDate), personasLabel(solicitud.guests)]
+          .filter(Boolean)
+          .join(' · ')}
       </p>
+      <Monto
+        solicitud={solicitud}
+        editable={puedeVotar && puedeEditarMonto(solicitud, userId) && Boolean(onUpdateAmount)}
+        onGuardar={onUpdateAmount}
+      />
       {comments && <p className="note alq-det__bloque">{comments}</p>}
 
       <h3 className="sect alq-det__sect">Votación · {votosLabel(solicitud)}</h3>

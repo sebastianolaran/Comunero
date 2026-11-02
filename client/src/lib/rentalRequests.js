@@ -15,6 +15,18 @@ export function puedeVotar({ status, blockedByOverlap = false, cancelled = false
   return status !== 'APPROVED' && !blockedByOverlap && !cancelled && !expired
 }
 
+export function personasLabel(guests) {
+  if (guests == null) return null
+  return guests === 1 ? '1 persona' : `${guests} personas`
+}
+
+// Mismo criterio que el server: el monto se corrige mientras no esté aprobada y
+// antes de que voten los demás.
+export function puedeEditarMonto({ status, cancelled = false, expired = false, votes = [] }, userId) {
+  const otrosVotaron = votes.some((v) => v.userId !== userId && v.value !== null)
+  return status !== 'APPROVED' && !cancelled && !expired && !otrosVotaron
+}
+
 // El motivo es opcional al rechazar.
 export function validarVoto({ value, reason = '' }) {
   const motivo = reason.trim()

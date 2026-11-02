@@ -3,6 +3,7 @@ import {
   formatMoney,
   formatPhone,
   formatRange,
+  personasLabel,
   textoEstado,
   VOTO_TEXTO,
   votosLabel,
@@ -47,6 +48,7 @@ function RentalRequestCard({
           </button>
         </h3>
         <span className="alq-badges">
+          {solicitud.fromListing && <span className="badge badge--dash">Ficha pública</span>}
           <PagoTag solicitud={solicitud} />
           <span className="badge">{textoEstado(solicitud)}</span>
         </span>
@@ -55,7 +57,7 @@ function RentalRequestCard({
       {pendiente ? (
         <>
           <p className="meta alq-rq__meta">
-            {[formatPhone(renterPhone), fechas, dias, monto].filter(Boolean).join(' · ')}
+            {[formatPhone(renterPhone), fechas, dias, personasLabel(solicitud.guests), monto].filter(Boolean).join(' · ')}
           </p>
           {comments && <p className="alq-rq__com">{comments}</p>}
           <div className="alq-rq__votos">

@@ -16,6 +16,7 @@ import {
   fetchRentalRequests,
   markRentalPaid,
   voteRentalRequest,
+  updateRentalAmount,
 } from '../services/rentalRequest'
 
 const ACCIONES = { pagar: markRentalPaid, cancelar: cancelRental }
@@ -275,6 +276,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
             setEnvio({ enviando: false, error: null })
           }}
           onConfirmAction={(accion, extra) => accionar(seleccion, accion, extra)}
+          onUpdateAmount={async (amount) => reemplazar(await updateRentalAmount(seleccion, { userId, amount }))}
         />
       </div>
     </>

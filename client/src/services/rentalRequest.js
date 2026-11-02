@@ -58,3 +58,15 @@ export async function createRentalRequest(solicitud) {
   }
   return body
 }
+
+// Tira un Error con el mensaje del server (ej. 409 si ya se aprobó).
+export async function updateRentalAmount(id, { userId, amount }) {
+  const res = await fetch(`${API_URL}/api/rental-requests/${encodeURIComponent(id)}/amount`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, amount }),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? 'No se pudo cambiar el monto.')
+  return body
+}

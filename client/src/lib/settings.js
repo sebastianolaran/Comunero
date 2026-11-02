@@ -42,7 +42,33 @@ function textoPorcentajes(porcentajes, nombres) {
     .join(', ')
 }
 
+const personas = plural('persona', 'personas')
+const lista = (items) => items.join(', ')
+
+// Cambios de la ficha pública. Los textos largos solo dicen que cambiaron.
+const CAMPOS_FICHA = {
+  'listing.capacity': { label: 'capacidad', formato: personas },
+  'listing.services': { label: 'servicios', formato: lista },
+  'listing.approxLocation': { label: 'ubicación', formato: (v) => v },
+}
+const TEXTOS_FICHA = {
+  'listing.description': 'se cambió la descripción',
+  'listing.conditions': 'se cambiaron las condiciones',
+}
+const vacioFicha = (valor) => valor == null || (Array.isArray(valor) && valor.length === 0)
+
+function textoCambioFicha({ field, from, to }) {
+  if (field === 'listing.photos') {
+    return `Ficha pública: se ${to > from ? 'subió' : 'sacó'} una foto`
+  }
+  if (TEXTOS_FICHA[field]) return `Ficha pública: ${TEXTOS_FICHA[field]}`
+  const { label, formato } = CAMPOS_FICHA[field]
+  const mostrar = (valor) => (vacioFicha(valor) ? 'sin dato' : formato(valor))
+  return `Ficha pública, ${label}: de ${mostrar(from)} a ${mostrar(to)}`
+}
+
 export function textoCambio({ field, from, to, reason }, nombres) {
+  if (field.startsWith('listing.')) return textoCambioFicha({ field, from, to })
   if (field === 'percents' && reason === 'MEMBER_JOINED') {
     return `Se sumó un integrante: los porcentajes volvieron a partes iguales (eran ${textoPorcentajes(from, nombres)})`
   }
