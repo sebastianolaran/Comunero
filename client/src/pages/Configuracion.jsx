@@ -18,9 +18,9 @@ import {
 } from '../lib/settings'
 import { fetchBalances } from '../services/balance'
 import { fetchSettings, leaveAsset, updateSettings } from '../services/settings'
+import { colorDeIntegrante } from '../lib/calendar'
 import './Configuracion.css'
 
-const color = (hue) => `oklch(56% 0.12 ${hue})`
 
 // Guardar de un panel: { guardando, error, guardado } y la función que manda los cambios.
 function useGuardar(onGuardado) {
@@ -108,6 +108,18 @@ function PanelPorcentajes({ settings, onGuardado }) {
   const sinCambios = members.every((m) => (borrador[m.id] ?? '').trim() === texto(m.percent))
   const vacio = Object.values(borrador).every((v) => v.trim() === '')
   const suma = sumaPorcentajes(borrador)
+  // Con algún número escrito, el reparto ya no es en partes iguales: se avisa
+  // en vivo qué falta y Guardar espera a que la suma dé 100.
+  const incompleto = !vacio && Object.values(borrador).some((v) => !/^\d+$/.test(v.trim()))
+  const problema = vacio
+    ? null
+    : incompleto
+      ? 'Falta el porcentaje de alguien.'
+      : suma < 100
+        ? `Faltan ${100 - suma}% para llegar a 100.`
+        : suma > 100
+          ? `Sobran ${suma - 100}%: tienen que sumar 100.`
+          : null
 
   function volverAIguales() {
     setBorrador(Object.fromEntries(members.map((m) => [m.id, ''])))
@@ -133,7 +145,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
           : 'Cómo se reparten los gastos y los ingresos entre los integrantes. Vacío, en partes iguales.'
       }
       pie={
-        <Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios}>
+        <Pie estado={estado} onGuardar={guardar} sinCambios={sinCambios} bloqueado={Boolean(problema)}>
           {!iguales && (
             <button type="button" className="btn btn--sm" disabled={estado.guardando} onClick={volverAIguales}>
               Volver a partes iguales
@@ -146,7 +158,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
         {members.map((m) => (
           <div className="cfg__row" key={m.id}>
             <label className="cfg__lbl" htmlFor={`pct-${m.id}`}>
-              <span className="legend__d" style={{ background: color(m.hue) }} />
+              <span className="legend__d" style={{ background: colorDeIntegrante(m.id, m.hue) }} />
               {m.name}
             </label>
             <div className="cfg__ctl">
@@ -154,7 +166,7 @@ function PanelPorcentajes({ settings, onGuardado }) {
                 id={`pct-${m.id}`}
                 className="in in--num"
                 inputMode="numeric"
-                placeholder={porcentajeIgual(members.length)}
+                placeholder={vacio ? porcentajeIgual(members.length) : '—'}
                 value={borrador[m.id] ?? ''}
                 onChange={(e) => setBorrador((prev) => ({ ...prev, [m.id]: e.target.value }))}
               />
@@ -169,6 +181,11 @@ function PanelPorcentajes({ settings, onGuardado }) {
             <span className="meta">%</span>
           </div>
         </div>
+        {problema && (
+          <p className="hint cfg__falta" aria-live="polite">
+            {problema}
+          </p>
+        )}
       </div>
     </Panel>
   )

@@ -9,7 +9,7 @@
 
 .exportar-cal__err {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--fs-meta);
   color: var(--neg);
 }
 

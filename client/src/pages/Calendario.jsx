@@ -13,12 +13,14 @@ import ExportarCalendario from '../components/ExportarCalendario'
 import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
+import { ChipsVoto } from '../components/ui/Votacion'
 import { fmtAprobaron } from '../lib/format'
 import { daysLabel, formatRange, hoyLocal } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import { fetchSettings } from '../services/settings'
 import { usePaginacion } from '../lib/pagination'
 import {
+  colorDeIntegrante,
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
@@ -444,6 +446,7 @@ function Calendario() {
               info={estadoDelDia(dia, reservas, peticionVisibleId)}
               seleccionado={diaSeleccionado === dia.toISOString()}
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
+              pasado={dia.toISOString().slice(0, 10) < hoyLocal()}
               cargando={estadoCarga === 'loading'}
               enRango={formAbierto && Boolean(form.inicio) && fechaInput(dia) >= form.inicio && fechaInput(dia) <= (form.fin || form.inicio)}
               onSelect={(extender) => seleccionarDia(dia, extender)}
@@ -458,7 +461,7 @@ function Calendario() {
         <ul className="legend">
           {integrantes.map((i) => (
             <li key={i.userId} className="legend__i">
-              <span className="legend__d" style={{ background: `oklch(56% 0.12 ${i.tono})` }} />
+              <span className="legend__d" style={{ background: colorDeIntegrante(i.userId, i.tono) }} />
               {i.nombre}
             </li>
           ))}
@@ -635,19 +638,20 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
                 <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
                 <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
               </button>
+              {peticion.votes?.length > 0 && <ChipsVoto votes={peticion.votes} />}
               {pasada && <span className="tag tag--dash cal-pending__pasada">Fecha pasada: ya no se vota</span>}
               {!propia && !pasada && (
                 <div className="cal-pending__actions">
                   {aceptada ? (
-                    <span className="tag tag--solid tag--si">Aceptada</span>
+                    <span className="tag tag--solid tag--si">Voto: Sí</span>
                   ) : (
                     <button
                       type="button"
-                      className="btn btn--sm btn--primary"
+                      className="btn btn--sm"
                       disabled={votando !== null}
                       onClick={() => onVote(peticion, 'APPROVE')}
                     >
-                      Aceptar
+                      Aprobar
                     </button>
                   )}
                   <button
@@ -773,11 +777,12 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, cargando, enRango, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
   if (hoy) clases.push('cal__c--hoy')
+  if (pasado) clases.push('cal__c--pasado')
   if (enRango) clases.push('cal__c--rango')
   let etiqueta = ''
   let estilo

@@ -20,7 +20,7 @@ import {
 } from '../lib/decisions'
 import { createDecision, fetchClosedDecisions, fetchOpenDecisions, voteDecision } from '../services/decision'
 import { usePaginacion } from '../lib/pagination'
-import { textoFaltan } from '../lib/rentalRequests'
+import { textoCierre, textoFaltan } from '../lib/rentalRequests'
 import './Decisiones.css'
 
 // Referencia estable: useDecisiones la usa como dependencia del efecto.
@@ -132,8 +132,7 @@ function DecisionAbierta({ decision, onVotar }) {
       <div className="dec-card__top">
         <h3 className="dec-card__t">{decision.title}</h3>
       </div>
-      {/* El tiempo para responder de Configuración no aplica a las decisiones. */}
-      <p className="dec-meta">{textoFecha(decision.createdAt)} · Sin plazo: sigue abierta hasta que voten todos</p>
+      <p className="dec-meta">{textoFecha(decision.createdAt)}</p>
       {monto && <p className="dec-meta">{monto}</p>}
       <p className="dec-votos">{textoVotos(decision)}</p>
       {decision.votes?.length > 0 && <ChipsVoto votes={decision.votes} />}
@@ -153,6 +152,8 @@ function DecisionCerrada({ decision }) {
       </div>
       {monto && <p className="dec-meta">{monto}</p>}
       <p className="dec-votos">{textoVotos(decision)}</p>
+      {decision.votes?.length > 0 && <ChipsVoto votes={decision.votes} cerrada />}
+      {textoCierre(decision) && <p className="hint">{textoCierre(decision)}</p>}
     </article>
   )
 }
@@ -202,6 +203,8 @@ function EnVotacion({ assetId, onCerrada }) {
           Proponer decisión
         </button>
       </div>
+      {/* El tiempo para responder de Configuración no aplica a las decisiones. */}
+      <p className="hint dec-sin-plazo">Las decisiones no vencen: siguen abiertas hasta que voten todos.</p>
 
       {aviso && (
         <p className="note dec-aviso" role="alert">

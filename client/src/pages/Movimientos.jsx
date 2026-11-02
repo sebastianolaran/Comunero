@@ -68,8 +68,8 @@ function Resumen({ summary, titulo, cobrado }) {
       </div>
       {cobrado > 0 && (
         <p className="sum__nota">
-          {fmtMoney(cobrado)} son ingresos cobrados que corresponden al resto del grupo; sin eso, el saldo del
-          mes queda en {fmtSigned(summary.mine + cobrado)}.
+          Incluye {fmtMoney(cobrado)} de ingresos cobrados que corresponden al resto del grupo. Sin eso, el mes
+          queda en {fmtMoney(Math.abs(summary.mine + cobrado))} {SALDO_TEXTO[tone(summary.mine + cobrado)]}.
         </p>
       )}
       <p className="sum__s">

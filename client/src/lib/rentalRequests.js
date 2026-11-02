@@ -70,6 +70,22 @@ export function textoSinVoto(votes) {
   return new Intl.ListFormat('es', { type: 'conjunction' }).format(sinVoto)
 }
 
+const lista = (nombres) => new Intl.ListFormat('es', { type: 'conjunction' }).format(nombres)
+
+// Por qué terminó la votación, en una oración: quién votó No, si venció el
+// plazo o si se aprobó sin el voto de alguien. null si sigue abierta, se
+// canceló o el motivo ya lo dice el server (por ejemplo, un solapamiento).
+export function textoCierre({ status, cancelled = false, expired = false, votes = [] }) {
+  if (cancelled) return null
+  const sinVoto = textoSinVoto(votes)
+  if (status === 'APPROVED') return sinVoto ? `Aprobada sin el voto de ${sinVoto}.` : 'Aprobada por unanimidad.'
+  if (status !== 'REJECTED') return null
+  const dijeronNo = votes.filter((v) => v.value === 'REJECT').map((v) => v.name)
+  if (dijeronNo.length > 0) return `Rechazada: ${lista(dijeronNo)} ${dijeronNo.length === 1 ? 'votó' : 'votaron'} No.`
+  if (expired) return sinVoto ? `Rechazada al vencer el plazo sin el voto de ${sinVoto}.` : 'Rechazada al vencer el plazo.'
+  return null
+}
+
 const CHIPS = {
   APPROVE: { simbolo: '✓', verbo: 'aprobó', variante: 'aprobo' },
   REJECT: { simbolo: '✕', verbo: 'rechazó', variante: 'rechazo' },

@@ -15,7 +15,7 @@ import {
   VOTO_TEXTO,
   textoFaltan,
   textoPlazo,
-  textoSinVoto,
+  textoCierre,
   votosLabel,
 } from '../lib/rentalRequests'
 import { assetNameActual } from '../lib/currentAsset'
@@ -136,11 +136,7 @@ function Monto({ solicitud, editable, onGuardar }) {
         onChange={(e) => setTexto(e.target.value)}
         disabled={estado.guardando}
       />
-      {estado.error && (
-        <p className="alq-err" role="alert">
-          {estado.error}
-        </p>
-      )}
+      <FieldError>{estado.error}</FieldError>
       <div className="alq-det__acciones">
         <button type="button" className="btn btn--grow" onClick={() => setEditando(false)} disabled={estado.guardando}>
           Volver
@@ -242,9 +238,9 @@ function RentalRequestDetail({
         </p>
       )}
 
-      {(rejections.length > 0 || rejectionReason) && (
+      {(rejections.length > 0 || (rejectionReason && !solicitud.expired)) && (
         <ul className="alq-det__objeciones">
-          {rejectionReason && <li className="note">{rejectionReason}</li>}
+          {rejectionReason && !solicitud.expired && <li className="note">{rejectionReason}</li>}
           {rejections.map((r, i) => (
             <li key={r.name ?? i} className="note">
               Objeción de {r.name}: {motivoRechazo(r.reason)}
@@ -263,11 +259,10 @@ function RentalRequestDetail({
         </p>
       )}
 
-      {status === 'APPROVED' && (
+      {textoCierre(solicitud) && (
         <p className="hint alq-det__bloque">
-          {textoSinVoto(solicitud.votes)
-            ? `Aprobada sin el voto de ${textoSinVoto(solicitud.votes)}: ya quedó reservada en el calendario.`
-            : 'Aprobada por unanimidad: ya quedó reservada en el calendario.'}
+          {textoCierre(solicitud)}
+          {status === 'APPROVED' && ' Ya quedó reservada en el calendario.'}
         </p>
       )}
 

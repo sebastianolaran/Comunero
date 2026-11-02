@@ -27,3 +27,4 @@
 @media (max-width: 520px) {
   .cfg__row { grid-template-columns: minmax(0, 1fr) }
 }
+.cfg__falta { margin: 2px 0 0; text-align: right }

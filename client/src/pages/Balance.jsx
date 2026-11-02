@@ -80,7 +80,7 @@ function BalanceItem({ coowner, onSettle }) {
         </button>
         <div className="bal-right">
           <span className="bal-amount-wrap">
-            <span className={`bal-amount bal-tone-${status.tone}`}>{fmtSigned(coowner.balance)}</span>
+            <span className={`bal-amount bal-tone-${status.tone}`}>{fmtMoney(Math.abs(coowner.balance))}</span>
             {!coowner.upToDate && <span className="bal-status">{textoSaldoCon(coowner.balance, coowner.user.name)}</span>}
           </span>
           {coowner.canSettle && (
@@ -337,7 +337,8 @@ function Balance() {
         <>
           <div className="bal-summary">
             <p className="bal-summary-label">Saldo total, sumando todos los meses</p>
-            <p className={`bal-net bal-tone-${balanceStatus(data.net).tone}`}>{fmtSigned(data.net)}</p>
+            {/* Sin signo, como en Movimientos: el texto de abajo dice el sentido. */}
+            <p className={`bal-net bal-tone-${balanceStatus(data.net).tone}`}>{fmtMoney(Math.abs(data.net))}</p>
             <p className="bal-sub">{netSummary(data.net)}</p>
             <p className="hint">Movimientos muestra mes por mes; acá se suma todo y se descuentan los pagos entre integrantes.</p>
           </div>

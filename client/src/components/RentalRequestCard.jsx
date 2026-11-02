@@ -6,6 +6,7 @@ import {
   formatPhone,
   formatRange,
   personasLabel,
+  textoCierre,
   textoEstado,
   textoPlazo,
   VOTO_TEXTO,
@@ -111,6 +112,12 @@ function RentalRequestCard({
       ) : (
         <p className="meta">
           {[fechas, dias, monto, votosLabel(solicitud)].filter(Boolean).join(' · ')}
+          {textoCierre(solicitud) && (
+            <>
+              <br />
+              {textoCierre(solicitud)}
+            </>
+          )}
         </p>
       )}
     </article>
