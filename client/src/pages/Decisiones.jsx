@@ -63,10 +63,10 @@ function useDecisiones(fetcher, assetId, version = 0) {
   return { carga, reintentar, recargar, actualizar }
 }
 
-function Aviso({ carga, reintentar, texto, vacio }) {
+function Aviso({ carga, reintentar, texto, vacio, detalle }) {
   if (carga.estado === 'loading') return <Cargando filas={3}>Cargando decisiones…</Cargando>
   if (carga.estado === 'error') return <ErrorCarga panel={false} titulo={texto} onReintentar={reintentar} />
-  return <Vacio titulo={vacio} />
+  return <Vacio titulo={vacio}>{detalle}</Vacio>
 }
 
 function Votacion({ decision, onVotar }) {
@@ -223,7 +223,8 @@ function EnVotacion({ assetId, onCerrada }) {
           carga={carga}
           reintentar={reintentar}
           texto="No se pudieron cargar las decisiones en votación."
-          vacio="No hay decisiones en votación."
+          vacio="No hay nada esperando votos."
+          detalle="Cualquier integrante puede proponer una decisión: se aprueba cuando votan Sí todos."
         />
       )}
       <Pagination {...paginacion} />

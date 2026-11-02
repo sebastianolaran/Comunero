@@ -226,3 +226,74 @@
   gap: 8px;
 }
 
+
+/* Recién saldado: el color es el de la persona con quien se saldó. */
+.bal-hecho {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  animation: bal-hecho-entra var(--t-mid) var(--ease);
+}
+
+.bal-hecho__marca {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--surface);
+}
+
+.bal-hecho__marca svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: bal-hecho-tilde 420ms 120ms var(--ease) forwards;
+}
+
+.bal-hecho__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.bal-hecho__t {
+  margin: 0 0 2px;
+  font-size: var(--fs-subtitle);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.bal-hecho .hint {
+  margin: 0;
+}
+
+.bal-item--reciente {
+  animation: card-flash 1.6s var(--ease);
+}
+
+@keyframes bal-hecho-entra {
+  from { opacity: 0; transform: translateY(-4px) }
+}
+
+@keyframes bal-hecho-tilde {
+  to { stroke-dashoffset: 0 }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bal-hecho, .bal-item--reciente { animation: none }
+  .bal-hecho__marca svg { animation: none; stroke-dashoffset: 0 }
+}

@@ -31,6 +31,7 @@ function RentalRequestCard({
   onApprove,
   onOpenReject,
   onChangeVote,
+  recienAprobada = false,
 }) {
   const { renterName, renterPhone, comments, startDate, endDate, status, vote } = solicitud
   const pendiente = status === 'PENDING'
@@ -38,7 +39,12 @@ function RentalRequestCard({
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
   const monto = formatMoney(solicitud.amount)
-  const clases = ['card card--pad pick alq-rq', seleccionada && 'pick--on', !pendiente && 'alq-rq--resuelta']
+  const clases = [
+    'card card--pad pick alq-rq',
+    seleccionada && 'pick--on',
+    !pendiente && 'alq-rq--resuelta',
+    recienAprobada && 'card--flash',
+  ]
 
   return (
     <article className={clases.filter(Boolean).join(' ')} onClick={onSelect}>

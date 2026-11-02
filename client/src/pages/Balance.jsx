@@ -9,6 +9,7 @@ import { userIdActual } from '../lib/currentUser'
 import { balanceStatus, textoSaldoCon, closedWho, entryWho, netSummary, partialAmountError, sinceLabel } from '../lib/balance'
 import { descripcionLegible } from '../lib/format'
 import { useTonos } from '../lib/useTonos'
+import { colorConfirmado } from '../lib/calendar'
 import { dayLabel, fmtMoney, fmtSigned } from '../lib/movements'
 import * as balanceService from '../services/balance'
 import './Balance.css'
@@ -53,14 +54,43 @@ function BalanceDetail({ coowner, id }) {
   )
 }
 
-function BalanceItem({ coowner, onSettle }) {
+// Lo que acaba de pasar al saldar: quedar al día con alguien es el único final
+// feliz de la app, así que se dice con su nombre y su color. Queda hasta que se
+// cierra o se salda otra cosa.
+function Saldado({ hecho, onCerrar }) {
+  const tonos = useTonos()
+  const { user, tipo, monto } = hecho
+  const total = tipo === 'total'
+  return (
+    <div className="bal-hecho" role="status" style={{ '--c': colorConfirmado(user.id, tonos[user.id]) }}>
+      <span className="bal-hecho__marca" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      </span>
+      <div className="bal-hecho__texto">
+        <p className="bal-hecho__t">{total ? `Al día con ${user.name}` : `Pago parcial a ${user.name}`}</p>
+        <p className="hint">
+          {total
+            ? `Se registró el pago de ${fmtMoney(monto)}. El saldo quedó cerrado y su detalle está en «Saldos cerrados».`
+            : `Se registró el pago de ${fmtMoney(monto)}. La deuda que queda se ve en su fila.`}
+        </p>
+      </div>
+      <button type="button" className="btn btn--link btn--sm" onClick={onCerrar}>
+        Listo
+      </button>
+    </div>
+  )
+}
+
+function BalanceItem({ coowner, reciente = false, onSettle }) {
   const [open, setOpen] = useState(false)
   const tonos = useTonos()
   const status = balanceStatus(coowner.balance)
   const detailId = `bal-detail-${coowner.user.id}`
 
   return (
-    <li className="bal-item">
+    <li className={reciente ? 'bal-item bal-item--reciente' : 'bal-item'}>
       <div className="bal-row">
         <button
           type="button"
@@ -236,6 +266,7 @@ function Balance() {
   // o parcial), 'confirm' (pago total), 'partial' (cargar el monto) o
   // 'confirmPartial'.
   const [settling, setSettling] = useState(null)
+  const [hecho, setHecho] = useState(null) // { user, tipo: 'total' | 'parcial', monto }
   const configurado = Boolean(quien.assetId && quien.userId)
 
   useEffect(() => {
@@ -260,6 +291,7 @@ function Balance() {
   }, [data])
 
   function empezarASaldar(coowner) {
+    setHecho(null)
     setSettling({
       user: coowner.user,
       amount: -coowner.balance,
@@ -284,6 +316,7 @@ function Balance() {
     try {
       await balanceService.payPartial({ assetId: quien.assetId, fromUserId: quien.userId, toUserId: user.id, amount: partial })
       setSettling(null)
+      setHecho({ user, tipo: 'parcial', monto: partial })
     } catch (err) {
       // Si la deuda cambió y el monto ya no entra, vuelve a cargar el monto
       // con la deuda actual; si no, el error queda en el modal.
@@ -304,6 +337,7 @@ function Balance() {
     try {
       await balanceService.closeBalance({ assetId: quien.assetId, fromUserId: quien.userId, toUserId: user.id, amount })
       setSettling(null)
+      setHecho({ user, tipo: 'total', monto: amount })
     } catch (err) {
       // Si el balance cambió, el modal pasa a mostrar el monto actual.
       const error = err.currentAmount
@@ -343,19 +377,28 @@ function Balance() {
             <p className="hint">Movimientos muestra mes por mes; acá se suma todo y se descuentan los pagos entre integrantes.</p>
           </div>
 
+          {hecho && <Saldado hecho={hecho} onCerrar={() => setHecho(null)} />}
+
           {data.coowners.length === 0 ? (
             <p className="bal-empty">No hay otros copropietarios en este bien.</p>
           ) : (
             <ul className="bal-list">
               {data.coowners.map((coowner) => (
-                <BalanceItem key={coowner.user.id} coowner={coowner} onSettle={empezarASaldar} />
+                <BalanceItem
+                  key={coowner.user.id}
+                  coowner={coowner}
+                  reciente={hecho?.user.id === coowner.user.id}
+                  onSettle={empezarASaldar}
+                />
               ))}
             </ul>
           )}
 
           <h2 className="bal-section-title">Saldos cerrados</h2>
           {cerrados.length === 0 ? (
-            <p className="bal-empty">Todavía no hay saldos cerrados.</p>
+            <Vacio panel titulo="Todavía no hay saldos cerrados.">
+              Al hacer un pago total, el saldo con esa persona queda cerrado acá con todo su detalle.
+            </Vacio>
           ) : (
             <ul className="bal-list">
               {cerrados.map((settlement) => (

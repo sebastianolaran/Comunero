@@ -7,7 +7,7 @@ import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
-import { agrupar, validarVoto } from '../lib/rentalRequests'
+import { agrupar, textoCierre, validarVoto } from '../lib/rentalRequests'
 import { useDetalleEnMobile } from '../lib/useDetalleEnMobile'
 import { usePaginacion } from '../lib/pagination'
 import { fetchSettings } from '../services/settings'
@@ -28,6 +28,8 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   const [seleccion, setSeleccion] = useState(null)
   const [modo, setModo] = useState('ver')
   const [envio, setEnvio] = useState({ enviando: false, error: null })
+  // La que acaba de aprobarse con el voto propio: la tarjeta se ilumina un momento.
+  const [aprobada, setAprobada] = useState(null) // { id, texto }
   const location = useLocation()
   const navigate = useNavigate()
   // El alta se abre con este state: lo mandan "Pedir alquiler" de la barra de
@@ -120,7 +122,12 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     }
     setEnvio({ enviando: true, error: null })
     try {
-      reemplazar(await voteRentalRequest(id, { userId, ...voto }))
+      const actualizada = await voteRentalRequest(id, { userId, ...voto })
+      const antes = carga.solicitudes.find((s) => s.id === id)
+      reemplazar(actualizada)
+      if (antes?.status === 'PENDING' && actualizada.status === 'APPROVED') {
+        setAprobada({ id, texto: `${textoCierre(actualizada)} Ya quedó reservada en el calendario.` })
+      }
       setModo('ver')
       setEnvio({ enviando: false, error: null })
     } catch (err) {
@@ -196,7 +203,9 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
     return (
       <>
         {cabecera}
-        <Vacio panel titulo="Todavía no hay solicitudes de alquiler para este bien." />
+        <Vacio panel titulo="Todavía no hay solicitudes de alquiler para este bien.">
+          Llegan solas desde la ficha pública, o se cargan a mano con «Pedir alquiler».
+        </Vacio>
       </>
     )
   }
@@ -209,6 +218,7 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
       key={s.id}
       solicitud={s}
       seleccionada={s.id === seleccion}
+      recienAprobada={s.id === aprobada?.id}
       puedeVotar={puedeVotar}
       plazoHoras={plazoHoras}
       enviando={envio.enviando}
@@ -228,6 +238,9 @@ function RentalRequests({ assetId = assetIdActual(), userId = userIdActual() }) 
   return (
     <>
       {cabecera}
+      <p className="solo-lector" aria-live="polite">
+        {aprobada?.texto}
+      </p>
 
       <div className="split alq-split">
         <div className="split__main">

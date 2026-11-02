@@ -79,7 +79,11 @@ function RentalPreparations({ assetId = assetIdActual() }) {
   }
 
   if (carga.alquileres.length === 0) {
-    return <Vacio panel titulo="Todavía no hay alquileres aprobados." />
+    return (
+      <Vacio panel titulo="Todavía no hay alquileres aprobados.">
+        Cuando se aprueba uno, acá se reparten las tareas para dejar la casa lista.
+      </Vacio>
+    )
   }
 
   const lista = (alquileres) => (

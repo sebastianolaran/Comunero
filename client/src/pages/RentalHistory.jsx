@@ -61,7 +61,11 @@ function RentalHistory({ assetId = assetIdActual() }) {
   }
 
   if (carga.alquileres.length === 0) {
-    return <Vacio panel titulo="Todavía no hay alquileres terminados." />
+    return (
+      <Vacio panel titulo="Todavía no hay alquileres terminados.">
+        Cuando termina un alquiler aprobado, queda acá con el inquilino, las fechas y lo cobrado.
+      </Vacio>
+    )
   }
 
   return (
