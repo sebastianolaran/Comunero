@@ -79,18 +79,23 @@ async function listPendingUse(assetId) {
       status: true,
       user: { select: { name: true } },
       approvals: { select: { userId: true } },
-      asset: { select: { users: { select: { id: true } } } },
+      asset: { select: { users: { select: { id: true, name: true }, orderBy: { name: 'asc' } } } },
     },
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   });
 
   // approvedBy: para que el client marque "ya aceptaste"; volver a aceptar no cambia nada.
-  return reservations.map(({ approvals, asset, ...reservation }) => ({
-    ...reservation,
-    approvedBy: approvals.map((approval) => approval.userId),
-    approvalCount: approvals.length,
-    coownerCount: asset.users.length,
-  }));
+  // votes: quién aprobó y quién falta, con los valores de Alquiler (un No ya la rechaza).
+  return reservations.map(({ approvals, asset, ...reservation }) => {
+    const approvedBy = approvals.map((approval) => approval.userId);
+    return {
+      ...reservation,
+      approvedBy,
+      approvalCount: approvals.length,
+      coownerCount: asset.users.length,
+      votes: asset.users.map((u) => ({ userId: u.id, name: u.name, value: approvedBy.includes(u.id) ? 'APPROVE' : null })),
+    };
+  });
 }
 
 // Máximo de días consecutivos de un turno de uso propio (Configuración del

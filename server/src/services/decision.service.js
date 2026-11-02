@@ -28,6 +28,8 @@ function toClosedDecision(decision) {
     closedAt: decision.closedAt?.toISOString() ?? null,
     estimated: toEstimated(decision),
     yesVotes: decision._count.votes,
+    // Solo quienes votaron: los integrantes de ese momento pueden no estar más.
+    votes: (decision.votes ?? []).map((v) => ({ userId: v.userId, name: v.user.name, value: VALOR_VOTO[v.value] })),
     // Los copropietarios que había al cerrarla: si después se suma alguien, el
     // historial no cambia.
     votesNeeded: decision.votesNeededAtClose,
@@ -78,6 +80,7 @@ async function listClosed(assetId, { status } = {}, db = prisma) {
           estimatedAmount: true,
           votesNeededAtClose: true,
           _count: YES_VOTES,
+          votes: { select: { userId: true, value: true, user: { select: { name: true } } }, orderBy: { user: { name: 'asc' } } },
         },
       },
     },
