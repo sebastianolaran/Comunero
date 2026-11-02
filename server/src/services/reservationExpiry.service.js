@@ -37,15 +37,23 @@ async function expireOne(db, reservationId, action) {
 // Resuelve las pendientes vencidas del bien, de la más vieja a la más nueva
 // (una aprobada primero puede rechazar por solapamiento a otra). Devuelve cuántas.
 async function expireForAsset(assetId, now = new Date(), db = prisma) {
-  const asset = await db.asset.findUnique({ where: { id: assetId }, select: { responseHours: true, noResponseAction: true } });
+  // Una sola consulta: corre en cada lectura del calendario y de Alquiler.
+  const asset = await db.asset.findUnique({
+    where: { id: assetId },
+    select: {
+      responseHours: true,
+      noResponseAction: true,
+      reservations: {
+        where: { status: 'PENDING' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, createdAt: true },
+      },
+    },
+  });
   const limit = rules.expiryLimit(asset?.responseHours ?? null, now);
   if (!limit) return 0;
 
-  const due = await db.reservation.findMany({
-    where: { assetId, status: 'PENDING', createdAt: { lt: limit } },
-    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    select: { id: true },
-  });
+  const due = asset.reservations.filter((r) => r.createdAt < limit);
   let resolved = 0;
   for (const { id } of due) resolved += await expireOne(db, id, asset.noResponseAction);
   return resolved;

@@ -4,6 +4,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Las relaciones (include/select anidados) se traen con joins en una sola
+  // consulta: el server y la base están lejos y cada consulta suma un viaje.
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {

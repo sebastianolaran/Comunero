@@ -14,6 +14,11 @@ services:
     name: comunero-server
     runtime: node
     plan: free
+    # Misma región que la base de Neon (us-east-2, Ohio): cada consulta es un
+    # viaje entre el server y la base, y Oregon <-> Ohio suma ~60 ms por viaje.
+    # La región no se puede cambiar en un servicio existente: hay que crearlo
+    # de nuevo (ver README, sección Deploy).
+    region: ohio
     rootDir: server
     # migrate deploy corre ANTES de levantar Express: las migraciones de Prisma
     # se aplican contra Neon como parte del build, no a mano.
