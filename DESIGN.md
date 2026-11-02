@@ -135,7 +135,7 @@ components:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
     padding: "24px"
-    width: "392px"
+    width: "440px"
 ---
 
 # Design System: Comunero
@@ -146,9 +146,9 @@ components:
 
 Comunero es la mesa grande de la quinta donde la familia se sienta a repartir y decidir: un lugar de trabajo prolijo, con todo a la vista, pero de gente que se conoce. La interfaz es neutra como papel y tinta, para que lo que importa (fechas, montos, quién votó) se lea sin ruido; la nota humana la pone el color de cada integrante, que lo identifica en el calendario, en Configuración y en cada reparto.
 
-Es una herramienta de escritorio, densa sin apretar: texto base de 13px, cifras tabulares, tablas y paneles en un ancho de página de 1180px. La tinta casi negra marca la acción principal y el estado activo; el resto se resuelve con grises en escalones finos y bordes de un pixel. El verde y el rojo existen solo para la plata y para lo que no se deshace.
+Es una herramienta de escritorio, densa sin apretar: texto base de 14px, cifras tabulares, tablas y paneles en un ancho de página de 1180px. La tinta casi negra marca la acción principal y el estado activo; el resto se resuelve con grises en escalones finos y bordes de un pixel. El verde y el rojo existen solo para la plata y para lo que no se deshace.
 
-El carácter elegido para los componentes es **cálido y amable**: controles que no intimidan a alguien que no es técnico, con lenguaje llano y reglas explicadas donde actúan. Hoy el sistema implementado es más preciso que cálido (esquinas de 4px, controles compactos); esa distancia es la dirección de trabajo para `extract` y `polish`, no algo que ya esté resuelto.
+El carácter elegido para los componentes es **cálido y amable**: controles que no intimidan a alguien que no es técnico, con lenguaje llano y reglas explicadas donde actúan. La calidez vive en los momentos entre personas: quedar al día con alguien o completar una votación se dicen con su nombre y su color, y los estados vacíos dicen qué sigue.
 
 **Key Characteristics:**
 - Neutro de papel y tinta; el color es de las personas, no de la interfaz.
@@ -195,11 +195,11 @@ Una escala de grises acromáticos en OKLCH, con dos acentos semánticos para la 
 **Character:** una sola familia en pesos 400 a 700, con cifras tabulares en toda la app para que los montos y las fechas alineen en columna.
 
 ### Hierarchy
-- **Figure** (700, 26px, 1.1): la cifra protagonista de una pantalla, como el "te toca" del mes en Movimientos o el neto en Balance.
-- **Headline** (600, 18px): el título de cada sección en la barra superior.
-- **Title** (600, 17px): títulos de modales y diálogos.
-- **Body** (400, 13px, 1.5): todo el texto de trabajo: filas, campos, botones, navegación.
-- **Meta** (400, 12px, 1.5): fechas, autores, ayudas bajo un campo, botones chicos.
+- **Figure** (700, 28px, 1.1): la cifra protagonista de una pantalla, como el "te toca" del mes en Movimientos o el neto en Balance.
+- **Headline** (600, 19px): el título de cada sección en la barra superior.
+- **Title** (600, 19px): títulos de modales y diálogos.
+- **Body** (400, 14px, 1.5): todo el texto de trabajo: filas, campos, botones, navegación.
+- **Meta** (400, 12,5px, 1.5): fechas, autores, ayudas bajo un campo, botones chicos.
 - **Label** (600, 11px, 0.06em, mayúsculas): encabezados de sección ("PENDIENTES DE APROBACIÓN"), encabezados de tabla, días de la semana y tags.
 
 ### Named Rules
@@ -235,11 +235,11 @@ Esquinas suaves: 6px en controles (botones, campos, selects, tags, controles seg
 
 ### Buttons
 Compactos y directos, con la tinta reservada para la acción principal de cada pantalla.
-- **Shape:** esquinas suaves (4px), 8px × 14px de relleno, texto de 13px en peso 500.
+- **Shape:** esquinas suaves (6px), 8px × 14px de relleno, texto de 14px en peso 500.
 - **Default:** fondo blanco, borde fuerte y texto en tinta suave; al pasar el mouse, fondo hundido y borde más marcado.
 - **Primary:** fondo de tinta, texto blanco en 600 y la sombra de levante; al pasar el mouse se aclara apenas.
 - **Danger:** fondo rojo y texto blanco, solo para eliminar o salir del bien.
-- **Variantes:** chico (6px × 11px, 12px), link (subrayado, sin caja), ícono (32px cuadrado), punteado (para "agregar") y transparente.
+- **Variantes:** chico (6px × 11px, 12,5px), link (subrayado, sin caja), ícono (32px cuadrado), punteado (para "agregar") y transparente.
 - **Focus:** contorno de 2px en tinta con 2px de separación, en todos los controles.
 
 ### Chips
@@ -247,25 +247,25 @@ Compactos y directos, con la tinta reservada para la acción principal de cada p
 - **Filtros (pill):** píldoras blancas con borde; la elegida pasa a tinta con texto blanco.
 
 ### Cards / Containers
-- **Corner Style:** 8px.
+- **Corner Style:** 10px.
 - **Background:** blanco sobre el fondo papel.
 - **Shadow Strategy:** ninguna en reposo (ver Elevation & Depth).
 - **Border:** 1px en el gris de línea; una tarjeta elegible marca el borde al pasar el mouse y pasa a un borde doble de tinta cuando está elegida.
 - **Internal Padding:** 15px × 18px en tarjetas, 18px en paneles, 22px × 24px en los paneles de Configuración.
 
 ### Inputs / Fields
-- **Style:** fondo blanco, borde fuerte de 1px, 4px de radio, 8px × 10px de relleno, texto de 13px. Label de 12px en gris apagado arriba del campo.
+- **Style:** fondo blanco, borde fuerte de 1px, 6px de radio, 8px × 10px de relleno, texto de 14px. Label de 12,5px en gris apagado arriba del campo.
 - **Focus:** el borde pasa a tinta con un halo de 3px de tinta al 10%.
 - **Error / Disabled:** con error, el borde pasa a rojo y el mensaje va debajo; deshabilitado, fondo hundido y texto tenue. Los numéricos se alinean a la derecha.
 
 ### Navigation
-Barra lateral blanca con la marca "Comunero" (15px, 700), el nombre del bien y su código. Cada sección es un botón de 13px en peso 500, sin ícono; al pasar el mouse toma un fondo gris claro, y la sección activa va en tinta con texto blanco en 600. Las subsecciones (Alquiler) usan un control segmentado con el mismo lenguaje: el segmento activo en tinta.
+Barra lateral blanca con la marca "Comunero" (15px, 700), el nombre del bien y su código. Cada sección es un botón de 14px en peso 500, sin ícono; al pasar el mouse toma un fondo gris claro, y la sección activa va en tinta con texto blanco en 600. Las subsecciones (Alquiler) usan un control segmentado con el mismo lenguaje: el segmento activo en tinta.
 
 ### Calendario
 La pieza propia del producto: una grilla de siete columnas separadas por líneas de 1px, con celdas blancas de al menos 76px de alto, el número del día arriba y debajo los turnos con el color de cada integrante (o turquesa si es un alquiler). El día elegido se marca con un borde interior de 2px en tinta; los días de otros meses quedan en el gris casi blanco.
 
 ### Modales
-Superficie blanca de 392px de ancho, 24px de relleno, título de 17px y la sombra modal sobre un velo gris desenfocado. Entran con un desplazamiento corto y una leve escala (280ms); el velo aparece en 220ms. Las confirmaciones de algo irreversible usan el botón de peligro y dicen qué se pierde.
+Superficie blanca de 440px de ancho, 24px de relleno, título de 19px y la sombra modal sobre un velo gris desenfocado. Entran con un desplazamiento corto y una leve escala (280ms); el velo aparece en 220ms. Las confirmaciones de algo irreversible usan el botón de peligro y dicen qué se pierde.
 
 ### Kit compartido (`client/src/components/ui`)
 - **Modal / ModalAcciones:** todo diálogo; 440px, título de sección, Cancelar a la izquierda y la acción a la derecha del mismo ancho.

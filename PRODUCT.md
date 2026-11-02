@@ -29,7 +29,7 @@ Lo que no ofrece la suma de Splitwise, Google Calendar y un grupo de WhatsApp:
 
 - Trabajo práctico de la materia Gestión (GDSI, FIUBA). Los docentes lo recorren en el deploy (comunero.onrender.com) en cada entrega (V1 a V4) y evalúan que la funcionalidad esté completa y prolija; esa recorrida es hoy el uso real más importante.
 - Se usa sobre todo en navegador de escritorio. Mobile tiene que funcionar sin romperse, pero no es la experiencia principal.
-- Secciones: Calendario, Alquiler a terceros (solicitudes, historial de inquilinos, tareas de preparación), Movimientos, Balance, Decisiones grupales, Historial y Configuración.
+- Secciones: Calendario, Alquiler a terceros (solicitudes, historial de inquilinos, tareas de preparación), Movimientos, Balance, Decisiones grupales y Configuración. Historial se sacó del menú tras la devolución de la V2: cada cambio queda en la pantalla donde ocurre (votos, Cambios recientes, historial de alquileres e inquilinos). Además hay una ficha pública por bien (`/ficha/:slug`) que ven posibles inquilinos sin cuenta.
 - Datos de demo: el seed carga la casa "Casa" con Ana, Bruno, Carla y Flor (usuarios `@comunero.test`).
 
 ## Capabilities and Constraints
