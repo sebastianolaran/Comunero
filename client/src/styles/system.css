@@ -377,8 +377,22 @@ h1,h2,h3,.brand__s,.estado__t,.modal__s{ overflow-wrap:anywhere }
 @keyframes modal-in{ from{ opacity:0; transform:translateY(10px) scale(.985) } to{ opacity:1; transform:none } }
 @keyframes esqueleto{ from{ opacity:1 } to{ opacity:.45 } }
 @keyframes pop-in{ from{ opacity:0; transform:translateY(-4px) scale(.98) } to{ opacity:1; transform:none } }
+/* El voto que llega: el chip se llena desde el verde de confirmación y el
+   ícono entra; solo en el chip que cambió (ver ChipsVoto). */
+.chip--llega{ animation:chip-llega 600ms var(--ease) }
+.chip--llega::after{ animation:chip-icono 360ms var(--ease) }
+@keyframes chip-llega{ 0%{ background:var(--flash); box-shadow:0 0 0 3px var(--flash) } 100%{ box-shadow:0 0 0 0 transparent } }
+@keyframes chip-icono{ from{ transform:scale(.3); opacity:0 } to{ transform:none; opacity:1 } }
+/* El detalle que se abre al elegir algo de la lista entra en el lugar. */
+.alq-det{ animation:detalle-in 180ms var(--ease) both }
+@keyframes detalle-in{ from{ opacity:0; transform:translateY(4px) } }
+
+/* Movimiento reducido: se va el desplazamiento y lo que se repite sin fin; los
+   cambios de color y opacidad que confirman algo se quedan, más cortos. */
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important }
+  *,*::before,*::after{ transition-duration:80ms !important; scroll-behavior:auto !important }
+  .modal,.pop,.alq-det,.chip--llega::after{ animation-name:scrim-in !important }
+  .esqueleto__b,.backend-status-texto::before{ animation:none !important }
 }
 
 /* En el diseño vive junto al login, pero es de la barra superior. */

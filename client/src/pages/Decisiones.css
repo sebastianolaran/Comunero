@@ -90,8 +90,17 @@
   margin: -4px 0 8px;
 }
 
+/* En las cerradas el conteo va chico y sin margen: los chips necesitan aire. */
+.dec-card--cerrada .chips-voto {
+  margin: 8px 0 0;
+}
+
 .dec-card .hint {
   margin-bottom: 12px;
+}
+
+.dec-card--cerrada .hint {
+  margin: 8px 0 0;
 }
 
 .dec-sin-plazo {

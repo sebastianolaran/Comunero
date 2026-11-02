@@ -39,6 +39,10 @@ function RentalRequestCard({
   const fechas = formatRange(startDate, endDate)
   const dias = daysLabel(startDate, endDate)
   const monto = formatMoney(solicitud.amount)
+  // Lo que explica el cierre: quién votó No o si venció; si no, el motivo del server (por ejemplo, un solapamiento).
+  const cierre =
+    textoCierre(solicitud) ??
+    (status === 'REJECTED' && !solicitud.cancelled ? solicitud.rejectionReason : null)
   const clases = [
     'card card--pad pick alq-rq',
     seleccionada && 'pick--on',
@@ -118,10 +122,10 @@ function RentalRequestCard({
       ) : (
         <p className="meta">
           {[fechas, dias, monto, votosLabel(solicitud)].filter(Boolean).join(' · ')}
-          {textoCierre(solicitud) && (
+          {cierre && (
             <>
               <br />
-              {textoCierre(solicitud)}
+              {cierre}
             </>
           )}
         </p>
