@@ -53,6 +53,16 @@ export function rangoOcupado(desde, hasta, rangos) {
   return rangos.some((r) => desde <= r.endDate && hasta >= r.startDate)
 }
 
+// Qué queda elegido al tocar un día del calendario de disponibilidad.
+// 'noches' (ficha): llegada y después salida, que tiene que ser posterior.
+// 'dias' (uso propio): un toque ya es un turno de un día; otro posterior lo estira.
+// Si el rango cruzaría días ocupados, el toque empieza una elección nueva.
+export function elegirDia(modo, { desde, hasta }, dia, ocupados) {
+  const abierto = modo === 'dias' ? desde && hasta === desde : desde && !hasta
+  if (abierto && dia > desde && !rangoOcupado(desde, dia, ocupados)) return { startDate: desde, endDate: dia }
+  return { startDate: dia, endDate: modo === 'dias' ? dia : '' }
+}
+
 // Mismas reglas que el server, para marcar los campos antes de enviar.
 // capacidad: la de la ficha (null = sin tope). ocupados: días ya reservados.
 export function validarSolicitudPublica(borrador, { hoy, capacidad = null, ocupados = [] }) {

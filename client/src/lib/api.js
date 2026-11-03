@@ -29,6 +29,15 @@ export async function fetchUseReservations(assetId, { signal } = {}) {
   return body.reservations
 }
 
+// Rangos { startDate, endDate } 'YYYY-MM-DD' que ya no se pueden pedir: aprobados y pendientes, desde hoy.
+export async function fetchOccupiedDays(assetId, { signal } = {}) {
+  const params = new URLSearchParams({ assetId })
+  const res = await pedir(`${API_URL}/api/reservations/occupied?${params}`, { signal })
+  if (!res.ok) throw new Error(mensajeHttp(res.status))
+  const body = await res.json()
+  return body.occupied
+}
+
 export async function fetchRentalHistory(assetId, { signal } = {}) {
   const params = new URLSearchParams({ assetId })
   const res = await pedir(`${API_URL}/api/reservations/history?${params}`, { signal })

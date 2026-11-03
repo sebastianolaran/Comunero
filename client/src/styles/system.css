@@ -363,6 +363,7 @@ h1,h2,h3,.brand__s,.estado__t,.modal__s{ overflow-wrap:anywhere }
            display:flex; align-items:center; justify-content:center }
 .modal__i .btn__i{ width:18px; height:18px; stroke-width:2.4 }
 .modal--ancho{ width:min(520px, calc(100vw - 32px)) }
+.modal--calendario{ width:min(720px, calc(100vw - 32px)) }
 .modal__t{ font-size:var(--fs-title); font-weight:600; letter-spacing:-.012em; margin-bottom:18px; text-wrap:balance }
 .modal__s{ margin:-12px 0 18px; font-size:var(--fs-body); color:var(--muted); line-height:1.5 }
 .modal__texto{ margin-bottom:4px; font-size:var(--fs-body); line-height:1.55; color:var(--ink-2) }

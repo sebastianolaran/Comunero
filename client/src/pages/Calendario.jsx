@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { fetchReservations } from '../lib/api'
+import { createReservation, fetchReservations } from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ExportarCalendario from '../components/ExportarCalendario'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
+import FieldError from '../components/ui/FieldError'
+import { fetchSettings } from '../services/settings'
 import { formatRange, hoyLocal } from '../lib/rentalRequests'
 import {
   colorDeIntegrante,
@@ -17,6 +19,7 @@ import {
   nombreMes,
   primerDiaSemana,
   tonoDeIntegrante,
+  turnoDemasiadoLargo,
 } from '../lib/calendar'
 import './Calendario.css'
 
@@ -44,15 +47,36 @@ function fechaDetalle(dia) {
   return formateadorDetalle.format(dia)
 }
 
+const FORM_INICIAL = { inicio: '', fin: '' }
+
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+function fechaInput(dia) {
+  return dia.toISOString().slice(0, 10)
+}
+
+// Con el formulario abierto, la grilla arma el rango: un clic empieza, el
+// siguiente lo cierra (en cualquier orden) y Shift+clic estira desde el inicio.
+function rangoAlElegir(previo, fecha, extender) {
+  const empezado = previo.inicio && fecha !== previo.inicio
+  if (!empezado || (!extender && previo.inicio !== previo.fin)) return { inicio: fecha, fin: fecha }
+  return previo.inicio < fecha ? { inicio: previo.inicio, fin: fecha } : { inicio: fecha, fin: previo.inicio }
+}
+
+function etiquetaReserva(dia) {
+  return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
+}
+
 function fechaSolo(valor) {
   return typeof valor === 'string' ? valor.slice(0, 10) : valor
 }
 
-// Solo para mirar: reservar, votar, cancelar e intercambiar se hace en
-// Reservas. Desde ahí "Ver en el calendario" llega con { fecha, reservaId }:
-// abre ese mes con el día elegido y, si está pendiente, la marca en la grilla.
+// Para mirar y reservar: votar, cancelar e intercambiar se hace en Reservas.
+// Desde ahí "Ver en el calendario" llega con { fecha, reservaId }: abre ese
+// mes con el día elegido y, si está pendiente, la marca en la grilla.
 function Calendario() {
   const assetId = assetIdActual()
+  const userId = userIdActual()
   const destino = useLocation().state
   const [anioDestino, mesDestino] = destino?.fecha ? destino.fecha.split('-').map(Number) : []
 
@@ -63,6 +87,24 @@ function Calendario() {
   const [intento, setIntento] = useState(0)
   const [diaSeleccionado, setDiaSeleccionado] = useState(destino?.fecha ? `${destino.fecha}T00:00:00.000Z` : null)
   const destacadaId = destino?.reservaId ?? null
+  // Se incrementa después de crear una reserva, para que el mes la muestre.
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // El formulario vive en la columna lateral, oculto hasta que se toca "Reservar".
+  const [formAbierto, setFormAbierto] = useState(false)
+  const [form, setForm] = useState(FORM_INICIAL)
+  const [formError, setFormError] = useState(null)
+  const [enviando, setEnviando] = useState(false)
+  // Máximo de días seguidos de Configuración. Si no se puede traer, valida el server igual.
+  const [maximoDias, setMaximoDias] = useState(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchSettings(assetId, userId, { signal: controller.signal })
+      .then((settings) => setMaximoDias(settings.maxConsecutiveDays))
+      .catch(() => setMaximoDias(null))
+    return () => controller.abort()
+  }, [assetId, userId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -83,7 +125,49 @@ function Calendario() {
       vivo = false
       controller.abort()
     }
-  }, [assetId, year, month, intento])
+  }, [assetId, year, month, intento, refreshKey])
+
+  const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
+
+  // Las validaciones de fechas las hace el backend; acá solo se muestra el error que devuelva.
+  const handleSolicitar = async (e) => {
+    e.preventDefault()
+    const demasiadoLargo = turnoDemasiadoLargo(form.inicio, form.fin, maximoDias)
+    if (demasiadoLargo) return setFormError(demasiadoLargo)
+    setFormError(null)
+    setEnviando(true)
+    try {
+      await createReservation({ assetId, userId, startDate: form.inicio, endDate: form.fin })
+      setForm(FORM_INICIAL)
+      setFormAbierto(false)
+      setRefreshKey((k) => k + 1)
+    } catch (err) {
+      setFormError(err.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const cancelarSolicitud = () => {
+    setFormAbierto(false)
+    setFormError(null)
+    setForm(FORM_INICIAL)
+  }
+
+  const seleccionarDia = (dia, extender = false) => {
+    setDiaSeleccionado(dia.toISOString())
+    setFormError(null)
+    const fecha = fechaInput(dia)
+    const libre = estadoDelDia(dia, reservas).estado === 'libre'
+    // Con el formulario abierto, un día ocupado solo muestra su detalle: el
+    // rango que se venía armando no se pierde.
+    if (formAbierto) {
+      if (libre) setForm((previo) => rangoAlElegir(previo, fecha, extender))
+      return
+    }
+    // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
+    setForm(libre ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
+  }
 
   const irAMes = ({ year: y, month: m }) => {
     setEstadoCarga('loading')
@@ -179,7 +263,8 @@ function Calendario() {
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
               pasado={dia.toISOString().slice(0, 10) < hoyLocal()}
               cargando={estadoCarga === 'loading'}
-              onSelect={() => setDiaSeleccionado(dia.toISOString())}
+              enRango={formAbierto && Boolean(form.inicio) && fechaInput(dia) >= form.inicio && fechaInput(dia) <= (form.fin || form.inicio)}
+              onSelect={(extender) => seleccionarDia(dia, extender)}
             />
           ))}
 
@@ -213,12 +298,56 @@ function Calendario() {
       <aside className="rail cal-rail">
         <DetalleDia dia={diaSeleccionado ? new Date(diaSeleccionado) : null} reservas={reservas} destacadaId={destacadaId} />
         <div className="panel">
-          <Link className="btn btn--block btn--primary" to="/reservas" state={{ nuevaReserva: true }}>
-            Reservar
-          </Link>
-          <p className="hint cal-rail__hint">Reservar, votar, cancelar e intercambiar turnos se hace en Reservas.</p>
+          {!formAbierto && (
+            <>
+              <button
+                type="button"
+                className="btn btn--block btn--primary"
+                title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
+                onClick={() => setFormAbierto(true)}
+              >
+                {diaSeleccionado && estadoDelDia(new Date(diaSeleccionado), reservas).estado === 'libre'
+                  ? etiquetaReserva(new Date(diaSeleccionado))
+                  : 'Reservar'}
+              </button>
+              <p className="hint cal-rail__hint">Votar, cancelar e intercambiar turnos se hace en Reservas.</p>
+            </>
+          )}
+
+          {formAbierto && (
+            <form onSubmit={handleSolicitar}>
+              <h2 className="cal-form__t">Nueva reserva</h2>
+              <p className="hint cal-form__hint">
+                Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler. En el calendario, un
+                clic marca el primer día y otro el último; Shift+clic estira el rango.
+                {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
+              </p>
+
+              <div className="cal-form__fechas">
+                <label className="lbl">
+                  Desde
+                  <input className="in" type="date" value={form.inicio} onChange={setCampo('inicio')} required />
+                </label>
+                <label className="lbl">
+                  Hasta
+                  <input className="in" type="date" value={form.fin} onChange={setCampo('fin')} required />
+                </label>
+              </div>
+
+              <FieldError>{formError}</FieldError>
+
+              <div className="cal-form__acciones">
+                <button type="button" className="btn btn--grow btn--sm" onClick={cancelarSolicitud}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--grow btn--primary btn--sm" disabled={enviando}>
+                  {enviando ? 'Enviando…' : 'Confirmar reserva'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
-        <ExportarCalendario assetId={assetId} userId={userIdActual()} />
+        <ExportarCalendario assetId={assetId} userId={userId} />
       </aside>
     </div>
   )
@@ -304,12 +433,13 @@ const abreviar = (etiqueta) => ABREVIATURAS[etiqueta] ?? etiqueta.slice(0, 2)
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, pasado, cargando, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
   if (hoy) clases.push('cal__c--hoy')
   if (pasado) clases.push('cal__c--pasado')
+  if (enRango) clases.push('cal__c--rango')
   let etiqueta = ''
   let estilo
 
@@ -339,10 +469,10 @@ function Dia({ dia, info, seleccionado, hoy, pasado, cargando, onSelect }) {
       className={clases.join(' ')}
       style={estilo}
       title={titulo}
-      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}`}
+      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}${enRango ? '. En el rango a reservar' : ''}`}
       aria-pressed={seleccionado}
       aria-current={hoy ? 'date' : undefined}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e.shiftKey)}
     >
       <span className="cal__n">
         {dia.getUTCDate()}

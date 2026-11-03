@@ -38,3 +38,5 @@
   .cd__meses { grid-template-columns: minmax(0, 1fr); gap: 24px }
   .cd__ayuda { margin-left: 0; flex-basis: 100% }
 }
+/* La flecha no depende de la hoja de la ficha: el calendario también va en la nueva reserva. */
+.cd__flecha svg { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round }

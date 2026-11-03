@@ -43,7 +43,7 @@ function Reservas() {
   const navigate = useNavigate()
 
   const [tab, setTab] = useState(location.state?.tab ?? 'lista')
-  const [nuevaAbierta, setNuevaAbierta] = useState(Boolean(location.state?.nuevaReserva))
+  const [nuevaAbierta, setNuevaAbierta] = useState(false)
   const [carga, setCarga] = useState({ estado: 'loading', reservas: [] })
   const [intercambios, setIntercambios] = useState({ lista: [], error: null })
   const [version, setVersion] = useState(0)
@@ -55,7 +55,7 @@ function Reservas() {
   const [turnoPedido, setTurnoPedido] = useState(null)
   const [respondiendo, setRespondiendo] = useState(false)
 
-  // El state de la navegación ya se usó: sin limpiarlo, volver atrás reabre el formulario.
+  // El state de la navegación ya se usó: sin limpiarlo, volver atrás repite la pestaña elegida.
   useEffect(() => {
     if (location.state) navigate('.', { replace: true, state: null })
   }, [location.state, navigate])

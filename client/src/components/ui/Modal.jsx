@@ -23,7 +23,7 @@ function Modal({ abierto = true, icono, titulo, subtitulo, describedBy, ancho, f
   return (
     <dialog
       ref={dialogo}
-      className={ancho === 'ancho' ? 'modal modal--ancho' : 'modal'}
+      className={ancho ? `modal modal--${ancho}` : 'modal'}
       aria-labelledby={`${id}-titulo`}
       aria-describedby={describedBy}
       onClose={onClose}

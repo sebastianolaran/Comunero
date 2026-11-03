@@ -213,6 +213,29 @@
   margin-top: 10px;
 }
 
-.cal-rail a.btn {
-  text-decoration: none;
+.cal-form__t {
+  margin-bottom: 4px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.cal-form__hint {
+  margin-bottom: 12px;
+}
+
+.cal-form__fechas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cal-form__fechas .lbl {
+  flex: 1;
+  min-width: 0;
+}
+
+.cal-form__acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
 }

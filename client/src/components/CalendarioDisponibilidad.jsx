@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { DIAS_SEMANA, diasDelMes, mesAnterior, mesSiguiente, nombreMes, primerDiaSemana } from '../lib/calendar'
-import { diaOcupado, rangoOcupado } from '../lib/listing'
+import { diaOcupado, elegirDia } from '../lib/listing'
 import Icono from './Iconos'
 import './CalendarioDisponibilidad.css'
 
@@ -14,9 +14,15 @@ const sumarDias = (dia, n) => iso(new Date(Date.parse(`${dia}T00:00:00Z`) + n * 
 // Flechas: un día o una semana. Inicio/Fin: a los extremos de la semana.
 const PASOS = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
 
-function textoEleccion(desde, hasta) {
-  if (desde && hasta) return `Llegada: ${nombreDia(desde)}. Salida: ${nombreDia(hasta)}.`
-  if (desde) return `Llegada: ${nombreDia(desde)}. Falta elegir la salida.`
+// 'noches' es la ficha (llegada y salida); 'dias', un turno de uso propio.
+const TEXTOS = {
+  noches: { desde: 'Llegada', hasta: 'Salida', ayuda: 'Tocar la llegada y después la salida.', falta: 'Falta tocar la salida.' },
+  dias: { desde: 'Desde', hasta: 'Hasta', ayuda: 'Tocar el primer día y después el último.', falta: 'Para más de un día, tocar el último.' },
+}
+
+function textoEleccion(textos, desde, hasta) {
+  if (desde && hasta) return `${textos.desde}: ${nombreDia(desde)}. ${textos.hasta}: ${nombreDia(hasta)}.`
+  if (desde) return `${textos.desde}: ${nombreDia(desde)}. Falta elegir ${textos.hasta.toLowerCase()}.`
   return ''
 }
 
@@ -69,8 +75,11 @@ function Mes({ year, month, hoy, ocupados, desde, hasta, foco, onDia }) {
 }
 
 // Primer toque: llegada. Segundo: salida (si es posterior y no cruza días
-// ocupados; si no, ese día pasa a ser la nueva llegada).
-function CalendarioDisponibilidad({ ocupados, hoy, desde, hasta, onElegir }) {
+// ocupados; si no, ese día pasa a ser la nueva llegada). En modo 'dias' el
+// primer toque ya es un turno de un día. Ver elegirDia.
+function CalendarioDisponibilidad({ ocupados, hoy, desde, hasta, modo = 'noches', onElegir }) {
+  const textos = TEXTOS[modo]
+  const abierto = modo === 'dias' ? desde && hasta === desde : desde && !hasta
   const [anio, mes] = hoy.split('-').map(Number)
   const [inicio, setInicio] = useState({ year: anio, month: mes })
   const limite = Array.from({ length: MESES_HACIA_ADELANTE - MESES_VISIBLES + 1 }).reduce(
@@ -104,12 +113,7 @@ function CalendarioDisponibilidad({ ocupados, hoy, desde, hasta, onElegir }) {
     }
   }
 
-  function tocar(dia) {
-    if (desde && !hasta && dia > desde && !rangoOcupado(desde, dia, ocupados)) {
-      return onElegir({ startDate: desde, endDate: dia })
-    }
-    onElegir({ startDate: dia, endDate: '' })
-  }
+  const tocar = (dia) => onElegir(elegirDia(modo, { desde, hasta }, dia, ocupados))
 
   return (
     <div className="cd">
@@ -151,7 +155,7 @@ function CalendarioDisponibilidad({ ocupados, hoy, desde, hasta, onElegir }) {
         ))}
       </div>
       <p className="solo-lector" aria-live="polite">
-        {textoEleccion(desde, hasta)}
+        {textoEleccion(textos, desde, hasta)}
       </p>
       <div className="cd__leyenda">
         <span className="cd__muestra cd__muestra--ocupado" aria-hidden="true">
@@ -161,7 +165,7 @@ function CalendarioDisponibilidad({ ocupados, hoy, desde, hasta, onElegir }) {
         <span className="cd__muestra cd__muestra--elegido" aria-hidden="true" />
         Elegido
         <span className="cd__ayuda">
-          {desde && !hasta ? 'Falta tocar la salida.' : 'Tocar la llegada y después la salida.'}
+          {abierto ? textos.falta : textos.ayuda}
           {desde && (
             <button type="button" className="btn btn--link btn--sm cd__borrar" onClick={() => onElegir({ startDate: '', endDate: '' })}>
               Borrar fechas

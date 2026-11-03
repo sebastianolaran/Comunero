@@ -113,3 +113,7 @@
     white-space: normal;
   }
 }
+
+.res-modal__cal {
+  margin-top: 16px;
+}
