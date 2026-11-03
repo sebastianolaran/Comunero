@@ -3,7 +3,7 @@
 // /api/health/db verifica la conexion con un SELECT 1, no contra una tabla.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   // Las relaciones (include/select anidados) se traen con joins en una sola
   // consulta: el server y la base están lejos y cada consulta suma un viaje.
   previewFeatures = ["relationJoins"]
@@ -50,6 +50,13 @@ enum NoResponseAction {
   REJECT
 }
 
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 enum RenterRating {
   RECOMMENDED
   NOT_RECOMMENDED
@@ -82,6 +89,7 @@ model Asset {
   activityLogs   ActivityLog[]
   listing        AssetListing?
   listingPhotos  ListingPhoto[]
+  swaps          ReservationSwap[]
 }
 
 model User {
@@ -112,6 +120,8 @@ model User {
   reservationApprovals ReservationApproval[]
   assignedRentalTasks  RentalTask[]
   assetSettings        AssetMemberSetting[]
+  swapsProposed        ReservationSwap[]     @relation("SwapProposedBy")
+  swapsReceived        ReservationSwap[]     @relation("SwapRecipient")
 }
 
 // Lo de cada integrante en un bien. Sin fila (o con percent null) se reparte
@@ -152,18 +162,47 @@ model Reservation {
   rejectionReason String?
   createdAt       DateTime          @default(now())
 
-  asset        Asset                 @relation(fields: [assetId], references: [id])
-  user         User?                 @relation(fields: [userId], references: [id])
-  renter       Renter?               @relation(fields: [renterId], references: [id])
-  objections   Objection[]
-  observations RenterObservation[]
-  approvals    ReservationApproval[]
-  movements    Movement[]
-  tasks        RentalTask[]
+  asset          Asset                 @relation(fields: [assetId], references: [id])
+  user           User?                 @relation(fields: [userId], references: [id])
+  renter         Renter?               @relation(fields: [renterId], references: [id])
+  objections     Objection[]
+  observations   RenterObservation[]
+  approvals      ReservationApproval[]
+  movements      Movement[]
+  tasks          RentalTask[]
+  swapsOffered   ReservationSwap[]     @relation("SwapOffered")
+  swapsRequested ReservationSwap[]     @relation("SwapRequested")
 
   @@index([assetId])
   @@index([userId])
   @@index([renterId])
+}
+
+// Intercambio de turnos de uso propio entre dos copropietarios: no se vota,
+// alcanza con que acepte recipient. Al aceptar, cada turno pasa a nombre del
+// otro. La fila queda como historial del intercambio.
+model ReservationSwap {
+  id                     String     @id @default(cuid())
+  assetId                String
+  offeredReservationId   String
+  requestedReservationId String
+  proposedById           String
+  recipientId            String
+  status                 SwapStatus @default(PENDING)
+  // Por qué quedó sin efecto si al aceptar un turno ya no se podía intercambiar.
+  closedReason           String?
+  createdAt              DateTime   @default(now())
+  resolvedAt             DateTime?
+
+  asset      Asset       @relation(fields: [assetId], references: [id])
+  offered    Reservation @relation("SwapOffered", fields: [offeredReservationId], references: [id])
+  requested  Reservation @relation("SwapRequested", fields: [requestedReservationId], references: [id])
+  proposedBy User        @relation("SwapProposedBy", fields: [proposedById], references: [id])
+  recipient  User        @relation("SwapRecipient", fields: [recipientId], references: [id])
+
+  @@index([assetId, createdAt])
+  @@index([offeredReservationId])
+  @@index([requestedReservationId])
 }
 
 model ReservationApproval {
