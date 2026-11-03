@@ -5,6 +5,7 @@ const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const settingsService = require('./assetSettings.service');
 const reservationExpiry = require('./reservationExpiry.service');
+const { mergeRanges } = require('./listing.rules');
 
 function useVotingStatus(approvals, objections, coownerCount) {
   const required = requiredApprovals('USE', coownerCount);
@@ -137,6 +138,18 @@ async function listUse(assetId) {
       rejections: objections.filter((o) => o.reason).map((o) => ({ name: o.user.name, reason: o.reason })),
     };
   });
+}
+
+// Días que no se pueden pedir desde hoy: lo que bloquea hasOverlap (aprobadas
+// y pendientes, de uso propio o alquiler), unido en rangos. Para el mini
+// calendario de la nueva reserva.
+async function occupiedFrom(assetId, today) {
+  await reservationExpiry.expireForAsset(assetId);
+  const reservations = await prisma.reservation.findMany({
+    where: { assetId, status: { in: ['ACTIVE', 'PENDING'] }, endDate: { gte: today } },
+    select: { startDate: true, endDate: true },
+  });
+  return mergeRanges(reservations);
 }
 
 // Máximo de días consecutivos de un turno de uso propio (Configuración del
@@ -290,4 +303,4 @@ async function cancelUse({ reservationId, userId }) {
   }, TX_OPTIONS);
 }
 
-module.exports = { listForRange, listPendingUse, listUse, listRentalHistory, maxConsecutiveDays, hasOverlap, requestUse, voteUse, cancelUse };
+module.exports = { listForRange, listPendingUse, listUse, occupiedFrom, listRentalHistory, maxConsecutiveDays, hasOverlap, requestUse, voteUse, cancelUse };

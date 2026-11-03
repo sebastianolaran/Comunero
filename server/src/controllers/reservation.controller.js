@@ -59,6 +59,21 @@ async function listUse(req, res) {
   }
 }
 
+// GET /api/reservations/occupied?assetId=...
+async function listOccupied(req, res) {
+  const { assetId } = req.query;
+  if (typeof assetId !== 'string' || assetId.trim() === '') {
+    return res.status(400).json({ error: 'falta el parametro assetId' });
+  }
+
+  try {
+    res.json({ occupied: await reservationService.occupiedFrom(assetId, parseFechaISO(todayInArgentina())) });
+  } catch (err) {
+    console.error('reservations: fallo la consulta de dias ocupados', err);
+    res.status(500).json({ error: 'no se pudieron obtener los dias ocupados' });
+  }
+}
+
 const MAX_REASON = 300;
 
 async function listRentalHistory(req, res) {
@@ -170,4 +185,4 @@ async function cancelUse(req, res) {
   res.json({ reservation: result.reservation });
 }
 
-module.exports = { listForCalendar, listPending, listUse, listRentalHistory, create, voteUse, cancelUse };
+module.exports = { listForCalendar, listPending, listUse, listOccupied, listRentalHistory, create, voteUse, cancelUse };
