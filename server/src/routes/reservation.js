@@ -9,6 +9,9 @@ router.get('/', controller.listForCalendar);
 // GET /api/reservations/pending?assetId=...
 router.get('/pending', controller.listPending);
 
+// GET /api/reservations/use?assetId=...  (pantalla Reservas)
+router.get('/use', controller.listUse);
+
 // GET /api/reservations/history?assetId=...
 router.get('/history', controller.listRentalHistory);
 

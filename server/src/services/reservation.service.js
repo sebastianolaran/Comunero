@@ -98,6 +98,47 @@ async function listPendingUse(assetId) {
   });
 }
 
+// Pantalla Reservas: todas las de uso propio del bien menos las canceladas,
+// con el voto de cada copropietario y los motivos de rechazo.
+async function listUse(assetId) {
+  await reservationExpiry.expireForAsset(assetId);
+  const reservations = await prisma.reservation.findMany({
+    where: { assetId, type: 'USE', status: { not: 'CANCELLED' } },
+    select: {
+      id: true,
+      userId: true,
+      startDate: true,
+      endDate: true,
+      type: true,
+      status: true,
+      rejectionReason: true,
+      createdAt: true,
+      user: { select: { name: true } },
+      approvals: { select: { userId: true } },
+      objections: { select: { userId: true, reason: true, user: { select: { name: true } } } },
+      asset: { select: { users: { select: { id: true, name: true }, orderBy: { name: 'asc' } } } },
+    },
+    orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
+  });
+
+  return reservations.map(({ approvals, objections, asset, ...reservation }) => {
+    const approvedBy = approvals.map((a) => a.userId);
+    const rejectedBy = objections.map((o) => o.userId);
+    return {
+      ...reservation,
+      approvedBy,
+      approvalCount: approvals.length,
+      coownerCount: asset.users.length,
+      votes: asset.users.map((u) => ({
+        userId: u.id,
+        name: u.name,
+        value: approvedBy.includes(u.id) ? 'APPROVE' : rejectedBy.includes(u.id) ? 'REJECT' : null,
+      })),
+      rejections: objections.filter((o) => o.reason).map((o) => ({ name: o.user.name, reason: o.reason })),
+    };
+  });
+}
+
 // Máximo de días consecutivos de un turno de uso propio (Configuración del
 // bien), o null si no hay límite. También null si userId no es copropietario:
 // no se le muestra la configuración ajena y el alta igual le responde 403.
@@ -182,7 +223,7 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
   });
 }
 
-async function voteUse({ reservationId, userId, value }) {
+async function voteUse({ reservationId, userId, value, reason = null }) {
   return prisma.$transaction(async (tx) => {
     // Mismo lock que el voto de alquiler: sin el, dos votos a la vez (ej. doble
     // click) leen el mismo estado y pueden dejar dos objeciones de la misma persona.
@@ -217,7 +258,7 @@ async function voteUse({ reservationId, userId, value }) {
       });
     } else {
       await tx.reservationApproval.deleteMany({ where: { reservationId, userId } });
-      await tx.objection.create({ data: { reservationId, userId } });
+      await tx.objection.create({ data: { reservationId, userId, reason } });
     }
 
     const approvals = await tx.reservationApproval.count({ where: { reservationId } });
@@ -249,4 +290,4 @@ async function cancelUse({ reservationId, userId }) {
   }, TX_OPTIONS);
 }
 
-module.exports = { listForRange, listPendingUse, listRentalHistory, maxConsecutiveDays, hasOverlap, requestUse, voteUse, cancelUse };
+module.exports = { listForRange, listPendingUse, listUse, listRentalHistory, maxConsecutiveDays, hasOverlap, requestUse, voteUse, cancelUse };

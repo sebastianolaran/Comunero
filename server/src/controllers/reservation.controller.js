@@ -44,6 +44,23 @@ async function listPending(req, res) {
   res.json({ reservations });
 }
 
+// GET /api/reservations/use?assetId=...
+async function listUse(req, res) {
+  const { assetId } = req.query;
+  if (typeof assetId !== 'string' || assetId.trim() === '') {
+    return res.status(400).json({ error: 'falta el parametro assetId' });
+  }
+
+  try {
+    res.json({ reservations: await reservationService.listUse(assetId) });
+  } catch (err) {
+    console.error('reservations: fallo la lista de uso propio', err);
+    res.status(500).json({ error: 'no se pudieron obtener las reservas' });
+  }
+}
+
+const MAX_REASON = 300;
+
 async function listRentalHistory(req, res) {
   const { assetId } = req.query;
   if (typeof assetId !== 'string' || assetId.trim() === '') {
@@ -118,15 +135,20 @@ async function create(req, res) {
 }
 
 async function voteUse(req, res) {
-  const { userId, value } = req.body ?? {};
+  const { userId, value, reason } = req.body ?? {};
   if (!userId || !['APPROVE', 'REJECT'].includes(value)) {
     return res.status(400).json({ error: 'faltan userId y/o un voto valido' });
+  }
+  if (reason != null && (typeof reason !== 'string' || reason.trim().length > MAX_REASON)) {
+    return res.status(400).json({ error: `el motivo tiene que ser un texto de hasta ${MAX_REASON} caracteres` });
   }
 
   const result = await reservationService.voteUse({
     reservationId: req.params.id,
     userId,
     value,
+    // El motivo solo acompaña un rechazo.
+    reason: value === 'REJECT' && reason?.trim() ? reason.trim() : null,
   });
   if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'no existe la solicitud de uso propio' });
   if (result.error === 'CANCELLED') return res.status(409).json({ error: 'la solicitud fue cancelada' });
@@ -148,4 +170,4 @@ async function cancelUse(req, res) {
   res.json({ reservation: result.reservation });
 }
 
-module.exports = { listForCalendar, listPending, listRentalHistory, create, voteUse, cancelUse };
+module.exports = { listForCalendar, listPending, listUse, listRentalHistory, create, voteUse, cancelUse };
