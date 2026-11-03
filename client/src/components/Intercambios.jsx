@@ -1,26 +1,36 @@
 import FieldError from './ui/FieldError'
+import { Vacio } from './ui/Estado'
 import { agruparIntercambios, textoEstado, textoTurno } from '../lib/swaps'
-
-function Turnos({ swap }) {
-  return (
-    <span className="cal-swap__turnos">
-      <span>{swap.proposedBy.name}: {textoTurno(swap.offered)}</span>
-      <span>{swap.recipient.name}: {textoTurno(swap.requested)}</span>
-    </span>
-  )
-}
 
 function Item({ swap, children }) {
   return (
-    <li className="cal-pending__item">
-      <span className="cal-pending__title">
-        <strong>{swap.proposedBy.name} ⇄ {swap.recipient.name}</strong>
+    <li className="card card--pad res-swap">
+      <div className="res-voto__cab">
+        <strong>
+          {swap.proposedBy.name} ⇄ {swap.recipient.name}
+        </strong>
         {swap.status !== 'PENDING' && <span className="meta">{textoEstado(swap)}</span>}
-      </span>
-      <Turnos swap={swap} />
-      {swap.closedReason && <span className="cal-swap__motivo">{swap.closedReason}.</span>}
-      {children && <div className="cal-pending__actions">{children}</div>}
+      </div>
+      <p className="meta">
+        {swap.proposedBy.name}: {textoTurno(swap.offered)}
+      </p>
+      <p className="meta">
+        {swap.recipient.name}: {textoTurno(swap.requested)}
+      </p>
+      {swap.closedReason && <p className="res-motivo">{swap.closedReason}.</p>}
+      {children && <div className="res-voto__acciones">{children}</div>}
     </li>
+  )
+}
+
+function Grupo({ titulo, children }) {
+  return (
+    <section className="res-grupo">
+      <h2 className="sect">{titulo}</h2>
+      <ul className="res-votar" role="list">
+        {children}
+      </ul>
+    </section>
   )
 }
 
@@ -28,46 +38,52 @@ function Item({ swap, children }) {
 // recibe la propuesta. Los resueltos quedan como historial del bien.
 function Intercambios({ swaps, userId, error, ocupado, onResponder, onRetirar }) {
   const { recibidos, propuestos, otros, resueltos } = agruparIntercambios(swaps, userId)
-  const pendientes = recibidos.length + propuestos.length + otros.length
+  const pendientes = [...propuestos, ...otros]
 
   return (
-    <section className="panel cal-pending" aria-label="Intercambios de turnos">
-      <header className="cal-pending__head">
-        <h2 className="cal-pending__t">Intercambios{pendientes > 0 && ` (${pendientes} pendientes)`}</h2>
-      </header>
-      <p className="hint cal-pending__hint">
-        Cambio de un turno aprobado por otro de igual cantidad de días. No pasa por votación: alcanza con que acepten las dos partes.
+    <>
+      <p className="hint res-regla">
+        Cambio de un turno aprobado por otro de igual cantidad de días. No pasa por votación: alcanza con que acepten las dos
+        partes. Se propone desde la lista de Reservas, en el turno de la otra persona.
       </p>
       <FieldError>{error}</FieldError>
-      <ul className="cal-pending__list" role="list">
-        {recibidos.map((swap) => (
-          <Item key={swap.id} swap={swap}>
-            <button type="button" className="btn btn--sm btn--primary" disabled={ocupado} onClick={() => onResponder(swap, 'ACCEPT')}>
-              Aceptar
-            </button>
-            <button type="button" className="btn btn--sm" disabled={ocupado} onClick={() => onResponder(swap, 'REJECT')}>
-              Rechazar
-            </button>
-          </Item>
-        ))}
-        {propuestos.map((swap) => (
-          <Item key={swap.id} swap={swap}>
-            <span className="tag tag--dash">Esperando a {swap.recipient.name}</span>
-            <button type="button" className="btn btn--sm" disabled={ocupado} onClick={() => onRetirar(swap)}>
-              Retirar
-            </button>
-          </Item>
-        ))}
-        {otros.map((swap) => (
-          <Item key={swap.id} swap={swap}>
-            <span className="tag tag--dash">Pendiente</span>
-          </Item>
-        ))}
-        {resueltos.map((swap) => (
-          <Item key={swap.id} swap={swap} />
-        ))}
-      </ul>
-    </section>
+      {swaps.length === 0 && <Vacio panel titulo="Todavía no hubo intercambios." />}
+      {recibidos.length > 0 && (
+        <Grupo titulo="Esperan la respuesta propia">
+          {recibidos.map((swap) => (
+            <Item key={swap.id} swap={swap}>
+              <button type="button" className="btn btn--sm btn--primary" disabled={ocupado} onClick={() => onResponder(swap, 'ACCEPT')}>
+                Aceptar
+              </button>
+              <button type="button" className="btn btn--sm" disabled={ocupado} onClick={() => onResponder(swap, 'REJECT')}>
+                Rechazar
+              </button>
+            </Item>
+          ))}
+        </Grupo>
+      )}
+      {pendientes.length > 0 && (
+        <Grupo titulo="Pendientes">
+          {pendientes.map((swap) => (
+            <Item key={swap.id} swap={swap}>
+              <span className="tag tag--dash">Esperando a {swap.recipient.name}</span>
+              {swap.proposedBy.id === userId && (
+                <button type="button" className="btn btn--sm" disabled={ocupado} onClick={() => onRetirar(swap)}>
+                  Retirar
+                </button>
+              )}
+            </Item>
+          ))}
+        </Grupo>
+      )}
+      {resueltos.length > 0 && (
+        <Grupo titulo="Historial">
+          {resueltos.map((swap) => (
+            <Item key={swap.id} swap={swap} />
+          ))}
+        </Grupo>
+      )}
+    </>
   )
 }
 

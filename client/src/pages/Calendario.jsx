@@ -1,42 +1,22 @@
 import { useEffect, useState } from 'react'
-import {
-  cancelUseReservation,
-  createReservation,
-  fetchPendingUseReservations,
-  fetchReservations,
-  voteUseReservation,
-} from '../lib/api'
+import { Link, useLocation } from 'react-router'
+import { fetchReservations } from '../lib/api'
 import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
-import ConfirmDialog from '../components/ConfirmDialog'
 import ExportarCalendario from '../components/ExportarCalendario'
-import Intercambios from '../components/Intercambios'
-import ProponerIntercambio from '../components/ProponerIntercambio'
-import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
-import FieldError from '../components/ui/FieldError'
-import { ChipsVoto } from '../components/ui/Votacion'
-import { fmtAprobaron } from '../lib/format'
-import { daysLabel, formatRange, hoyLocal } from '../lib/rentalRequests'
-import { updateRentalTask } from '../services/rentalPreparation'
-import { fetchSettings } from '../services/settings'
-import { cancelSwap, fetchSwaps, respondSwap } from '../services/reservationSwap'
-import { puedeProponerIntercambio } from '../lib/swaps'
-import { usePaginacion } from '../lib/pagination'
+import { formatRange, hoyLocal } from '../lib/rentalRequests'
 import {
   colorDeIntegrante,
   DIAS_SEMANA,
   diasDelMes,
   estadoDelDia,
-  faltaMiVoto,
   integrantesEnReservas,
   mesAnterior,
   mesSiguiente,
   nombreMes,
   primerDiaSemana,
   tonoDeIntegrante,
-  turnoDemasiadoLargo,
-  yaAprobo,
 } from '../lib/calendar'
 import './Calendario.css'
 
@@ -53,13 +33,6 @@ function mesParam(year, month) {
   return `${year}-${String(month).padStart(2, '0')}`
 }
 
-const FORM_INICIAL = {
-  inicio: '',
-  fin: '',
-}
-
-const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-
 const formateadorDetalle = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
   day: 'numeric',
@@ -71,90 +44,25 @@ function fechaDetalle(dia) {
   return formateadorDetalle.format(dia)
 }
 
-function fechaInput(dia) {
-  return dia.toISOString().slice(0, 10)
-}
-
-// Con el formulario abierto, la grilla arma el rango: un clic empieza, el
-// siguiente lo cierra (en cualquier orden) y Shift+clic estira desde el inicio.
-function rangoAlElegir(previo, fecha, extender) {
-  const empezado = previo.inicio && fecha !== previo.inicio
-  if (!empezado || (!extender && previo.inicio !== previo.fin)) return { inicio: fecha, fin: fecha }
-  return previo.inicio < fecha ? { inicio: previo.inicio, fin: fecha } : { inicio: fecha, fin: previo.inicio }
-}
-
-function etiquetaReserva(dia) {
-  return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
-}
-
 function fechaSolo(valor) {
   return typeof valor === 'string' ? valor.slice(0, 10) : valor
 }
 
-function rangoPeticion(peticion) {
-  return {
-    desde: fechaSolo(peticion.startDate),
-    hasta: fechaSolo(peticion.endDate),
-  }
-}
-
-function leerPrevisualizacion(assetId) {
-  try {
-    const guardada = globalThis.localStorage?.getItem(`comunero.calendario.peticion.${assetId}`)
-    if (!guardada) return null
-    const peticion = JSON.parse(guardada)
-    return typeof peticion === 'object' ? peticion : { id: peticion }
-  } catch {
-    return null
-  }
-}
-
+// Solo para mirar: reservar, votar, cancelar e intercambiar se hace en
+// Reservas. Desde ahí "Ver en el calendario" llega con { fecha, reservaId }:
+// abre ese mes con el día elegido y, si está pendiente, la marca en la grilla.
 function Calendario() {
-  // Quién entró y a qué bien: el router ya garantiza que hay sesión, pero se
-  // resuelve acá y no al importar el módulo para que valga la de ahora.
   const assetId = assetIdActual()
-  const userId = userIdActual()
+  const destino = useLocation().state
+  const [anioDestino, mesDestino] = destino?.fecha ? destino.fecha.split('-').map(Number) : []
 
-  const [year, setYear] = useState(HOY.getUTCFullYear())
-  const [month, setMonth] = useState(HOY.getUTCMonth() + 1)
+  const [year, setYear] = useState(anioDestino ?? HOY.getUTCFullYear())
+  const [month, setMonth] = useState(mesDestino ?? HOY.getUTCMonth() + 1)
   const [reservas, setReservas] = useState([])
-  const [peticionesPendientes, setPeticionesPendientes] = useState([])
   const [estadoCarga, setEstadoCarga] = useState('loading') // loading | ok | error
   const [intento, setIntento] = useState(0)
-  const [diaSeleccionado, setDiaSeleccionado] = useState(null)
-  const [peticionVisible, setPeticionVisible] = useState(() => leerPrevisualizacion(assetId))
-  const [tareasGuardando, setTareasGuardando] = useState([])
-  const [errorTarea, setErrorTarea] = useState(null)
-  const [errorVoto, setErrorVoto] = useState(null)
-  const [errorPendientes, setErrorPendientes] = useState(null)
-  const [cancelacion, setCancelacion] = useState(null)
-  const [errorCancelacion, setErrorCancelacion] = useState(null)
-  const [cancelando, setCancelando] = useState(false)
-  const [votando, setVotando] = useState(null) // id de la peticion cuyo voto se esta enviando
-  const [intercambios, setIntercambios] = useState([])
-  const [errorIntercambio, setErrorIntercambio] = useState(null)
-  const [respondiendoIntercambio, setRespondiendoIntercambio] = useState(false)
-  const [turnoPedido, setTurnoPedido] = useState(null)
-  // Se incrementa despues de crear una solicitud, para forzar el refetch
-  // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  // Layout: el formulario vive en la columna lateral, oculto hasta que se
-  // toca "Reservar" (igual que el prototipo).
-  const [formAbierto, setFormAbierto] = useState(false)
-  const [form, setForm] = useState(FORM_INICIAL)
-  const [formError, setFormError] = useState(null)
-  const [enviando, setEnviando] = useState(false)
-  // Máximo de días seguidos de Configuración. Si no se puede traer, valida el server igual.
-  const [maximoDias, setMaximoDias] = useState(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    fetchSettings(assetId, userId, { signal: controller.signal })
-      .then((settings) => setMaximoDias(settings.maxConsecutiveDays))
-      .catch(() => setMaximoDias(null))
-    return () => controller.abort()
-  }, [assetId, userId])
+  const [diaSeleccionado, setDiaSeleccionado] = useState(destino?.fecha ? `${destino.fecha}T00:00:00.000Z` : null)
+  const destacadaId = destino?.reservaId ?? null
 
   useEffect(() => {
     const controller = new AbortController()
@@ -165,11 +73,6 @@ function Calendario() {
         if (vivo) {
           setReservas(reservations)
           setEstadoCarga('ok')
-          setPeticionVisible((actual) => {
-            if (!actual) return null
-            const peticion = reservations.find((reserva) => reserva.id === actual.id)
-            return peticion && peticion.status === 'PENDING' ? peticion : peticion ? null : actual
-          })
         }
       })
       .catch((err) => {
@@ -180,203 +83,9 @@ function Calendario() {
       vivo = false
       controller.abort()
     }
-  }, [assetId, year, month, refreshKey, intento])
+  }, [assetId, year, month, intento])
 
-  useEffect(() => {
-    if (!assetId) return
-    const controller = new AbortController()
-    let vivo = true
-
-    fetchPendingUseReservations(assetId, { signal: controller.signal })
-      .then((pending) => {
-        if (vivo) {
-          setPeticionesPendientes([...pending].sort((a, b) => a.startDate.localeCompare(b.startDate)))
-          setErrorPendientes(null)
-        }
-      })
-      .catch((err) => {
-        if (vivo && err.name !== 'AbortError') setErrorPendientes('No se pudieron cargar las reservas pendientes.')
-      })
-
-    return () => {
-      vivo = false
-      controller.abort()
-    }
-  }, [assetId, refreshKey])
-
-  useEffect(() => {
-    if (!assetId) return
-    const controller = new AbortController()
-    fetchSwaps(assetId, userId, { signal: controller.signal })
-      .then((swaps) => setIntercambios(swaps))
-      .catch((err) => {
-        if (err.name !== 'AbortError') setErrorIntercambio('No se pudieron cargar los intercambios.')
-      })
-    return () => controller.abort()
-  }, [assetId, userId, refreshKey])
-
-  useEffect(() => {
-    try {
-      const clave = `comunero.calendario.peticion.${assetId}`
-      if (peticionVisible) globalThis.localStorage?.setItem(clave, JSON.stringify(peticionVisible))
-      else globalThis.localStorage?.removeItem(clave)
-    } catch {
-      // Sin storage, la previsualizacion dura mientras siga montada la pantalla.
-    }
-  }, [assetId, peticionVisible])
-
-  const setCampo = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }))
-
-  // Historia "Solicitar turno de uso propio". Las validaciones de fechas las
-  // hace el backend; aca solo mostramos el error que devuelva.
-  const handleSolicitar = async (e) => {
-    e.preventDefault()
-    const demasiadoLargo = turnoDemasiadoLargo(form.inicio, form.fin, maximoDias)
-    if (demasiadoLargo) return setFormError(demasiadoLargo)
-    setFormError(null)
-    setEnviando(true)
-    try {
-      await createReservation({
-        assetId,
-        userId,
-        startDate: form.inicio,
-        endDate: form.fin,
-      })
-      setForm(FORM_INICIAL)
-      setFormAbierto(false)
-      setRefreshKey((k) => k + 1)
-    } catch (err) {
-      setFormError(err.message)
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  const cancelarSolicitud = () => {
-    setFormAbierto(false)
-    setFormError(null)
-    setForm(FORM_INICIAL)
-  }
-
-  const seleccionarDia = (dia, extender = false) => {
-    setErrorTarea(null)
-    setDiaSeleccionado(dia.toISOString())
-    setFormError(null)
-    const fecha = fechaInput(dia)
-    const libre = estadoDelDia(dia, reservas).estado === 'libre'
-    // Con el formulario abierto, un día ocupado solo muestra su detalle: el
-    // rango que se venía armando no se pierde.
-    if (formAbierto) {
-      if (libre) setForm((previo) => rangoAlElegir(previo, fecha, extender))
-      return
-    }
-    // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
-    setForm(libre ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
-  }
-
-  // Un pedido de otro mes lleva el calendario a ese mes para que se vea.
-  const seleccionarPeticion = (peticion) => {
-    setErrorVoto(null)
-    setPeticionVisible(peticion)
-    setDiaSeleccionado(null)
-    setFormAbierto(false)
-    const [y, m] = rangoPeticion(peticion).desde.split('-').map(Number)
-    if (y !== year || m !== month) {
-      setEstadoCarga('loading')
-      setYear(y)
-      setMonth(m)
-    }
-  }
-
-  const quitarPrevisualizacion = () => {
-    setErrorVoto(null)
-    setPeticionVisible(null)
-  }
-
-  const votarPeticion = async (peticion, value) => {
-    if (votando) return
-
-    setVotando(peticion.id)
-    setErrorVoto(null)
-    try {
-      await voteUseReservation(peticion.id, { userId, value })
-      setPeticionVisible(null)
-      setRefreshKey((key) => key + 1)
-    } catch (err) {
-      setErrorVoto(err.message)
-      // Si la votacion ya se cerro mientras tanto, se recarga para que deje de figurar como pendiente.
-      setRefreshKey((key) => key + 1)
-    } finally {
-      setVotando(null)
-    }
-  }
-
-  const pedirCancelacion = (reserva) => {
-    setErrorCancelacion(null)
-    setCancelacion(reserva)
-  }
-
-  const cancelarTurno = async () => {
-    if (!cancelacion || cancelando) return
-
-    setCancelando(true)
-    setErrorCancelacion(null)
-    try {
-      await cancelUseReservation(cancelacion.id, { userId })
-      setCancelacion(null)
-      setPeticionVisible((actual) => (actual?.id === cancelacion.id ? null : actual))
-      setDiaSeleccionado(null)
-      setRefreshKey((key) => key + 1)
-    } catch (err) {
-      setErrorCancelacion(err.message)
-    } finally {
-      setCancelando(false)
-    }
-  }
-
-  // Aceptar cambia los dueños de los turnos: se recarga el mes para que el calendario lo muestre.
-  const accionIntercambio = async (accion) => {
-    if (respondiendoIntercambio) return
-    setRespondiendoIntercambio(true)
-    setErrorIntercambio(null)
-    try {
-      await accion()
-    } catch (err) {
-      setErrorIntercambio(err.message)
-    } finally {
-      setRespondiendoIntercambio(false)
-      setRefreshKey((key) => key + 1)
-    }
-  }
-
-  const responderIntercambio = (swap, value) => accionIntercambio(() => respondSwap(swap.id, { userId, value }))
-  const retirarIntercambio = (swap) => accionIntercambio(() => cancelSwap(swap.id, { userId }))
-
-  const cambiarTarea = async (reservationId, tareaId, completed) => {
-    if (tareasGuardando.includes(tareaId)) return
-
-    setErrorTarea(null)
-    setTareasGuardando((ids) => [...ids, tareaId])
-    try {
-      const tareaActualizada = await updateRentalTask(tareaId, { completed })
-      setReservas((actuales) =>
-        actuales.map((reserva) => {
-          if (reserva.id !== reservationId) return reserva
-          return {
-            ...reserva,
-            tasks: reserva.tasks.map((tarea) => (tarea.id === tareaId ? tareaActualizada : tarea)),
-          }
-        }),
-      )
-    } catch (err) {
-      setErrorTarea(err.mensajes?.join('. ') ?? 'No se pudo actualizar la tarea.')
-    } finally {
-      setTareasGuardando((ids) => ids.filter((id) => id !== tareaId))
-    }
-  }
-
-  const irMesAnterior = () => {
-    const { year: y, month: m } = mesAnterior(year, month)
+  const irAMes = ({ year: y, month: m }) => {
     setEstadoCarga('loading')
     setDiaSeleccionado(null)
     setYear(y)
@@ -386,20 +95,8 @@ function Calendario() {
   const [anioHoy, mesHoy, diaHoy] = hoyLocal().split('-').map(Number)
   const hoyIso = new Date(Date.UTC(anioHoy, mesHoy - 1, diaHoy)).toISOString()
   const irAHoy = () => {
-    if (year !== anioHoy || month !== mesHoy) {
-      setEstadoCarga('loading')
-      setYear(anioHoy)
-      setMonth(mesHoy)
-    }
+    if (year !== anioHoy || month !== mesHoy) irAMes({ year: anioHoy, month: mesHoy })
     setDiaSeleccionado(hoyIso)
-  }
-
-  const irMesSiguiente = () => {
-    const { year: y, month: m } = mesSiguiente(year, month)
-    setEstadoCarga('loading')
-    setDiaSeleccionado(null)
-    setYear(y)
-    setMonth(m)
   }
 
   if (!assetId) {
@@ -409,21 +106,14 @@ function Calendario() {
   const dias = diasDelMes(year, month)
   const espaciosVacios = primerDiaSemana(year, month)
   const espaciosFinales = (7 - ((espaciosVacios + dias.length) % 7)) % 7
-  const peticionVisibleId = peticionVisible?.id ?? null
-  const peticionVisibleActual = peticionesPendientes.find((peticion) => peticion.id === peticionVisibleId)
-    ?? (peticionVisible?.startDate ? peticionVisible : null)
   const integrantes = integrantesEnReservas(reservas)
+  const destacada = reservas.find((reserva) => reserva.id === destacadaId && reserva.status === 'PENDING')
 
   return (
     <div className="split split--fill">
       <section className="split__main" aria-label="Calendario">
         <header className="cal-head">
-          <button
-            type="button"
-            className="btn btn--icon"
-            onClick={irMesAnterior}
-            aria-label="Mes anterior"
-          >
+          <button type="button" className="btn btn--icon" onClick={() => irAMes(mesAnterior(year, month))} aria-label="Mes anterior">
             <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
@@ -433,12 +123,7 @@ function Calendario() {
             <button type="button" className="btn btn--sm" onClick={irAHoy} disabled={diaSeleccionado === hoyIso}>
               Hoy
             </button>
-            <button
-              type="button"
-              className="btn btn--icon"
-              onClick={irMesSiguiente}
-              aria-label="Mes siguiente"
-            >
+            <button type="button" className="btn btn--icon" onClick={() => irAMes(mesSiguiente(year, month))} aria-label="Mes siguiente">
               <svg className="btn__i" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 18l6-6-6-6" />
               </svg>
@@ -446,8 +131,17 @@ function Calendario() {
           </div>
         </header>
 
-        {peticionVisibleActual && (
-          <AvisoPeticionPendiente peticion={peticionVisibleActual} onClear={quitarPrevisualizacion} />
+        {destacada && (
+          <div className="cal-preview" aria-live="polite">
+            <p className="cal-preview__text">
+              Pedido pendiente de {destacada.user?.name ?? 'un integrante'}:{' '}
+              {formatRange(fechaSolo(destacada.startDate), fechaSolo(destacada.endDate))}. Todavía no está aprobado: en el
+              calendario se ve con borde punteado.
+            </p>
+            <Link className="btn btn--link cal-preview__action" to="/reservas" state={{ tab: 'votar' }}>
+              Votar en Reservas
+            </Link>
+          </div>
         )}
 
         {estadoCarga === 'error' && (
@@ -480,13 +174,12 @@ function Calendario() {
             <Dia
               key={dia.toISOString()}
               dia={dia}
-              info={estadoDelDia(dia, reservas, peticionVisibleId)}
+              info={estadoDelDia(dia, reservas, destacadaId)}
               seleccionado={diaSeleccionado === dia.toISOString()}
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
               pasado={dia.toISOString().slice(0, 10) < hoyLocal()}
               cargando={estadoCarga === 'loading'}
-              enRango={formAbierto && Boolean(form.inicio) && fechaInput(dia) >= form.inicio && fechaInput(dia) <= (form.fin || form.inicio)}
-              onSelect={(extender) => seleccionarDia(dia, extender)}
+              onSelect={() => setDiaSeleccionado(dia.toISOString())}
             />
           ))}
 
@@ -518,255 +211,30 @@ function Calendario() {
       </section>
 
       <aside className="rail cal-rail">
-        <DetalleDia
-          dia={diaSeleccionado ? new Date(diaSeleccionado) : null}
-          reservas={reservas}
-          userId={userId}
-          tareasGuardando={tareasGuardando}
-          errorTarea={errorTarea}
-          onCancel={pedirCancelacion}
-          onProponerIntercambio={setTurnoPedido}
-          onTareaChange={cambiarTarea}
-        />
+        <DetalleDia dia={diaSeleccionado ? new Date(diaSeleccionado) : null} reservas={reservas} destacadaId={destacadaId} />
         <div className="panel">
-          {!formAbierto && (
-            <button
-              type="button"
-              className="btn btn--block btn--primary"
-              title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
-              onClick={() => setFormAbierto(true)}
-            >
-              {diaSeleccionado && estadoDelDia(new Date(diaSeleccionado), reservas).estado === 'libre'
-                ? etiquetaReserva(new Date(diaSeleccionado))
-                : 'Reservar'}
-            </button>
-          )}
-
-          {formAbierto && (
-            <form onSubmit={handleSolicitar}>
-              <h2 className="cal-form__t">Nueva reserva</h2>
-              <p className="hint cal-form__hint">
-                Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler. En el calendario, un
-                clic marca el primer día y otro el último; Shift+clic estira el rango.
-                {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
-              </p>
-
-              <div className="cal-form__fechas">
-                <label className="lbl">
-                  Desde
-                  <input
-                    className="in"
-                    type="date"
-                    value={form.inicio}
-                    onChange={setCampo('inicio')}
-                    required
-                  />
-                </label>
-                <label className="lbl">
-                  Hasta
-                  <input
-                    className="in"
-                    type="date"
-                    value={form.fin}
-                    onChange={setCampo('fin')}
-                    required
-                  />
-                </label>
-              </div>
-
-              <FieldError>{formError}</FieldError>
-
-              <div className="cal-form__acciones">
-                <button type="button" className="btn btn--grow btn--sm" onClick={cancelarSolicitud}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn--grow btn--primary btn--sm" disabled={enviando}>
-                  {enviando ? 'Enviando…' : 'Confirmar reserva'}
-                </button>
-              </div>
-            </form>
-          )}
+          <Link className="btn btn--block btn--primary" to="/reservas" state={{ nuevaReserva: true }}>
+            Reservar
+          </Link>
+          <p className="hint cal-rail__hint">Reservar, votar, cancelar e intercambiar turnos se hace en Reservas.</p>
         </div>
-
-        {peticionesPendientes.length > 0 && (
-          <PeticionesPendientes
-            peticiones={peticionesPendientes}
-            peticionVisibleId={peticionVisibleId}
-            userId={userId}
-            error={errorVoto ?? errorPendientes}
-            onSelect={seleccionarPeticion}
-            onCancel={pedirCancelacion}
-            onVote={votarPeticion}
-            votando={votando}
-          />
-        )}
-
-        {(intercambios.length > 0 || errorIntercambio) && (
-          <Intercambios
-            swaps={intercambios}
-            userId={userId}
-            error={errorIntercambio}
-            ocupado={respondiendoIntercambio}
-            onResponder={responderIntercambio}
-            onRetirar={retirarIntercambio}
-          />
-        )}
-
-        <ExportarCalendario assetId={assetId} userId={userId} />
+        <ExportarCalendario assetId={assetId} userId={userIdActual()} />
       </aside>
-
-      {turnoPedido && (
-        <ProponerIntercambio
-          pedido={turnoPedido}
-          userId={userId}
-          onClose={() => setTurnoPedido(null)}
-          onPropuesto={() => {
-            setTurnoPedido(null)
-            setRefreshKey((key) => key + 1)
-          }}
-        />
-      )}
-
-      {cancelacion && (
-        <ConfirmDialog
-          title="Cancelar reserva"
-          lines={[
-            'Se va a cancelar la reserva completa y todos sus días quedan libres.',
-            `Rango: ${formatRange(fechaSolo(cancelacion.startDate), fechaSolo(cancelacion.endDate))}.`,
-          ]}
-          confirmLabel="Cancelar reserva"
-          busyLabel="Cancelando…"
-          busy={cancelando}
-          error={errorCancelacion}
-          onConfirm={cancelarTurno}
-          onCancel={() => {
-            if (!cancelando) setCancelacion(null)
-          }}
-        />
-      )}
     </div>
   )
 }
 
-function AvisoPeticionPendiente({ peticion, onClear }) {
-  const { desde, hasta } = rangoPeticion(peticion)
-  const nombre = peticion.user?.name ?? 'Integrante'
-
-  return (
-    <div className="cal-preview" aria-live="polite">
-      <p className="cal-preview__text">
-        Pedido pendiente de {nombre}: {formatRange(desde, hasta)}. Todavía no está aprobado: en el calendario se ve con borde punteado.
-      </p>
-      <button type="button" className="btn btn--link cal-preview__action" onClick={onClear}>
-        Quitar
-      </button>
-    </div>
-  )
-}
-
-function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, votando, onSelect, onCancel, onVote }) {
-  const [soloMiVoto, setSoloMiVoto] = useState(false)
-  const visibles = soloMiVoto ? peticiones.filter((peticion) => faltaMiVoto(peticion, userId)) : peticiones
-  const paginacion = usePaginacion(visibles, String(soloMiVoto))
-
-  return (
-    <section className="panel cal-pending" aria-label="Reservas pendientes de votación">
-      <header className="cal-pending__head">
-        <h2 className="cal-pending__t">Por votar ({visibles.length})</h2>
-      </header>
-      <p className="hint cal-pending__hint">Pendientes de votación. Al elegir una, se muestra en el calendario.</p>
-      <label className="chk cal-pending__filtro">
-        <input type="checkbox" checked={soloMiVoto} onChange={(event) => setSoloMiVoto(event.target.checked)} />
-        Solo las que esperan el voto propio
-      </label>
-      <FieldError>{error}</FieldError>
-      {visibles.length === 0 && <p className="hint cal-pending__hint">No hay reservas esperando el voto propio.</p>}
-      <ul className="cal-pending__list" role="list">
-        {paginacion.elementos.map((peticion) => {
-          const propia = peticion.userId === userId
-          const aceptada = yaAprobo(peticion, userId)
-          const pasada = rangoPeticion(peticion).desde < hoyLocal()
-          const { desde, hasta } = rangoPeticion(peticion)
-          const nombre = peticion.user?.name ?? 'Integrante'
-
-          return (
-            <li key={peticion.id} className={peticion.id === peticionVisibleId ? 'cal-pending__item cal-pending__item--on' : 'cal-pending__item'}>
-              <button type="button" className="cal-pending__select" onClick={() => onSelect(peticion)}>
-                <span className="cal-pending__title">
-                  <strong>{nombre}{propia && ' · reserva propia'}</strong>
-                  <span>{fmtAprobaron(peticion.approvalCount ?? 0, peticion.coownerCount ?? 0)}</span>
-                </span>
-                <span>{peticion.type === 'RENTAL' ? 'Alquiler' : 'Uso propio'}</span>
-                <span>{formatRange(desde, hasta)} · {daysLabel(desde, hasta)}</span>
-              </button>
-              {peticion.votes?.length > 0 && <ChipsVoto votes={peticion.votes} />}
-              {pasada && <span className="tag tag--dash cal-pending__pasada">Fecha pasada: ya no se vota</span>}
-              {!propia && !pasada && (
-                <div className="cal-pending__actions">
-                  {aceptada ? (
-                    <span className="tag tag--solid tag--si">Voto: Sí</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn--sm"
-                      disabled={votando !== null}
-                      onClick={() => onVote(peticion, 'APPROVE')}
-                    >
-                      Aprobar
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn--sm"
-                    disabled={votando !== null}
-                    onClick={() => onVote(peticion, 'REJECT')}
-                  >
-                    Rechazar
-                  </button>
-                </div>
-              )}
-              {propia && (
-                <div className="cal-pending__actions">
-                  <button type="button" className="btn btn--sm" onClick={() => onCancel(peticion)}>
-                    Cancelar reserva
-                  </button>
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      <Pagination {...paginacion} />
-    </section>
-  )
-}
-
-function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onProponerIntercambio, onTareaChange }) {
-  const info = dia ? estadoDelDia(dia, reservas) : null
+function DetalleDia({ dia, reservas, destacadaId }) {
+  const info = dia ? estadoDelDia(dia, reservas, destacadaId) : null
   let descripcion = 'Elegir un día del calendario para ver su detalle.'
 
   if (dia && info.estado === 'libre') {
     descripcion = 'Día disponible para ser reservado.'
   } else if (dia && info.estado === 'reservado') {
-    if (info.pendiente) {
-      descripcion = info.userId === userId
-        ? 'Reserva propia, pendiente de confirmación.'
-        : `Reserva pendiente de ${info.userName ?? 'un integrante'}.`
-    } else {
-      descripcion = info.userId === userId
-        ? 'Reserva propia, confirmada.'
-        : `Reserva confirmada de ${info.userName ?? 'un integrante'}.`
-    }
+    const nombre = info.userName ?? 'un integrante'
+    descripcion = info.pendiente ? `Reserva pendiente de ${nombre}.` : `Reserva confirmada de ${nombre}.`
   } else if (dia && info.estado === 'alquilado') {
-    return (
-      <DetalleAlquiler
-        dia={dia}
-        alquiler={info.alquiler}
-        tareasGuardando={tareasGuardando}
-        errorTarea={errorTarea}
-        onTareaChange={onTareaChange}
-      />
-    )
+    return <DetalleAlquiler dia={dia} alquiler={info.alquiler} />
   } else if (dia && info.estado === 'rechazado') {
     descripcion = 'Reserva rechazada.'
   }
@@ -775,25 +243,16 @@ function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCanc
     <div className="panel cal-detail" aria-live="polite">
       {dia && <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>}
       <p className="cal-detail__d">{descripcion}</p>
-      {dia && info?.estado === 'reservado' && info.userId === userId && (
-        <div className="cal-detail__actions">
-          <button type="button" className="btn btn--sm" onClick={() => onCancel(info.reserva)}>
-            Cancelar turno
-          </button>
-        </div>
-      )}
-      {dia && info?.estado === 'reservado' && puedeProponerIntercambio(info.reserva, userId, hoyLocal()) && (
-        <div className="cal-detail__actions">
-          <button type="button" className="btn btn--sm" onClick={() => onProponerIntercambio(info.reserva)}>
-            Proponer intercambio
-          </button>
-        </div>
+      {dia && info?.estado === 'reservado' && (
+        <Link className="btn btn--link" to="/reservas">
+          Ver en Reservas
+        </Link>
       )}
     </div>
   )
 }
 
-function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaChange }) {
+function DetalleAlquiler({ dia, alquiler }) {
   const tareas = alquiler.tasks ?? []
   const pendientes = tareas.filter((tarea) => !tarea.completed).length
   const monto = alquiler.amount == null ? null : `$${alquiler.amount.toLocaleString('es-AR')}`
@@ -812,31 +271,28 @@ function DetalleAlquiler({ dia, alquiler, tareasGuardando, errorTarea, onTareaCh
         {alquiler.userId ? `Gestionado por ${alquiler.user?.name ?? 'un copropietario'}` : 'Llegó desde la ficha pública'}
       </p>
 
-      {/* Las tareas de preparacion son de alquileres aprobados (el server no deja crearlas antes). */}
+      {/* Las tareas se marcan en Alquileres > Tareas de preparación; acá solo se ven. */}
       {!pendiente && (
         <>
           <h3 className="cal-detail__sect">Tareas de preparación · {pendientes} pendientes</h3>
-          <FieldError>{errorTarea}</FieldError>
           {tareas.length === 0 ? (
             <p className="cal-detail__empty">No hay tareas de preparación.</p>
           ) : (
             <ul className="cal-detail__tasks" role="list">
               {tareas.map((tarea) => (
                 <li key={tarea.id} className="cal-detail__task">
-                  <label className="cal-detail__task-name">
-                    <input
-                      type="checkbox"
-                      checked={tarea.completed}
-                      disabled={tareasGuardando.includes(tarea.id)}
-                      onChange={(event) => onTareaChange(alquiler.id, tarea.id, event.target.checked)}
-                    />
-                    <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>{tarea.name}</span>
-                  </label>
+                  <span className={tarea.completed ? 'task__t task__t--done' : 'task__t'}>
+                    {tarea.name}
+                    <span className="solo-lector">{tarea.completed ? ' (hecha)' : ' (pendiente)'}</span>
+                  </span>
                   <span className="meta">{tarea.assignedTo?.name ?? 'Sin responsable'}</span>
                 </li>
               ))}
             </ul>
           )}
+          <Link className="btn btn--link" to="/alquiler/tareas-preparacion">
+            Ir a Tareas de preparación
+          </Link>
         </>
       )}
     </div>
@@ -848,13 +304,12 @@ const abreviar = (etiqueta) => ABREVIATURAS[etiqueta] ?? etiqueta.slice(0, 2)
 
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
 // está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect }) {
+function Dia({ dia, info, seleccionado, hoy, pasado, cargando, onSelect }) {
   const { estado } = info
   const clases = ['cal__c', `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
   if (hoy) clases.push('cal__c--hoy')
   if (pasado) clases.push('cal__c--pasado')
-  if (enRango) clases.push('cal__c--rango')
   let etiqueta = ''
   let estilo
 
@@ -884,10 +339,10 @@ function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect
       className={clases.join(' ')}
       style={estilo}
       title={titulo}
-      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}${enRango ? '. En el rango a reservar' : ''}`}
+      aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}`}
       aria-pressed={seleccionado}
       aria-current={hoy ? 'date' : undefined}
-      onClick={(e) => onSelect(e.shiftKey)}
+      onClick={onSelect}
     >
       <span className="cal__n">
         {dia.getUTCDate()}

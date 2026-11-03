@@ -10,6 +10,7 @@ import MisBienes from './pages/MisBienes'
 import Decisiones from './pages/Decisiones'
 import FichaPublica from './pages/FichaPublica'
 import Registro from './pages/Registro'
+import Reservas from './pages/Reservas'
 import Rental from './pages/Rental'
 import RentalHistory from './pages/RentalHistory'
 import RentalPreparations from './pages/RentalPreparations'
@@ -19,6 +20,7 @@ import { SECCIONES } from './sections'
 
 const PANTALLAS = {
   calendario: { element: <Calendario /> },
+  reservas: { element: <Reservas /> },
   movimientos: { element: <Movimientos /> },
   balance: { element: <Balance /> },
   decisiones: { element: <Decisiones /> },

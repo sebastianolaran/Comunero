@@ -104,18 +104,6 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
   return { estado: 'rechazado', reservationId: rechazada.id, userId: rechazada.userId };
 }
 
-// Si el usuario ya acepto una peticion de "Por votar". Con unanimidad, su "si"
-// puede no alcanzar para aprobarla y la peticion sigue en la lista.
-export function yaAprobo(peticion, userId) {
-  return peticion.approvedBy?.includes(userId) ?? false;
-}
-
-// Filtro "Solo las que me faltan votar": las propias no, porque pedirla ya
-// cuenta como un "si" de quien la pidio.
-export function faltaMiVoto(peticion, userId) {
-  return peticion.userId !== userId && !yaAprobo(peticion, userId);
-}
-
 // Tono oklch de cada integrante: el que manda el server (elegido en
 // Configuración, o asignado sin repetir dentro del bien). Si no viene, se
 // calcula por id con la misma tabla que usa el server. La celda del

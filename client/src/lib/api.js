@@ -20,12 +20,11 @@ export async function fetchReservations(assetId, month, { signal } = {}) {
   return body.reservations
 }
 
-export async function fetchPendingUseReservations(assetId, { signal } = {}) {
+// Pantalla Reservas: todas las de uso propio menos las canceladas, con votos y motivos.
+export async function fetchUseReservations(assetId, { signal } = {}) {
   const params = new URLSearchParams({ assetId })
-  const res = await pedir(`${API_URL}/api/reservations/pending?${params}`, { signal })
-
+  const res = await pedir(`${API_URL}/api/reservations/use?${params}`, { signal })
   if (!res.ok) throw new Error(mensajeHttp(res.status))
-
   const body = await res.json()
   return body.reservations
 }
@@ -118,11 +117,11 @@ export async function createReservation({ assetId, userId, startDate, endDate, n
   return body.reservation
 }
 
-export async function voteUseReservation(id, { userId, value }) {
+export async function voteUseReservation(id, { userId, value, reason }) {
   const res = await pedir(`${API_URL}/api/reservations/${encodeURIComponent(id)}/votes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, value }),
+    body: JSON.stringify({ userId, value, reason }),
   })
 
   const body = await res.json().catch(() => ({}))

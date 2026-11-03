@@ -1,0 +1,115 @@
+/* Composición de Reservas sobre las clases del sistema (styles/system.css). */
+.res-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.res-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.res-filtros {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.res-regla {
+  margin: -6px 0 16px;
+}
+
+.res-fechas {
+  white-space: nowrap;
+}
+
+.res-quien {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.res-motivo {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-meta);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.res-acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.res-acciones > * + * {
+  margin-left: 8px;
+}
+
+.res-votar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.res-voto,
+.res-swap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.res-voto__cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.res-voto__acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.res-voto__rechazo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.res-grupo + .res-grupo {
+  margin-top: 28px;
+}
+
+.res-grupo .sect {
+  margin-bottom: 10px;
+}
+
+.res-modal__fechas {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.res-modal__fechas .lbl {
+  flex: 1;
+}
+
+@media (max-width: 700px) {
+  .res-acciones {
+    white-space: normal;
+  }
+}
