@@ -10,6 +10,8 @@ import { assetIdActual } from '../lib/currentAsset'
 import { userIdActual } from '../lib/currentUser'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ExportarCalendario from '../components/ExportarCalendario'
+import Intercambios from '../components/Intercambios'
+import ProponerIntercambio from '../components/ProponerIntercambio'
 import Pagination from '../components/Pagination'
 import { Cargando, ErrorCarga, Vacio } from '../components/ui/Estado'
 import FieldError from '../components/ui/FieldError'
@@ -18,6 +20,8 @@ import { fmtAprobaron } from '../lib/format'
 import { daysLabel, formatRange, hoyLocal } from '../lib/rentalRequests'
 import { updateRentalTask } from '../services/rentalPreparation'
 import { fetchSettings } from '../services/settings'
+import { cancelSwap, fetchSwaps, respondSwap } from '../services/reservationSwap'
+import { puedeProponerIntercambio } from '../lib/swaps'
 import { usePaginacion } from '../lib/pagination'
 import {
   colorDeIntegrante,
@@ -127,6 +131,10 @@ function Calendario() {
   const [errorCancelacion, setErrorCancelacion] = useState(null)
   const [cancelando, setCancelando] = useState(false)
   const [votando, setVotando] = useState(null) // id de la peticion cuyo voto se esta enviando
+  const [intercambios, setIntercambios] = useState([])
+  const [errorIntercambio, setErrorIntercambio] = useState(null)
+  const [respondiendoIntercambio, setRespondiendoIntercambio] = useState(false)
+  const [turnoPedido, setTurnoPedido] = useState(null)
   // Se incrementa despues de crear una solicitud, para forzar el refetch
   // del mes y que el dia recien pedido se vea "pendiente" en la grilla.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -195,6 +203,17 @@ function Calendario() {
       controller.abort()
     }
   }, [assetId, refreshKey])
+
+  useEffect(() => {
+    if (!assetId) return
+    const controller = new AbortController()
+    fetchSwaps(assetId, userId, { signal: controller.signal })
+      .then((swaps) => setIntercambios(swaps))
+      .catch((err) => {
+        if (err.name !== 'AbortError') setErrorIntercambio('No se pudieron cargar los intercambios.')
+      })
+    return () => controller.abort()
+  }, [assetId, userId, refreshKey])
 
   useEffect(() => {
     try {
@@ -314,6 +333,24 @@ function Calendario() {
       setCancelando(false)
     }
   }
+
+  // Aceptar cambia los dueños de los turnos: se recarga el mes para que el calendario lo muestre.
+  const accionIntercambio = async (accion) => {
+    if (respondiendoIntercambio) return
+    setRespondiendoIntercambio(true)
+    setErrorIntercambio(null)
+    try {
+      await accion()
+    } catch (err) {
+      setErrorIntercambio(err.message)
+    } finally {
+      setRespondiendoIntercambio(false)
+      setRefreshKey((key) => key + 1)
+    }
+  }
+
+  const responderIntercambio = (swap, value) => accionIntercambio(() => respondSwap(swap.id, { userId, value }))
+  const retirarIntercambio = (swap) => accionIntercambio(() => cancelSwap(swap.id, { userId }))
 
   const cambiarTarea = async (reservationId, tareaId, completed) => {
     if (tareasGuardando.includes(tareaId)) return
@@ -488,6 +525,7 @@ function Calendario() {
           tareasGuardando={tareasGuardando}
           errorTarea={errorTarea}
           onCancel={pedirCancelacion}
+          onProponerIntercambio={setTurnoPedido}
           onTareaChange={cambiarTarea}
         />
         <div className="panel">
@@ -563,8 +601,31 @@ function Calendario() {
           />
         )}
 
+        {(intercambios.length > 0 || errorIntercambio) && (
+          <Intercambios
+            swaps={intercambios}
+            userId={userId}
+            error={errorIntercambio}
+            ocupado={respondiendoIntercambio}
+            onResponder={responderIntercambio}
+            onRetirar={retirarIntercambio}
+          />
+        )}
+
         <ExportarCalendario assetId={assetId} userId={userId} />
       </aside>
+
+      {turnoPedido && (
+        <ProponerIntercambio
+          pedido={turnoPedido}
+          userId={userId}
+          onClose={() => setTurnoPedido(null)}
+          onPropuesto={() => {
+            setTurnoPedido(null)
+            setRefreshKey((key) => key + 1)
+          }}
+        />
+      )}
 
       {cancelacion && (
         <ConfirmDialog
@@ -680,7 +741,7 @@ function PeticionesPendientes({ peticiones, peticionVisibleId, userId, error, vo
   )
 }
 
-function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onTareaChange }) {
+function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCancel, onProponerIntercambio, onTareaChange }) {
   const info = dia ? estadoDelDia(dia, reservas) : null
   let descripcion = 'Elegir un día del calendario para ver su detalle.'
 
@@ -718,6 +779,13 @@ function DetalleDia({ dia, reservas, userId, tareasGuardando, errorTarea, onCanc
         <div className="cal-detail__actions">
           <button type="button" className="btn btn--sm" onClick={() => onCancel(info.reserva)}>
             Cancelar turno
+          </button>
+        </div>
+      )}
+      {dia && info?.estado === 'reservado' && puedeProponerIntercambio(info.reserva, userId, hoyLocal()) && (
+        <div className="cal-detail__actions">
+          <button type="button" className="btn btn--sm" onClick={() => onProponerIntercambio(info.reserva)}>
+            Proponer intercambio
           </button>
         </div>
       )}

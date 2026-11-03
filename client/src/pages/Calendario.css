@@ -331,3 +331,28 @@
     width: 100%;
   }
 }
+
+.cal-swap__turnos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+.cal-swap__opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.cal-swap__motivo {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-meta);
+  color: var(--ink-2);
+}
