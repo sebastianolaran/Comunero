@@ -31,6 +31,11 @@ services:
       # Dashboard -> comunero-server -> Environment.
       - key: DATABASE_URL
         sync: false
+      # La misma connection string pero sin "-pooler" en el host. La usa
+      # prisma migrate deploy (directUrl en el schema) para no dejar el
+      # advisory lock tomado en una conexión del pooler.
+      - key: DIRECT_URL
+        sync: false
       - key: NODE_VERSION
         value: "22"
       # URL del client: el link de la ficha (/f/:slug) redirige ahí. No es secreta.
