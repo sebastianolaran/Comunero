@@ -92,6 +92,8 @@ async function listRentalHistory(req, res) {
   }
 }
 
+const OVERLAP_ERROR = 'el rango solicitado incluye dias ya ocupados por otra reserva o solicitud pendiente';
+
 // POST /api/reservations
 // body: { assetId, userId, startDate, endDate, note? }  (fechas 'YYYY-MM-DD')
 //
@@ -130,11 +132,7 @@ async function create(req, res) {
   }
 
   const solapa = await reservationService.hasOverlap(assetId, inicio, fin);
-  if (solapa) {
-    return res.status(409).json({
-      error: 'el rango solicitado incluye dias ya ocupados por otra reserva o solicitud pendiente',
-    });
-  }
+  if (solapa) return res.status(409).json({ error: OVERLAP_ERROR });
 
   const reservation = await reservationService.requestUse({
     assetId,
@@ -145,6 +143,7 @@ async function create(req, res) {
   });
 
   if (!reservation) return res.status(403).json({ error: 'no perteneces a este bien' });
+  if (reservation.error === 'OVERLAP') return res.status(409).json({ error: OVERLAP_ERROR });
 
   res.status(201).json({ reservation });
 }

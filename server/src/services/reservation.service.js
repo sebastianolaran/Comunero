@@ -196,8 +196,8 @@ async function listRentalHistory(assetId, hoy) {
 // Historia "Solicitar turno de uso propio", regla 3: no se puede solicitar
 // un turno que incluya dias ya ocupados por otra reserva ACTIVE o PENDING
 // (una reserva REJECTED o CANCELLED no ocupa el dia, no bloquea).
-async function hasOverlap(assetId, startDate, endDate) {
-  const count = await prisma.reservation.count({
+async function hasOverlap(assetId, startDate, endDate, db = prisma) {
+  const count = await db.reservation.count({
     where: {
       assetId,
       status: { in: ['ACTIVE', 'PENDING'] },
@@ -220,6 +220,11 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
     });
     if (!asset || !asset.users.some((user) => user.id === userId)) return null;
 
+    // El chequeo del controller corre fuera de la transacción: sin el lock del
+    // bien, dos pedidos a la vez sobre los mismos días pasaban los dos.
+    await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
+    if (await hasOverlap(assetId, startDate, endDate, tx)) return { error: 'OVERLAP' };
+
     const status = useVotingStatus(1, 0, asset.users.length);
     return tx.reservation.create({
       data: {
@@ -233,7 +238,7 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
         approvals: { create: { userId } },
       },
     });
-  });
+  }, TX_OPTIONS);
 }
 
 async function voteUse({ reservationId, userId, value, reason = null }) {
