@@ -18,6 +18,7 @@ import {
   mesSiguiente,
   nombreMes,
   primerDiaSemana,
+  rangoOcupado,
   tonoDeIntegrante,
   turnoDemasiadoLargo,
 } from '../lib/calendar'
@@ -62,6 +63,8 @@ function rangoAlElegir(previo, fecha, extender) {
   if (!empezado || (!extender && previo.inicio !== previo.fin)) return { inicio: fecha, fin: fecha }
   return previo.inicio < fecha ? { inicio: previo.inicio, fin: fecha } : { inicio: fecha, fin: previo.inicio }
 }
+
+const ERROR_OCUPADO = 'El rango incluye días ya reservados o pendientes: elegir días libres seguidos.'
 
 function etiquetaReserva(dia) {
   return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
@@ -134,6 +137,8 @@ function Calendario() {
     e.preventDefault()
     const demasiadoLargo = turnoDemasiadoLargo(form.inicio, form.fin, maximoDias)
     if (demasiadoLargo) return setFormError(demasiadoLargo)
+    // Solo ve el mes cargado; si el rango sigue en otro mes, lo frena el server.
+    if (rangoOcupado(form.inicio, form.fin, reservas)) return setFormError(ERROR_OCUPADO)
     setFormError(null)
     setEnviando(true)
     try {
@@ -162,7 +167,15 @@ function Calendario() {
     // Con el formulario abierto, un día ocupado solo muestra su detalle: el
     // rango que se venía armando no se pierde.
     if (formAbierto) {
-      if (libre) setForm((previo) => rangoAlElegir(previo, fecha, extender))
+      if (!libre) return
+      const rango = rangoAlElegir(form, fecha, extender)
+      // Un rango que atraviesa días ocupados no se arma: arranca de nuevo en el día tocado.
+      if (rangoOcupado(rango.inicio, rango.fin, reservas)) {
+        setForm({ inicio: fecha, fin: fecha })
+        setFormError(ERROR_OCUPADO)
+        return
+      }
+      setForm(rango)
       return
     }
     // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.

@@ -54,6 +54,17 @@ function fechaUTC(valor) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
+// Mismo criterio que el server: aprobadas y pendientes bloquean, rechazadas y
+// canceladas no. Fechas 'YYYY-MM-DD'.
+export function rangoOcupado(inicio, fin, reservas) {
+  if (!inicio || !fin) return false;
+  const desde = fechaUTC(`${inicio}T00:00:00Z`);
+  const hasta = fechaUTC(`${fin}T00:00:00Z`);
+  return reservas.some(
+    (r) => ['ACTIVE', 'PENDING'].includes(r.status) && fechaUTC(r.startDate) <= hasta && fechaUTC(r.endDate) >= desde,
+  );
+}
+
 function cubreElDia(reserva, dia) {
   const diaUTC = fechaUTC(dia);
   return diaUTC >= fechaUTC(reserva.startDate) && diaUTC <= fechaUTC(reserva.endDate);
