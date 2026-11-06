@@ -95,7 +95,7 @@ function coownersOf(db, assetId) {
   return db.user.findMany({ where: memberOf(assetId), select: { id: true, name: true }, orderBy: { name: 'asc' } });
 }
 
-const OVERLAP_REASON = 'Rechazada por solapamiento con un alquiler aprobado en esas fechas';
+const OVERLAP_REASON = 'Rechazada por solapamiento con una reserva aprobada en esas fechas';
 
 // Otras reservas del bien que comparten al menos un dia con esta (inclusive en ambas puntas).
 // Al darla de alta todavia no tiene id, y Prisma rechaza `not: null`.

@@ -1,7 +1,7 @@
 const prisma = require('../prisma');
 const { memberOf } = require('./membership');
 const { requiredApprovals, votingStatus } = require('./reservationVoting.rules');
-const { lockForVote, TX_OPTIONS } = require('./rentalRequest.service');
+const { lockForVote, hasApprovedOverlap, rejectOverlapping, OVERLAP_REASON, TX_OPTIONS } = require('./rentalRequest.service');
 // Modulo entero (no destructuring) para poder mockearlo en los tests.
 const settingsService = require('./assetSettings.service');
 const reservationExpiry = require('./reservationExpiry.service');
@@ -67,6 +67,28 @@ async function listForRange(assetId, rangeStart, rangeEnd) {
   );
 }
 
+// Pendientes de cualquier tipo que se pisan con uno pendiente: si se aprueba,
+// esos se rechazan solos. Una sola consulta para toda la lista.
+async function pendingOverlaps(assetId) {
+  const pending = await prisma.reservation.findMany({
+    where: { assetId, status: 'PENDING' },
+    select: { id: true, type: true, startDate: true, endDate: true, user: { select: { name: true } }, renter: { select: { name: true } } },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+  });
+  return (reservation) => {
+    if (reservation.status !== 'PENDING') return [];
+    return pending
+      .filter((o) => o.id !== reservation.id && o.startDate <= reservation.endDate && o.endDate >= reservation.startDate)
+      .map((o) => ({
+        id: o.id,
+        type: o.type,
+        name: o.type === 'RENTAL' ? (o.renter?.name ?? null) : (o.user?.name ?? null),
+        startDate: o.startDate,
+        endDate: o.endDate,
+      }));
+  };
+}
+
 async function listPendingUse(assetId) {
   await reservationExpiry.expireForAsset(assetId);
   const reservations = await prisma.reservation.findMany({
@@ -84,6 +106,7 @@ async function listPendingUse(assetId) {
     },
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   });
+  const overlapsOf = await pendingOverlaps(assetId);
 
   // approvedBy: para que el client marque "ya aceptaste"; volver a aceptar no cambia nada.
   // votes: quién aprobó y quién falta, con los valores de Alquiler (un No ya la rechaza).
@@ -95,6 +118,7 @@ async function listPendingUse(assetId) {
       approvalCount: approvals.length,
       coownerCount: asset.users.length,
       votes: asset.users.map((u) => ({ userId: u.id, name: u.name, value: approvedBy.includes(u.id) ? 'APPROVE' : null })),
+      overlapsWith: overlapsOf(reservation),
     };
   });
 }
@@ -121,6 +145,7 @@ async function listUse(assetId) {
     },
     orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
   });
+  const overlapsOf = await pendingOverlaps(assetId);
 
   return reservations.map(({ approvals, objections, asset, ...reservation }) => {
     const approvedBy = approvals.map((a) => a.userId);
@@ -136,17 +161,18 @@ async function listUse(assetId) {
         value: approvedBy.includes(u.id) ? 'APPROVE' : rejectedBy.includes(u.id) ? 'REJECT' : null,
       })),
       rejections: objections.filter((o) => o.reason).map((o) => ({ name: o.user.name, reason: o.reason })),
+      overlapsWith: overlapsOf(reservation),
     };
   });
 }
 
-// Días que no se pueden pedir desde hoy: lo que bloquea hasOverlap (aprobadas
-// y pendientes, de uso propio o alquiler), unido en rangos. Para el mini
-// calendario de la nueva reserva.
+// Días que no se pueden pedir desde hoy: lo que bloquea hasOverlap (lo aprobado,
+// de uso propio o alquiler), unido en rangos. Para el mini calendario de la
+// nueva reserva.
 async function occupiedFrom(assetId, today) {
   await reservationExpiry.expireForAsset(assetId);
   const reservations = await prisma.reservation.findMany({
-    where: { assetId, status: { in: ['ACTIVE', 'PENDING'] }, endDate: { gte: today } },
+    where: { assetId, status: 'ACTIVE', endDate: { gte: today } },
     select: { startDate: true, endDate: true },
   });
   return mergeRanges(reservations);
@@ -193,14 +219,14 @@ async function listRentalHistory(assetId, hoy) {
   }));
 }
 
-// Historia "Solicitar turno de uso propio", regla 3: no se puede solicitar
-// un turno que incluya dias ya ocupados por otra reserva ACTIVE o PENDING
-// (una reserva REJECTED o CANCELLED no ocupa el dia, no bloquea).
+// No se puede pedir un turno que incluya días ya aprobados. Un pendiente no
+// bloquea, igual que en alquileres: todavía se vota, y si uno se aprueba los
+// pendientes que se le pisan se rechazan solos.
 async function hasOverlap(assetId, startDate, endDate, db = prisma) {
   const count = await db.reservation.count({
     where: {
       assetId,
-      status: { in: ['ACTIVE', 'PENDING'] },
+      status: 'ACTIVE',
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -226,7 +252,7 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
     if (await hasOverlap(assetId, startDate, endDate, tx)) return { error: 'OVERLAP' };
 
     const status = useVotingStatus(1, 0, asset.users.length);
-    return tx.reservation.create({
+    const created = await tx.reservation.create({
       data: {
         assetId,
         userId,
@@ -238,6 +264,8 @@ async function requestUse({ assetId, userId, startDate, endDate, note }) {
         approvals: { create: { userId } },
       },
     });
+    if (status === 'ACTIVE') await rejectOverlapping(tx, created);
+    return created;
   }, TX_OPTIONS);
 }
 
@@ -254,6 +282,8 @@ async function voteUse({ reservationId, userId, value, reason = null }) {
         assetId: true,
         type: true,
         status: true,
+        startDate: true,
+        endDate: true,
         approvals: { select: { userId: true } },
         objections: { select: { userId: true } },
       },
@@ -281,8 +311,14 @@ async function voteUse({ reservationId, userId, value, reason = null }) {
 
     const approvals = await tx.reservationApproval.count({ where: { reservationId } });
     const objections = await tx.objection.count({ where: { reservationId } });
-    const status = useVotingStatus(approvals, objections, coowners.length);
-    const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status } });
+    let status = useVotingStatus(approvals, objections, coowners.length);
+    let rejectionReason = null;
+    if (status === 'ACTIVE' && (await hasApprovedOverlap(tx, reservation))) {
+      status = 'REJECTED';
+      rejectionReason = OVERLAP_REASON;
+    }
+    const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status, rejectionReason } });
+    if (status === 'ACTIVE') await rejectOverlapping(tx, reservation);
     return { reservation: updated };
   }, TX_OPTIONS);
 }

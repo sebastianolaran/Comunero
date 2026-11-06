@@ -121,6 +121,9 @@ async function create(req, res) {
   if (inicio.getTime() > fin.getTime()) {
     return res.status(400).json({ error: 'startDate debe ser anterior o igual a endDate' });
   }
+  if (inicio < parseFechaISO(todayInArgentina())) {
+    return res.status(400).json({ error: 'No se puede reservar un día que ya pasó' });
+  }
 
   // Solo el uso propio: los alquileres a terceros no tienen este límite.
   const maximo = await reservationService.maxConsecutiveDays(assetId, userId);
