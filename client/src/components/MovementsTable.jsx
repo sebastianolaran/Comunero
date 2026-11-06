@@ -33,7 +33,7 @@ function MovementDetail({ movement, meId, tonos }) {
                 <span>
                   {item.description}
                   <span className="mov-item-shares">
-                    {item.shares.map(who).join(', ')} · {fmtMoney(Math.floor(item.amount / item.shares.length))} c/u
+                    {item.shares.map((share) => `${share.name} ${fmtMoney(share.amount)}`).join(' · ')}
                   </span>
                 </span>
                 <span>{fmtMoney(item.amount)}</span>
