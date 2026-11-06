@@ -11,6 +11,7 @@ import { formatRange, hoyLocal } from '../lib/rentalRequests'
 import {
   colorDeIntegrante,
   DIAS_SEMANA,
+  diaAprobado,
   diasDelMes,
   estadoDelDia,
   integrantesEnReservas,
@@ -30,7 +31,6 @@ const ETIQUETA_ESTADO = {
   libre: 'Libre',
   reservado: 'Reservado',
   alquilado: 'Alquilado',
-  rechazado: 'Rechazado',
 }
 
 function mesParam(year, month) {
@@ -64,7 +64,23 @@ function rangoAlElegir(previo, fecha, extender) {
   return previo.inicio < fecha ? { inicio: previo.inicio, fin: fecha } : { inicio: fecha, fin: previo.inicio }
 }
 
-const ERROR_OCUPADO = 'El rango incluye días ya reservados o pendientes: elegir días libres seguidos.'
+const ERROR_OCUPADO = 'El rango incluye días ya aprobados: elegir días libres seguidos.'
+
+// Solo lo aprobado ocupa el día: un pendiente todavía se vota.
+function sePuedeReservar(dia, reservas) {
+  return fechaInput(dia) >= hoyLocal() && !diaAprobado(dia, reservas)
+}
+
+function clasePendiente(reserva, userId) {
+  const clases = ['cal__p']
+  if (reserva.type === 'RENTAL') clases.push('cal__p--alquiler')
+  if (reserva.type === 'USE' && reserva.userId === userId) clases.push('cal__p--propio')
+  return clases.join(' ')
+}
+
+function tonoPendiente(reserva) {
+  return reserva.type === 'RENTAL' ? undefined : { '--h': tonoDeIntegrante(reserva.userId, reserva.userHue) }
+}
 
 function etiquetaReserva(dia) {
   return `Reservar ${dia.getUTCDate()} de ${MESES_CORTOS[dia.getUTCMonth()]}`
@@ -72,6 +88,11 @@ function etiquetaReserva(dia) {
 
 function fechaSolo(valor) {
   return typeof valor === 'string' ? valor.slice(0, 10) : valor
+}
+
+function nombreDePendiente(reserva) {
+  if (reserva.type === 'RENTAL') return reserva.renter?.name ? `Alquiler · ${reserva.renter.name}` : 'Alquiler'
+  return reserva.user?.name ?? 'Un integrante'
 }
 
 // Para mirar y reservar: votar, cancelar e intercambiar se hace en Reservas.
@@ -100,6 +121,8 @@ function Calendario() {
   const [enviando, setEnviando] = useState(false)
   // Máximo de días seguidos de Configuración. Si no se puede traer, valida el server igual.
   const [maximoDias, setMaximoDias] = useState(null)
+  // Día bajo el mouse mientras se espera el segundo clic: pinta el rango que quedaría.
+  const [diaBajoMouse, setDiaBajoMouse] = useState(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -139,6 +162,7 @@ function Calendario() {
     if (demasiadoLargo) return setFormError(demasiadoLargo)
     // Solo ve el mes cargado; si el rango sigue en otro mes, lo frena el server.
     if (rangoOcupado(form.inicio, form.fin, reservas)) return setFormError(ERROR_OCUPADO)
+    if (form.inicio < hoyLocal()) return setFormError('No se puede reservar un día que ya pasó.')
     setFormError(null)
     setEnviando(true)
     try {
@@ -163,24 +187,32 @@ function Calendario() {
     setDiaSeleccionado(dia.toISOString())
     setFormError(null)
     const fecha = fechaInput(dia)
-    const libre = estadoDelDia(dia, reservas).estado === 'libre'
-    // Con el formulario abierto, un día ocupado solo muestra su detalle: el
-    // rango que se venía armando no se pierde.
+    const libre = sePuedeReservar(dia, reservas)
     if (formAbierto) {
-      if (!libre) return
+      // Otro clic en el día elegido lo desmarca: vuelven a habilitarse todos.
+      if (fecha === form.inicio && form.inicio === form.fin) return setForm(FORM_INICIAL)
       const rango = rangoAlElegir(form, fecha, extender)
-      // Un rango que atraviesa días ocupados no se arma: arranca de nuevo en el día tocado.
-      if (rangoOcupado(rango.inicio, rango.fin, reservas)) {
-        setForm({ inicio: fecha, fin: fecha })
-        setFormError(ERROR_OCUPADO)
-        return
-      }
+      // Con Shift se puede estirar un rango ya armado por encima de una reserva:
+      // queda el rango anterior.
+      if (rangoOcupado(rango.inicio, rango.fin, reservas)) return setFormError(ERROR_OCUPADO)
       setForm(rango)
       return
     }
     // Un día ocupado no se ofrece para reservar: el formulario arranca vacío.
     setForm(libre ? { inicio: fecha, fin: fecha } : FORM_INICIAL)
   }
+
+  // Esc desmarca lo elegido sin cerrar el formulario.
+  useEffect(() => {
+    if (!formAbierto || !form.inicio) return
+    const alApretar = (e) => {
+      if (e.key !== 'Escape') return
+      setForm(FORM_INICIAL)
+      setFormError(null)
+    }
+    window.addEventListener('keydown', alApretar)
+    return () => window.removeEventListener('keydown', alApretar)
+  }, [formAbierto, form.inicio])
 
   const irAMes = ({ year: y, month: m }) => {
     setEstadoCarga('loading')
@@ -204,6 +236,30 @@ function Calendario() {
   const espaciosVacios = primerDiaSemana(year, month)
   const espaciosFinales = (7 - ((espaciosVacios + dias.length) % 7)) % 7
   const integrantes = integrantesEnReservas(reservas)
+  // Con el formulario abierto, los días ocupados no se pueden tocar. Elegido el
+  // primer día, tampoco los que cerrarían un rango por encima de otra reserva o
+  // más largo que el máximo.
+  const esperandoFin = formAbierto && Boolean(form.inicio) && form.inicio === form.fin
+  const fueraDeAlcance = (dia) => {
+    if (!esperandoFin) return false
+    const fecha = fechaInput(dia)
+    const [desde, hasta] = fecha < form.inicio ? [fecha, form.inicio] : [form.inicio, fecha]
+    return rangoOcupado(desde, hasta, reservas) || Boolean(turnoDemasiadoLargo(desde, hasta, maximoDias))
+  }
+  const motivoBloqueo = (dia) => {
+    if (!formAbierto) return null
+    if (fechaInput(dia) < hoyLocal()) return 'pasado'
+    if (diaAprobado(dia, reservas)) return 'ocupado'
+    return fueraDeAlcance(dia) ? 'alcance' : null
+  }
+  const finVisible =
+    esperandoFin && diaBajoMouse && !motivoBloqueo(new Date(`${diaBajoMouse}T00:00:00.000Z`)) ? diaBajoMouse : form.fin
+  const enRango = (dia) => {
+    if (!formAbierto || !form.inicio) return false
+    const fecha = fechaInput(dia)
+    const [desde, hasta] = finVisible < form.inicio ? [finVisible, form.inicio] : [form.inicio, finVisible || form.inicio]
+    return fecha >= desde && fecha <= hasta
+  }
   const destacada = reservas.find((reserva) => reserva.id === destacadaId && reserva.status === 'PENDING')
 
   return (
@@ -251,7 +307,7 @@ function Calendario() {
           />
         )}
 
-        <div className="cal" aria-busy={estadoCarga === 'loading'}>
+        <div className="cal" aria-busy={estadoCarga === 'loading'} onMouseLeave={() => setDiaBajoMouse(null)}>
           {estadoCarga === 'loading' && (
             <div className="cal__cargando">
               <Cargando panel={false}>Cargando las reservas del mes…</Cargando>
@@ -276,7 +332,10 @@ function Calendario() {
               hoy={dia.toISOString().slice(0, 10) === hoyLocal()}
               pasado={dia.toISOString().slice(0, 10) < hoyLocal()}
               cargando={estadoCarga === 'loading'}
-              enRango={formAbierto && Boolean(form.inicio) && fechaInput(dia) >= form.inicio && fechaInput(dia) <= (form.fin || form.inicio)}
+              bloqueo={motivoBloqueo(dia)}
+              enRango={enRango(dia)}
+              userId={userId}
+              onHover={() => setDiaBajoMouse(fechaInput(dia))}
               onSelect={(extender) => seleccionarDia(dia, extender)}
             />
           ))}
@@ -301,10 +360,6 @@ function Calendario() {
             <span className="legend__d cal-dot--pendiente" />
             Pendiente
           </li>
-          <li className="legend__i">
-            <span className="legend__d cal-dot--rechazado" />
-            Rechazado
-          </li>
         </ul>
       </section>
 
@@ -319,7 +374,7 @@ function Calendario() {
                 title="Reservar días para uso propio. Los alquileres a terceros se cargan en Alquiler."
                 onClick={() => setFormAbierto(true)}
               >
-                {diaSeleccionado && estadoDelDia(new Date(diaSeleccionado), reservas).estado === 'libre'
+                {diaSeleccionado && sePuedeReservar(new Date(diaSeleccionado), reservas)
                   ? etiquetaReserva(new Date(diaSeleccionado))
                   : 'Reservar'}
               </button>
@@ -332,7 +387,7 @@ function Calendario() {
               <h2 className="cal-form__t">Nueva reserva</h2>
               <p className="hint cal-form__hint">
                 Reserva de uso propio. Para alquilar a un tercero está la sección Alquiler. En el calendario, un
-                clic marca el primer día y otro el último; Shift+clic estira el rango.
+                clic marca el primer día y otro el último; otro clic en el mismo día (o Esc) lo desmarca, y Shift+clic estira el rango.
                 {maximoDias != null && ` Hasta ${maximoDias === 1 ? '1 día' : `${maximoDias} días seguidos`}.`}
               </p>
 
@@ -370,6 +425,27 @@ function DetalleDia({ dia, reservas, destacadaId }) {
   const info = dia ? estadoDelDia(dia, reservas, destacadaId) : null
   let descripcion = 'Elegir un día del calendario para ver su detalle.'
 
+  if (dia && info.pendientes?.length > 1) {
+    return (
+      <div className="panel cal-detail" aria-live="polite">
+        <h2 className="cal-detail__t">{fechaDetalle(dia)}</h2>
+        <p className="cal-detail__d">
+          {info.pendientes.length} pedidos pendientes que se pisan. Si se aprueba uno, los demás se rechazan solos.
+        </p>
+        <ul className="cal-detail__pend" role="list">
+          {info.pendientes.map((reserva) => (
+            <li key={reserva.id}>
+              {nombreDePendiente(reserva)} · {formatRange(fechaSolo(reserva.startDate), fechaSolo(reserva.endDate))}
+            </li>
+          ))}
+        </ul>
+        <Link className="btn btn--link" to="/reservas" state={{ tab: 'votar' }}>
+          Votar en Reservas
+        </Link>
+      </div>
+    )
+  }
+
   if (dia && info.estado === 'libre') {
     descripcion = 'Día disponible para ser reservado.'
   } else if (dia && info.estado === 'reservado') {
@@ -377,8 +453,6 @@ function DetalleDia({ dia, reservas, destacadaId }) {
     descripcion = info.pendiente ? `Reserva pendiente de ${nombre}.` : `Reserva confirmada de ${nombre}.`
   } else if (dia && info.estado === 'alquilado') {
     return <DetalleAlquiler dia={dia} alquiler={info.alquiler} />
-  } else if (dia && info.estado === 'rechazado') {
-    descripcion = 'Reserva rechazada.'
   }
 
   return (
@@ -441,18 +515,28 @@ function DetalleAlquiler({ dia, alquiler }) {
   )
 }
 
-const ABREVIATURAS = { Alquiler: 'Alq.', Rechazado: 'Rech.' }
+const ABREVIATURAS = { Alquiler: 'Alq.' }
 const abreviar = (etiqueta) => ABREVIATURAS[etiqueta] ?? etiqueta.slice(0, 2)
 
+const TITULO_BLOQUEO = {
+  pasado: 'No se puede elegir: ya pasó',
+  alcance: 'No se puede elegir: el rango pasaría por otra reserva o superaría el máximo de días',
+}
+
 // Una celda del mes. Uso propio: tinte del tono del integrante (punteado si
-// está pendiente) con sus iniciales; alquiler y rechazo tienen su propio estilo.
-function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect }) {
+// está pendiente); con varios pendientes, un renglón por pedido o sus iniciales.
+function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, bloqueo, userId, onHover, onSelect }) {
   const { estado } = info
-  const clases = ['cal__c', `cal__c--${estado}`]
+  const varios = info.pendientes?.length > 1
+  const bloqueado = Boolean(bloqueo)
+  const clases = ['cal__c', varios ? 'cal__c--varios' : `cal__c--${estado}`]
   if (seleccionado) clases.push('cal__c--on')
   if (hoy) clases.push('cal__c--hoy')
   if (pasado) clases.push('cal__c--pasado')
   if (enRango) clases.push('cal__c--rango')
+  // Fuera de alcance va tachado; lo ocupado o pasado solo se atenúa, ya tiene su color.
+  if (bloqueo === 'alcance') clases.push('cal__c--bloqueado')
+  else if (bloqueado) clases.push('cal__c--inactivo')
   let etiqueta = ''
   let estilo
 
@@ -464,14 +548,19 @@ function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect
     // Pendiente de aprobacion: borde punteado, como el uso propio.
     if (info.pendiente) clases.push('cal__c--pendiente')
     etiqueta = 'Alquiler'
-  } else if (estado === 'rechazado') {
-    etiqueta = 'Rechazado'
   }
 
   const sufijo = info.pendiente ? ' (pendiente)' : ''
+  const nombresPendientes = varios ? info.pendientes.map(nombreDePendiente).join(', ') : ''
   // Mientras carga, la grilla vacía no tiene que anunciar "Libre".
   const titulo = cargando
     ? 'Cargando'
+    : bloqueo === 'ocupado'
+    ? `No se puede elegir: ${ETIQUETA_ESTADO[estado].toLowerCase()}`
+    : bloqueado
+    ? TITULO_BLOQUEO[bloqueo]
+    : varios
+    ? `${info.pendientes.length} pendientes: ${nombresPendientes}`
     : info.userName
     ? `${ETIQUETA_ESTADO[estado]}: ${info.userName}${sufijo}`
     : `${ETIQUETA_ESTADO[estado]}${sufijo}`
@@ -485,13 +574,38 @@ function Dia({ dia, info, seleccionado, hoy, pasado, cargando, enRango, onSelect
       aria-label={`${hoy ? 'Hoy, ' : ''}${fechaDetalle(dia)}. ${titulo}${enRango ? '. En el rango a reservar' : ''}`}
       aria-pressed={seleccionado}
       aria-current={hoy ? 'date' : undefined}
+      disabled={bloqueado}
+      onMouseEnter={onHover}
       onClick={(e) => onSelect(e.shiftKey)}
     >
       <span className="cal__n">
         {dia.getUTCDate()}
         {hoy && <span className="cal__hoy">Hoy</span>}
       </span>
-      {etiqueta && (
+      {varios && info.pendientes.length === 2 && (
+        <span className="cal__ps">
+          {info.pendientes.map((reserva) => (
+            <span key={reserva.id} className={clasePendiente(reserva, userId)} style={tonoPendiente(reserva)}>
+              <span className="cal__t-largo">{nombreDePendiente(reserva)}</span>
+              <span className="cal__t-corto" aria-hidden="true">
+                {abreviar(nombreDePendiente(reserva))}
+              </span>
+            </span>
+          ))}
+        </span>
+      )}
+      {/* Con 3 o más, las iniciales en un renglón: la celda no crece y los nombres completos están en el detalle. */}
+      {info.pendientes?.length > 2 && (
+        <span className="cal__ini" aria-hidden="true">
+          {info.pendientes.slice(0, 3).map((reserva) => (
+            <span key={reserva.id} className={`${clasePendiente(reserva, userId)} cal__p--ini`} style={tonoPendiente(reserva)}>
+              {reserva.type === 'RENTAL' ? 'Alq' : (reserva.user?.name ?? '?').slice(0, 2)}
+            </span>
+          ))}
+          {info.pendientes.length > 3 && <span className="cal__ini-mas">+{info.pendientes.length - 3}</span>}
+        </span>
+      )}
+      {!varios && etiqueta && (
         <span className="cal__t">
           <span className="cal__t-largo">{etiqueta}</span>
           {/* En mobile la celda mide ~47px: va la abreviatura; el nombre completo está en el detalle del día. */}

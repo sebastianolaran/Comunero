@@ -22,6 +22,11 @@ import './Reservas.css'
 
 const fecha = (valor) => String(valor).slice(0, 10)
 const rango = (reserva) => formatRange(fecha(reserva.startDate), fecha(reserva.endDate))
+
+function descripcionPisada(otra) {
+  const quien = otra.type === 'RENTAL' ? `el alquiler${otra.name ? ` de ${otra.name}` : ''}` : `el pedido de ${otra.name ?? 'otro integrante'}`
+  return `${quien} (${rango(otra)})`
+}
 const dias = (reserva) => daysLabel(fecha(reserva.startDate), fecha(reserva.endDate))
 
 const CLASE_ESTADO = { ACTIVE: 'tag tag--solid tag--si', PENDING: 'tag tag--dash', REJECTED: 'tag tag--no' }
@@ -360,6 +365,11 @@ function VotoReserva({ reserva, userId, onVotado }) {
         {rango(reserva)} · {dias(reserva)}
       </p>
       <ChipsVoto votes={reserva.votes} />
+      {reserva.overlapsWith?.length > 0 && (
+        <p className="res-voto__pisa">
+          Se pisa con {reserva.overlapsWith.map(descripcionPisada).join(' y ')}: si se aprueba este, {reserva.overlapsWith.length === 1 ? 'ese se rechaza solo' : 'esos se rechazan solos'}.
+        </p>
+      )}
       <FieldError>{envio.error}</FieldError>
       {rechazando ? (
         <div className="res-voto__rechazo">

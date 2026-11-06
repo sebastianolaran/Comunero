@@ -117,3 +117,13 @@
 .res-modal__cal {
   margin-top: 16px;
 }
+
+/* Pedido que se pisa con otro pendiente: aprobar este rechaza al otro. */
+.res-voto__pisa {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm, 6px);
+  background: oklch(96% 0.04 85);
+  color: oklch(38% 0.08 70);
+  font-size: var(--fs-meta);
+}

@@ -54,15 +54,17 @@ function fechaUTC(valor) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-// Mismo criterio que el server: aprobadas y pendientes bloquean, rechazadas y
-// canceladas no. Fechas 'YYYY-MM-DD'.
+// Mismo criterio que el server: solo bloquea lo aprobado. Un pendiente se puede
+// pisar porque todavía se vota. Fechas 'YYYY-MM-DD'.
 export function rangoOcupado(inicio, fin, reservas) {
   if (!inicio || !fin) return false;
   const desde = fechaUTC(`${inicio}T00:00:00Z`);
   const hasta = fechaUTC(`${fin}T00:00:00Z`);
-  return reservas.some(
-    (r) => ['ACTIVE', 'PENDING'].includes(r.status) && fechaUTC(r.startDate) <= hasta && fechaUTC(r.endDate) >= desde,
-  );
+  return reservas.some((r) => r.status === 'ACTIVE' && fechaUTC(r.startDate) <= hasta && fechaUTC(r.endDate) >= desde);
+}
+
+export function diaAprobado(dia, reservas) {
+  return reservas.some((r) => r.status === 'ACTIVE' && cubreElDia(r, dia));
 }
 
 function cubreElDia(reserva, dia) {
@@ -70,18 +72,16 @@ function cubreElDia(reserva, dia) {
   return diaUTC >= fechaUTC(reserva.startDate) && diaUTC <= fechaUTC(reserva.endDate);
 }
 
-// Regla: "cada dia debe mostrar su estado: libre, reservado a un
-// integrante, alquilado a un tercero, o rechazado, mediante un color o
-// estilo distintivo".
+// Cada dia se ve libre, reservado a un integrante o alquilado a un tercero.
+// Las rechazadas no se muestran: el dia queda libre (se ven en Reservas).
 //
-// Si hay mas de una reserva sobre el mismo dia, una vigente (ACTIVE o
-// PENDING) tiene prioridad sobre una rechazada: una pendiente tambien ocupa
-// el dia (el server no deja reservar encima), asi que nunca se ve libre.
-// Entre vigentes gana la aprobada y, si no hay, la pendiente seleccionada
-// en "Por votar". Las canceladas ya vienen filtradas por el backend, pero se
+// Si hay mas de una reserva sobre el mismo dia, gana la
+// aprobada y, si no hay, la pendiente seleccionada en "Por votar". Sin
+// aprobada, pendientes trae todas las del dia (varias pueden pisarse mientras
+// se votan). Las canceladas ya vienen filtradas por el backend, pero se
 // ignoran igual por si acaso.
 export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
-  const delDia = reservas.filter((r) => r.status !== 'CANCELLED' && cubreElDia(r, dia));
+  const delDia = reservas.filter((r) => ['ACTIVE', 'PENDING'].includes(r.status) && cubreElDia(r, dia));
 
   if (delDia.length === 0) {
     return { estado: 'libre' };
@@ -91,7 +91,10 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
     ?? delDia.find((r) => r.status === 'PENDING' && r.id === reservaPendienteId)
     ?? delDia.find((r) => r.status === 'PENDING');
   if (vigente) {
-    return vigente.type === 'RENTAL'
+    const pendientes = vigente.status === 'PENDING'
+      ? [vigente, ...delDia.filter((r) => r.status === 'PENDING' && r !== vigente)]
+      : [];
+    const info = vigente.type === 'RENTAL'
       ? {
           estado: 'alquilado',
           pendiente: vigente.status === 'PENDING',
@@ -108,11 +111,10 @@ export function estadoDelDia(dia, reservas, reservaPendienteId = null) {
           hue: vigente.userHue ?? null,
           userName: vigente.user?.name,
         };
+    return { ...info, pendientes };
   }
 
-  const rechazada = delDia.find((r) => r.status === 'REJECTED');
-  if (!rechazada) return { estado: 'libre' };
-  return { estado: 'rechazado', reservationId: rechazada.id, userId: rechazada.userId };
+  return { estado: 'libre' };
 }
 
 // Tono oklch de cada integrante: el que manda el server (elegido en
